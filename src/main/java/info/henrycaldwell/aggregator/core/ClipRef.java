@@ -10,6 +10,6 @@ public record ClipRef(
     String id,
     String url,
     String title,
-    String author,
+    String broadcaster,
     String language
 ) {}
