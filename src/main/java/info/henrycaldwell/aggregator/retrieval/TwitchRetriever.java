@@ -14,13 +14,6 @@ import com.github.twitch4j.helix.domain.ClipList;
 import info.henrycaldwell.aggregator.core.ClipRef;
 
 /**
- * Class for downloading clips via the yt-dlp command-line extractor.
- * 
- * This class invokes yt-dlp as a subprocess and writes the resulting media
- * file.
- */
-
-/**
  * Class for retrieving clips from Twitch Helix.
  * 
  * This class queries the Clips endpoint for a game or broadcaster.
@@ -31,7 +24,7 @@ public class TwitchRetriever implements Retriever {
   private final String token;
 
   /**
-   * Constructs a TwitchRetriever using a Herlix-enabled Twitch client.
+   * Constructs a TwitchRetriever using a Helix-enabled Twitch client.
    * 
    * @param token A string representing the app access token.
    */
@@ -127,8 +120,6 @@ public class TwitchRetriever implements Retriever {
               end,
               null)
           .execute();
-
-      System.out.println(page);
 
       if (page.getData() == null || page.getData().isEmpty()) {
         break;
