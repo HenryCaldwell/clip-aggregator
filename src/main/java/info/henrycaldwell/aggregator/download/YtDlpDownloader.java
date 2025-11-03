@@ -19,7 +19,7 @@ public class YtDlpDownloader implements Downloader {
   private final String ytDlpPath;
 
   /**
-   * Constructs a YtDlpDownloader instance with a given executable path.
+   * Constructs a YtDlpDownloader with a given executable path.
    *
    * @param ytDlpPath A string representing the yt-dlp executable.
    */
