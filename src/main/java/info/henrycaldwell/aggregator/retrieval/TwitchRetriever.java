@@ -10,78 +10,78 @@ import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.helix.domain.Clip;
 import com.github.twitch4j.helix.domain.ClipList;
+import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.core.ClipRef;
 
 /**
  * Class for retrieving clips from Twitch Helix.
  * 
- * This class queries the Clips endpoint for a game or broadcaster.
+ * This class queries the Twitch Clips endpoint for a game or broadcaster.
  */
 public class TwitchRetriever implements Retriever {
 
   private final TwitchClient twitch;
+
+  private final String name;
   private final String token;
+  private final String gameId;
+  private final String broadcasterId;
+  private final String language;
+  private final Duration window;
+  private final int limit;
 
   /**
-   * Constructs a TwitchRetriever using a Helix-enabled Twitch client.
+   * Constructs a TwitchRetriever.
    * 
-   * @param token A string representing the app access token.
+   * @param config A {@link Config} representing the retriever block.
    */
-  public TwitchRetriever(String token) {
+  public TwitchRetriever(Config config) {
+    this.name = config.getString("name");
+    this.token = config.getString("token");
+    this.gameId = config.hasPath("gameId") ? config.getString("gameId") : null;
+    this.broadcasterId = config.hasPath("broadcasterId") ? config.getString("broadcasterId") : null;
+    this.language = config.hasPath("language") ? config.getString("language") : null;
+
+    long hours = config.hasPath("hours") ? config.getNumber("hours").longValue() : 24L;
+    if (hours <= 0) {
+      throw new IllegalArgumentException("Field hours must be greater than 0 (" + name + ")");
+    }
+    this.window = Duration.ofHours(hours);
+
+    int limit = config.hasPath("limit") ? config.getNumber("limit").intValue() : 20;
+    if (limit <= 0) {
+      throw new IllegalArgumentException("Field limit must be greater than 0 (" + name + ")");
+    }
+    this.limit = limit;
+
+    if ((gameId == null) == (broadcasterId == null)) {
+      throw new IllegalArgumentException("Specify exactly one of gameId or broadcasterId (" + name + ")");
+    }
+
+    if (broadcasterId != null && language != null) {
+      throw new IllegalArgumentException("Field language is only allowed with gameId (" + name + ")");
+    }
+
     this.twitch = TwitchClientBuilder.builder().withEnableHelix(true).build();
-    this.token = token;
   }
 
   /**
-   * Retrieves recent clips for a game within a time window.
-   * 
-   * @param id       A string representing the game id.
-   * @param window   A duration representing how far back to look (e.g., 24
-   *                 hours).
-   * @param limit    An integer representing the maximum number of clips to
-   *                 return.
-   * @param language A string representing the ISO language filter (e.g., "en"),
-   *                 or {@code null} for any.
-   * @return A list of {@link ClipRef} suitable for downloading.
+   * Retrieves clips for a game or broadcaster.
+   *
+   * @return A list of {@link ClipRef} representing the retrieved clips.
    */
   @Override
-  public List<ClipRef> fetchGame(String id, Duration window, int limit, String language) {
+  public List<ClipRef> fetch() {
     Instant end = Instant.now();
     Instant start = end.minus(window);
-    List<Clip> candidates = pageClips(id, null, start, end, limit);
+    List<Clip> candidates = (gameId != null)
+        ? pageClips(null, gameId, start, end, limit)
+        : pageClips(broadcasterId, null, start, end, limit);
 
     return candidates.stream()
         .sorted(Comparator.comparingInt(Clip::getViewCount).reversed())
-        .filter(c -> language == null || language.equalsIgnoreCase(c.getLanguage()))
-        .limit(limit)
-        .map(c -> new ClipRef(
-            c.getId(),
-            c.getUrl(),
-            c.getTitle(),
-            c.getBroadcasterName(),
-            c.getLanguage()))
-        .toList();
-  }
-
-  /**
-   * Retrieves recent clips for a broadcaster within a time window.
-   * 
-   * @param id     A string representing the broadcaster id.
-   * @param window A duration representing how far back to look (e.g., 24
-   *               hours).
-   * @param limit  An integer representing the maximum number of clips to
-   *               return.
-   * @return A list of {@link ClipRef} suitable for downloading.
-   */
-  @Override
-  public List<ClipRef> fetchBroadcaster(String id, Duration window, int limit) {
-    Instant end = Instant.now();
-    Instant start = end.minus(window);
-    List<Clip> candidates = pageClips(null, id, start, end, limit);
-
-    return candidates.stream()
-        .sorted(Comparator.comparingInt(Clip::getViewCount).reversed())
+        .filter(c -> gameId == null || language == null || language.equalsIgnoreCase(c.getLanguage()))
         .limit(limit)
         .map(c -> new ClipRef(
             c.getId(),
@@ -100,6 +100,8 @@ public class TwitchRetriever implements Retriever {
    *                      {@code null}.
    * @param start         An instant representing the inclusive start time.
    * @param end           An instant representing the exclusive end time.
+   * @param limit         An integer representing the maximum number of clips to
+   *                      return.
    * @return A list of {@link Clip} values gathered across pages.
    */
   private List<Clip> pageClips(String gameId, String broadcasterId, Instant start, Instant end, int limit) {
