@@ -5,6 +5,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
+import com.typesafe.config.Config;
+
 import info.henrycaldwell.aggregator.core.ClipRef;
 import info.henrycaldwell.aggregator.core.DownloadRef;
 
@@ -16,15 +18,17 @@ import info.henrycaldwell.aggregator.core.DownloadRef;
  */
 public class YtDlpDownloader implements Downloader {
 
+  private final String name;
   private final String ytDlpPath;
 
   /**
-   * Constructs a YtDlpDownloader with a given executable path.
+   * Constructs a YtDlpDownloader.
    *
-   * @param ytDlpPath A string representing the yt-dlp executable.
+   * @param config A {@link Config} representing the transformer block.
    */
-  public YtDlpDownloader(String ytDlpPath) {
-    this.ytDlpPath = ytDlpPath;
+  public YtDlpDownloader(Config config) {
+    this.name = config.getString("name");
+    this.ytDlpPath = config.getString("ytDlpPath");
   }
 
   /**
