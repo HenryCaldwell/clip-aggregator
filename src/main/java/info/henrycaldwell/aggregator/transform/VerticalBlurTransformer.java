@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
+import com.typesafe.config.Config;
+
 import info.henrycaldwell.aggregator.core.MediaRef;
 
 /**
@@ -23,38 +25,16 @@ public class VerticalBlurTransformer implements Transformer {
   private final int blurSteps;
 
   /**
-   * Constructs a VerticalBlurTransformer with a given executable path and
-   * defaults suitable for common short form content platforms.
+   * Constructs a VerticalBlurTransformer.
    *
-   * @param ffmpegPath A string representing the ffmpeg executable.
+   * @param config A {@link Config} representing the transformer block.
    */
-  public VerticalBlurTransformer(String ffmpegPath) {
-    this.ffmpegPath = ffmpegPath;
-    this.targetWidth = 1080;
-    this.targetHeight = 1920;
-    this.blurSigma = 40;
-    this.blurSteps = 2;
-  }
-
-  /**
-   * Constructs a VerticalBlurTransformer with a given executable path and custom
-   * geometry and blur settings.
-   *
-   * @param ffmpegPath   A string representing the ffmpeg executable.
-   * @param targetWidth  An integer representing the output width in pixels.
-   * @param targetHeight An integer representing the output height in pixels.
-   * @param blurSigma    A double representing the Gaussian blur sigma for the
-   *                     background.
-   * @param blurSteps    An integer representing the number of Gaussian blur
-   *                     steps.
-   */
-  public VerticalBlurTransformer(String ffmpegPath, int targetWidth, int targetHeight, double blurSigma,
-      int blurSteps) {
-    this.ffmpegPath = ffmpegPath;
-    this.targetWidth = targetWidth;
-    this.targetHeight = targetHeight;
-    this.blurSigma = blurSigma;
-    this.blurSteps = blurSteps;
+  public VerticalBlurTransformer(Config config) {
+    this.ffmpegPath = config.getString("ffmpegPath");
+    this.targetWidth = config.hasPath("targetWidth") ? config.getInt("targetWidth") : 1080;
+    this.targetHeight = config.hasPath("targetHeight") ? config.getInt("targetHeight") : 1920;
+    this.blurSigma = config.hasPath("blurSigma") ? config.getDouble("blurSigma") : 40.0;
+    this.blurSteps = config.hasPath("blurSteps") ? config.getInt("blurSteps") : 2;
   }
 
   /**

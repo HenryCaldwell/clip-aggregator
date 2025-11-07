@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
+import com.typesafe.config.Config;
+
 import info.henrycaldwell.aggregator.core.MediaRef;
 
 /**
@@ -19,19 +21,18 @@ public class FpsTransformer implements Transformer {
   private final int targetFps;
 
   /**
-   * Constructs an FpsTransformer with a given executable path and target fps.
+   * Constructs an FpsTransformer.
    *
-   * @param ffmpegPath A string representing the ffmpeg executable.
-   * @param targetFps  An integer representing the desired output frame rate in
-   *                   frames per second.
+   * @param config A {@link Config} representing the transformer block.
    * @throws IllegalArgumentException if the target fps is not positive.
    */
-  public FpsTransformer(String ffmpegPath, int targetFps) {
+  public FpsTransformer(Config config) {
+    this.ffmpegPath = config.getString("ffmpegPath");
+
+    int targetFps = config.getInt("fps");
     if (targetFps <= 0) {
       throw new IllegalArgumentException("Target fps must be positive (fps: " + targetFps + ")");
     }
-
-    this.ffmpegPath = ffmpegPath;
     this.targetFps = targetFps;
   }
 
