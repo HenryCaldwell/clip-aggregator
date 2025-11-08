@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 
-import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.transform.Transformer;
 
 /**
@@ -15,14 +15,6 @@ import info.henrycaldwell.aggregator.transform.Transformer;
  * the transformer pipeline.
  */
 public final class PipelineFactory {
-
-  private static final Spec PIPELINE_BLOCK_SPEC = Spec.builder()
-      .requiredString("name")
-      .build();
-
-  private static final Spec TRANSFORMER_BLOCK_SPEC = Spec.builder()
-      .requiredString("type")
-      .build();
 
   private PipelineFactory() {
   }
@@ -35,19 +27,33 @@ public final class PipelineFactory {
    * @throws IllegalArgumentException if the type is unknown.
    */
   public static Pipeline fromConfig(Config config) {
-    PIPELINE_BLOCK_SPEC.validate(config, "BASE_PIPELINE");
+    if (!config.hasPath("name") || config.getString("name").isBlank()) {
+      throw new IllegalArgumentException("Missing required key name (UNNAMED_PIPELINE)");
+    }
 
     String name = config.getString("name");
+
+    if (!config.hasPath("transformers")) {
+      throw new IllegalArgumentException("Missing required key transformers (" + name + ")");
+    }
+
     List<Transformer> steps = new ArrayList<>();
 
     if (config.hasPath("transformers")) {
-      List<? extends Config> transformers = config.getConfigList("transformers");
+      List<? extends Config> transformers;
+      try {
+        transformers = config.getConfigList("transformers");
+      } catch (ConfigException.WrongType e) {
+        throw new IllegalArgumentException("Invalid type for key transformers (" + name + ")", e);
+      }
 
       for (int i = 0; i < transformers.size(); i++) {
         Config transformerConfig = transformers.get(i);
         String baseContext = name + " BASE_TRANSFORMER[" + i + "]";
 
-        TRANSFORMER_BLOCK_SPEC.validate(transformerConfig, baseContext);
+        if (!transformerConfig.hasPath("type") || transformerConfig.getString("type").isBlank()) {
+          throw new IllegalArgumentException("Missing required key type (" + baseContext + ")");
+        }
 
         String type = transformerConfig.getString("type");
         String context = name + " " + type;

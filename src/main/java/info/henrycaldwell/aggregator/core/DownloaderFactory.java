@@ -2,7 +2,6 @@ package info.henrycaldwell.aggregator.core;
 
 import com.typesafe.config.Config;
 
-import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.download.Downloader;
 
 /**
@@ -12,10 +11,6 @@ import info.henrycaldwell.aggregator.download.Downloader;
  * a concrete downloader.
  */
 public final class DownloaderFactory {
-
-  private static final Spec DOWNLOADER_BLOCK_SPEC = Spec.builder()
-      .requiredString("type", "name")
-      .build();
 
   private DownloaderFactory() {
   }
@@ -28,10 +23,17 @@ public final class DownloaderFactory {
    * @throws IllegalArgumentException if the type is unknown.
    */
   public static Downloader fromConfig(Config config) {
-    DOWNLOADER_BLOCK_SPEC.validate(config, "BASE_DOWNLOADER");
+    if (!config.hasPath("name") || config.getString("name").isBlank()) {
+      throw new IllegalArgumentException("Missing required key name (UNNAMED_DOWNLOADER)");
+    }
+
+    String name = config.getString("name");
+
+    if (!config.hasPath("type") || config.getString("type").isBlank()) {
+      throw new IllegalArgumentException("Missing required key type (" + name + ")");
+    }
 
     String type = config.getString("type");
-    String name = config.getString("name");
 
     switch (type) {
       case "EXAMPLE 1" -> {

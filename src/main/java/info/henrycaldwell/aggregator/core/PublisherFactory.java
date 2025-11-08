@@ -2,7 +2,6 @@ package info.henrycaldwell.aggregator.core;
 
 import com.typesafe.config.Config;
 
-import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.publish.Publisher;
 
 /**
@@ -12,10 +11,6 @@ import info.henrycaldwell.aggregator.publish.Publisher;
  * a concrete publisher.
  */
 public final class PublisherFactory {
-
-  private static final Spec PUBLISHER_BLOCK_SPEC = Spec.builder()
-      .requiredString("type", "name")
-      .build();
 
   private PublisherFactory() {
   }
@@ -28,10 +23,17 @@ public final class PublisherFactory {
    * @throws IllegalArgumentException if the type is unknown.
    */
   public static Publisher fromConfig(Config config) {
-    PUBLISHER_BLOCK_SPEC.validate(config, "BASE_PUBLISHER");
+    if (!config.hasPath("name") || config.getString("name").isBlank()) {
+      throw new IllegalArgumentException("Missing required key name (UNNAMED_PUBLISHER)");
+    }
+
+    String name = config.getString("name");
+
+    if (!config.hasPath("type") || config.getString("type").isBlank()) {
+      throw new IllegalArgumentException("Missing required key type (" + name + ")");
+    }
 
     String type = config.getString("type");
-    String name = config.getString("name");
 
     switch (type) {
       case "EXAMPLE 1" -> {
