@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 
 /**
@@ -16,6 +17,11 @@ import info.henrycaldwell.aggregator.core.MediaRef;
  * This class re-samples the input to a target frames-per-second value.
  */
 public class FpsTransformer implements Transformer {
+
+  public static final Spec SPEC = Spec.builder()
+      .requiredString("type", "ffmpegPath")
+      .optionalNumber("targetFps")
+      .build();
 
   private final String ffmpegPath;
   private final int targetFps;
@@ -29,7 +35,7 @@ public class FpsTransformer implements Transformer {
   public FpsTransformer(Config config) {
     this.ffmpegPath = config.getString("ffmpegPath");
 
-    int targetFps = config.getInt("fps");
+    int targetFps = config.getInt("targetFps");
     if (targetFps <= 0) {
       throw new IllegalArgumentException("Target fps must be positive (fps: " + targetFps + ")");
     }

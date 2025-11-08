@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 
 /**
@@ -17,6 +18,11 @@ import info.henrycaldwell.aggregator.core.MediaRef;
  * source and centering the original clip on top.
  */
 public class VerticalBlurTransformer implements Transformer {
+
+  public static final Spec SPEC = Spec.builder()
+      .requiredString("type", "ffmpegPath")
+      .optionalNumber("targetWidth", "targetHeight", "blurSigma", "blurSteps")
+      .build();
 
   private final String ffmpegPath;
   private final int targetWidth;
