@@ -12,6 +12,7 @@ import com.github.twitch4j.helix.domain.Clip;
 import com.github.twitch4j.helix.domain.ClipList;
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.ClipRef;
 
 /**
@@ -20,6 +21,12 @@ import info.henrycaldwell.aggregator.core.ClipRef;
  * This class queries the Twitch Clips endpoint for a game or broadcaster.
  */
 public class TwitchRetriever implements Retriever {
+
+  public static final Spec SPEC = Spec.builder()
+      .requiredString("name", "type", "token")
+      .optionalString("gameId", "broadcasterId", "language")
+      .optionalNumber("hours", "limit")
+      .build();
 
   private final TwitchClient twitch;
 
