@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.ClipRef;
 import info.henrycaldwell.aggregator.core.DownloadRef;
 
@@ -17,6 +18,10 @@ import info.henrycaldwell.aggregator.core.DownloadRef;
  * file.
  */
 public class YtDlpDownloader implements Downloader {
+
+  public static final Spec SPEC = Spec.builder()
+      .requiredString("name", "type", "ytDlpPath")
+      .build();
 
   private final String name;
   private final String ytDlpPath;
