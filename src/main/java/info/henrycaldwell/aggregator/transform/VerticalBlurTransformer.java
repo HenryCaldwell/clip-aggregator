@@ -17,10 +17,10 @@ import info.henrycaldwell.aggregator.core.MediaRef;
  * This class creates a 9:16 output by generating a blurred background from the
  * source and centering the original clip on top.
  */
-public class VerticalBlurTransformer implements Transformer {
+public class VerticalBlurTransformer extends AbstractTransformer {
 
   public static final Spec SPEC = Spec.builder()
-      .requiredString("type", "ffmpegPath")
+      .requiredString("ffmpegPath")
       .optionalNumber("targetWidth", "targetHeight", "blurSigma", "blurSteps")
       .build();
 
@@ -36,11 +36,13 @@ public class VerticalBlurTransformer implements Transformer {
    * @param config A {@link Config} representing the transformer block.
    */
   public VerticalBlurTransformer(Config config) {
+    super(config, SPEC);
+
     this.ffmpegPath = config.getString("ffmpegPath");
-    this.targetWidth = config.hasPath("targetWidth") ? config.getInt("targetWidth") : 1080;
-    this.targetHeight = config.hasPath("targetHeight") ? config.getInt("targetHeight") : 1920;
-    this.blurSigma = config.hasPath("blurSigma") ? config.getDouble("blurSigma") : 40.0;
-    this.blurSteps = config.hasPath("blurSteps") ? config.getInt("blurSteps") : 2;
+    this.targetWidth = config.hasPath("targetWidth") ? config.getNumber("targetWidth").intValue() : 1080;
+    this.targetHeight = config.hasPath("targetHeight") ? config.getNumber("targetHeight").intValue() : 1920;
+    this.blurSigma = config.hasPath("blurSigma") ? config.getNumber("blurSigma").doubleValue() : 40.0;
+    this.blurSteps = config.hasPath("blurSteps") ? config.getNumber("blurSteps").intValue() : 2;
   }
 
   /**

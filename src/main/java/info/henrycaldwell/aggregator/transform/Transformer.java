@@ -11,6 +11,13 @@ import info.henrycaldwell.aggregator.core.MediaRef;
 public interface Transformer {
 
   /**
+   * Returns the configured transformer name.
+   *
+   * @return A string representing the transformer name.
+   */
+  String getName();
+
+  /**
    * Applies a transformation to the input media.
    *
    * @param media A {@code MediaRef} representing the current artifact.

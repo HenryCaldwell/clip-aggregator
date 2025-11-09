@@ -16,10 +16,10 @@ import info.henrycaldwell.aggregator.core.MediaRef;
  * 
  * This class re-samples the input to a target frames-per-second value.
  */
-public class FpsTransformer implements Transformer {
+public class FpsTransformer extends AbstractTransformer {
 
   public static final Spec SPEC = Spec.builder()
-      .requiredString("type", "ffmpegPath")
+      .requiredString("ffmpegPath")
       .optionalNumber("targetFps")
       .build();
 
@@ -33,9 +33,11 @@ public class FpsTransformer implements Transformer {
    * @throws IllegalArgumentException if the target fps is not positive.
    */
   public FpsTransformer(Config config) {
+    super(config, SPEC);
+
     this.ffmpegPath = config.getString("ffmpegPath");
 
-    int targetFps = config.getInt("targetFps");
+    int targetFps = config.hasPath("targetFps") ? config.getNumber("targetFps").intValue() : 30;
     if (targetFps <= 0) {
       throw new IllegalArgumentException("Target fps must be positive (fps: " + targetFps + ")");
     }
