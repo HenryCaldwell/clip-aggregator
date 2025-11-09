@@ -39,41 +39,39 @@ public final class PipelineFactory {
       throw new IllegalArgumentException("Missing required key transformers (" + pipelineName + ")");
     }
 
+    List<? extends Config> transformers;
+    try {
+      transformers = config.getConfigList("transformers");
+    } catch (ConfigException.WrongType e) {
+      throw new IllegalArgumentException("Invalid type for key transformers (" + pipelineName + ")", e);
+    }
+
     List<Transformer> steps = new ArrayList<>();
 
-    if (config.hasPath("transformers")) {
-      List<? extends Config> transformers;
-      try {
-        transformers = config.getConfigList("transformers");
-      } catch (ConfigException.WrongType e) {
-        throw new IllegalArgumentException("Invalid type for key transformers (" + pipelineName + ")", e);
+    for (int i = 0; i < transformers.size(); i++) {
+      Config transformerConfig = transformers.get(i);
+
+      if (!transformerConfig.hasPath("name") || transformerConfig.getString("name").isBlank()) {
+        throw new IllegalArgumentException("Missing required key name (UNNAMED_TRANSFORMER)");
       }
 
-      for (int i = 0; i < transformers.size(); i++) {
-        Config transformerConfig = transformers.get(i);
+      String transformerName = transformerConfig.getString("name");
 
-        if (!config.hasPath("name") || config.getString("name").isBlank()) {
-          throw new IllegalArgumentException("Missing required key name (UNNAMED_TRANSFORMER)");
+      if (!transformerConfig.hasPath("type") || transformerConfig.getString("type").isBlank()) {
+        throw new IllegalArgumentException("Missing required key type (" + transformerName + ")");
+      }
+
+      String type = transformerConfig.getString("type");
+
+      switch (type) {
+        case "vertical_blur" -> {
+          steps.add(new VerticalBlurTransformer(transformerConfig));
         }
-
-        String transformerName = config.getString("name");
-
-        if (!transformerConfig.hasPath("type") || transformerConfig.getString("type").isBlank()) {
-          throw new IllegalArgumentException("Missing required key type (" + transformerName + ")");
+        case "fps" -> {
+          steps.add(new FpsTransformer(transformerConfig));
         }
-
-        String type = transformerConfig.getString("type");
-
-        switch (type) {
-          case "vertical_blur" -> {
-            steps.add(new VerticalBlurTransformer(transformerConfig));
-          }
-          case "fps" -> {
-            steps.add(new FpsTransformer(transformerConfig));
-          }
-          default ->
-            throw new IllegalArgumentException("Unknown transformer type " + type + " (" + transformerName + ")");
-        }
+        default ->
+          throw new IllegalArgumentException("Unknown transformer type " + type + " (" + transformerName + ")");
       }
     }
 
