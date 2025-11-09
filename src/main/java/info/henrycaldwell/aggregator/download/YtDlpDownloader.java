@@ -17,22 +17,22 @@ import info.henrycaldwell.aggregator.core.DownloadRef;
  * This class invokes yt-dlp as a subprocess and writes the resulting media
  * file.
  */
-public class YtDlpDownloader implements Downloader {
+public class YtDlpDownloader extends AbstractDownloader {
 
   public static final Spec SPEC = Spec.builder()
-      .requiredString("name", "type", "ytDlpPath")
+      .requiredString("ytDlpPath")
       .build();
 
-  private final String name;
   private final String ytDlpPath;
 
   /**
    * Constructs a YtDlpDownloader.
    *
-   * @param config A {@link Config} representing the transformer block.
+   * @param config A {@link Config} representing the downloader block.
    */
   public YtDlpDownloader(Config config) {
-    this.name = config.getString("name");
+    super(config, SPEC);
+
     this.ytDlpPath = config.getString("ytDlpPath");
   }
 

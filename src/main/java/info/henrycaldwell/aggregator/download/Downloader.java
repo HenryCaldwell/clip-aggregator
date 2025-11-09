@@ -8,10 +8,16 @@ import info.henrycaldwell.aggregator.core.DownloadRef;
 /**
  * Interface for downloading clips to a target file path.
  * 
- * This interface defines a contract for retrieving a media file for a clip and
- * reporting the result.
+ * This interface defines a contract for retrieving a media file for a clip.
  */
 public interface Downloader {
+
+  /**
+   * Returns the configured downloader name.
+   *
+   * @return A string representing the downloader name.
+   */
+  String getName();
 
   /**
    * Downloads a single clip to the specified path.
