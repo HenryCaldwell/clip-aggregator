@@ -33,6 +33,27 @@ public final class Spec {
   }
 
   /**
+   * Merges required and optional keys across the provided specs.
+   * 
+   * @param specs An array of {@link Spec} values representing the specs to merge.
+   * @return A {@link Spec} representing the combined set of keys.
+   */
+  public static Spec union(Spec... specs) {
+    Spec composite = new Spec();
+
+    for (Spec spec : specs) {
+      composite.requiredStrings.addAll(spec.requiredStrings);
+      composite.optionalStrings.addAll(spec.optionalStrings);
+      composite.requiredNumbers.addAll(spec.requiredNumbers);
+      composite.optionalNumbers.addAll(spec.optionalNumbers);
+      composite.requiredBooleans.addAll(spec.requiredBooleans);
+      composite.optionalBooleans.addAll(spec.optionalBooleans);
+    }
+
+    return composite;
+  }
+
+  /**
    * Adds a single required string key to this spec.
    *
    * @param param A string representing the key name.
