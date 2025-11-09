@@ -3,6 +3,7 @@ package info.henrycaldwell.aggregator.core;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.retrieval.Retriever;
+import info.henrycaldwell.aggregator.retrieval.TwitchRetriever;
 
 /**
  * Class for constructing retrievers from HOCON configuration blocks.
@@ -36,13 +37,8 @@ public final class RetrieverFactory {
     String type = config.getString("type");
 
     switch (type) {
-      case "EXAMPLE 1" -> {
-        // FUTURE IMPLEMENTATION VALIDATE EACH
-        return null;
-      }
-      case "EXAMPLE 2" -> {
-        // FUTURE IMPLEMENTATION VALIDATE EACH
-        return null;
+      case "twitch" -> {
+        return new TwitchRetriever(config);
       }
       default -> throw new IllegalArgumentException("Unknown retriever type " + type + " (" + name + ")");
     }

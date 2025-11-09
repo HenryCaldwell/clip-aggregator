@@ -6,7 +6,9 @@ import java.util.List;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 
+import info.henrycaldwell.aggregator.transform.FpsTransformer;
 import info.henrycaldwell.aggregator.transform.Transformer;
+import info.henrycaldwell.aggregator.transform.VerticalBlurTransformer;
 
 /**
  * Class for constructing pipelines from HOCON configuration blocks.
@@ -31,10 +33,10 @@ public final class PipelineFactory {
       throw new IllegalArgumentException("Missing required key name (UNNAMED_PIPELINE)");
     }
 
-    String name = config.getString("name");
+    String pipelineName = config.getString("name");
 
     if (!config.hasPath("transformers")) {
-      throw new IllegalArgumentException("Missing required key transformers (" + name + ")");
+      throw new IllegalArgumentException("Missing required key transformers (" + pipelineName + ")");
     }
 
     List<Transformer> steps = new ArrayList<>();
@@ -44,30 +46,33 @@ public final class PipelineFactory {
       try {
         transformers = config.getConfigList("transformers");
       } catch (ConfigException.WrongType e) {
-        throw new IllegalArgumentException("Invalid type for key transformers (" + name + ")", e);
+        throw new IllegalArgumentException("Invalid type for key transformers (" + pipelineName + ")", e);
       }
 
       for (int i = 0; i < transformers.size(); i++) {
         Config transformerConfig = transformers.get(i);
-        String baseContext = name + " BASE_TRANSFORMER[" + i + "]";
+
+        if (!config.hasPath("name") || config.getString("name").isBlank()) {
+          throw new IllegalArgumentException("Missing required key name (UNNAMED_TRANSFORMER)");
+        }
+
+        String transformerName = config.getString("name");
 
         if (!transformerConfig.hasPath("type") || transformerConfig.getString("type").isBlank()) {
-          throw new IllegalArgumentException("Missing required key type (" + baseContext + ")");
+          throw new IllegalArgumentException("Missing required key type (" + transformerName + ")");
         }
 
         String type = transformerConfig.getString("type");
-        String context = name + " " + type;
 
         switch (type) {
-          case "EXAMPLE 1" -> {
-            // FUTURE IMPLEMENTATION VALIDATE EACH
-            steps.add(null);
+          case "vertical_blur" -> {
+            steps.add(new VerticalBlurTransformer(transformerConfig));
           }
-          case "EXAMPLE 2" -> {
-            // FUTURE IMPLEMENTATION VALIDATE EACH
-            steps.add(null);
+          case "fps" -> {
+            steps.add(new FpsTransformer(transformerConfig));
           }
-          default -> throw new IllegalArgumentException("Unknown transformer type " + type + " (" + name + ")");
+          default ->
+            throw new IllegalArgumentException("Unknown transformer type " + type + " (" + transformerName + ")");
         }
       }
     }

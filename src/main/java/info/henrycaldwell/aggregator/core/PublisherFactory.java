@@ -2,6 +2,7 @@ package info.henrycaldwell.aggregator.core;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.aggregator.publish.NoOpPublisher;
 import info.henrycaldwell.aggregator.publish.Publisher;
 
 /**
@@ -36,13 +37,8 @@ public final class PublisherFactory {
     String type = config.getString("type");
 
     switch (type) {
-      case "EXAMPLE 1" -> {
-        // FUTURE IMPLEMENTATION VALIDATE EACH
-        return null;
-      }
-      case "EXAMPLE 2" -> {
-        // FUTURE IMPLEMENTATION VALIDATE EACH
-        return null;
+      case "no_op" -> {
+        return new NoOpPublisher(config);
       }
       default -> throw new IllegalArgumentException("Unknown publisher type " + type + " (" + name + ")");
     }
