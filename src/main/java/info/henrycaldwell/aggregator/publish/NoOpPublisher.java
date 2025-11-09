@@ -11,13 +11,10 @@ import info.henrycaldwell.aggregator.core.PublishRef;
  * 
  * This class consumes a media reference without publishing it.
  */
-public class NoOpPublisher implements Publisher {
+public class NoOpPublisher extends AbstractPublisher {
 
   public static final Spec SPEC = Spec.builder()
-      .requiredString("name", "type")
       .build();
-
-  private final String name;
 
   /**
    * Constructs a NoOpPublisher.
@@ -25,7 +22,7 @@ public class NoOpPublisher implements Publisher {
    * @param config A {@link Config} representing the publisher block.
    */
   public NoOpPublisher(Config config) {
-    this.name = config.getString("name");
+    super(config, SPEC);
   }
 
   /**

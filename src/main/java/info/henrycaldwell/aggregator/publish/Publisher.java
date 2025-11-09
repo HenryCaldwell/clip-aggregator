@@ -12,6 +12,13 @@ import info.henrycaldwell.aggregator.core.PublishRef;
 public interface Publisher {
 
   /**
+   * Returns the configured publisher name.
+   *
+   * @return A string representing the publisher name.
+   */
+  String getName();
+
+  /**
    * Publishes a single media artifact.
    *
    * @param media A {@link MediaRef} representing the artifact to publish.
