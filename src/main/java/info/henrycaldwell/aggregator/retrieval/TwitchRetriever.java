@@ -20,17 +20,16 @@ import info.henrycaldwell.aggregator.core.ClipRef;
  * 
  * This class queries the Twitch Clips endpoint for a game or broadcaster.
  */
-public class TwitchRetriever implements Retriever {
+public class TwitchRetriever extends AbstractRetriever {
 
   public static final Spec SPEC = Spec.builder()
-      .requiredString("name", "type", "token")
+      .requiredString("token")
       .optionalString("gameId", "broadcasterId", "language")
       .optionalNumber("hours", "limit")
       .build();
 
   private final TwitchClient twitch;
 
-  private final String name;
   private final String token;
   private final String gameId;
   private final String broadcasterId;
@@ -44,7 +43,8 @@ public class TwitchRetriever implements Retriever {
    * @param config A {@link Config} representing the retriever block.
    */
   public TwitchRetriever(Config config) {
-    this.name = config.getString("name");
+    super(config, SPEC);
+
     this.token = config.getString("token");
     this.gameId = config.hasPath("gameId") ? config.getString("gameId") : null;
     this.broadcasterId = config.hasPath("broadcasterId") ? config.getString("broadcasterId") : null;
