@@ -11,16 +11,28 @@ import info.henrycaldwell.aggregator.transform.Transformer;
  */
 public final class Pipeline {
 
-  private List<Transformer> transformers;
+  private final String name;
+  private final List<Transformer> transformers;
 
   /**
    * Constructs a pipeline with an ordered list of transformers.
    *
+   * @param name         A string representing the pipeline name.
    * @param transformers A list of {@link Transformer} representing the changes to
    *                     apply in order.
    */
-  public Pipeline(List<Transformer> transformers) {
+  public Pipeline(String name, List<Transformer> transformers) {
+    this.name = name;
     this.transformers = transformers;
+  }
+
+  /**
+   * Returns the configured pipeline name.
+   *
+   * @return A string representing the pipeline name.
+   */
+  public String getName() {
+    return name;
   }
 
   /**

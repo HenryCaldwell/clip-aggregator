@@ -77,6 +77,6 @@ public final class PipelineFactory {
       }
     }
 
-    return new Pipeline(steps);
+    return new Pipeline(pipelineName, steps);
   }
 }
