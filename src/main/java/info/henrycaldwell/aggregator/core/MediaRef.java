@@ -1,5 +1,6 @@
 package info.henrycaldwell.aggregator.core;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -12,6 +13,7 @@ import java.util.List;
 public record MediaRef(
     String id,
     Path file,
+    URI uri,
     String title,
     String broadcaster,
     String language,
@@ -25,7 +27,17 @@ public record MediaRef(
    * @return A {@code MediaRef} representing the updated artifact.
    */
   public MediaRef withFile(Path file) {
-    return new MediaRef(id, file, title, broadcaster, language, tags);
+    return new MediaRef(id, file, uri, title, broadcaster, language, tags);
+  }
+
+  /**
+   * Returns a new {@code MediaRef} with an updated remote URI.
+   *
+   * @param uri A {@link URI} representing a remotely accessible location.
+   * @return A {@code MediaRef} representing the updated artifact.
+   */
+  public MediaRef withUri(URI uri) {
+    return new MediaRef(id, file, uri, title, broadcaster, language, tags);
   }
 
   /**
@@ -35,6 +47,6 @@ public record MediaRef(
    * @return A {@code MediaRef} representing the updated artifact.
    */
   public MediaRef withTags(List<String> tags) {
-    return new MediaRef(id, file, title, broadcaster, language, tags);
+    return new MediaRef(id, file, uri, title, broadcaster, language, tags);
   }
 }
