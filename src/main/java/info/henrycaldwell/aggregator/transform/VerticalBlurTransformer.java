@@ -55,7 +55,7 @@ public class VerticalBlurTransformer extends AbstractTransformer {
    *                                  regular file.
    */
   @Override
-  public MediaRef apply(MediaRef media) {
+  public MediaRef transform(MediaRef media) {
     Path src = media.file();
 
     if (src == null || !Files.isRegularFile(src)) {
