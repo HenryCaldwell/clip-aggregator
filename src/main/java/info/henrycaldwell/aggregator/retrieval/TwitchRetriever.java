@@ -83,8 +83,8 @@ public class TwitchRetriever extends AbstractRetriever {
     Instant end = Instant.now();
     Instant start = end.minus(window);
     List<Clip> candidates = (gameId != null)
-        ? pageClips(null, gameId, start, end, limit)
-        : pageClips(broadcasterId, null, start, end, limit);
+        ? pageClips(gameId, null, start, end, limit)
+        : pageClips(null, broadcasterId, start, end, limit);
 
     return candidates.stream()
         .sorted(Comparator.comparingInt(Clip::getViewCount).reversed())
