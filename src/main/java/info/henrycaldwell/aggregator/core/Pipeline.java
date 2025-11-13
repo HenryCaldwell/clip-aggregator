@@ -45,7 +45,7 @@ public final class Pipeline {
     MediaRef curr = media;
 
     for (Transformer transformer : transformers) {
-      curr = transformer.apply(curr);
+      curr = transformer.transform(curr);
     }
 
     return curr;
