@@ -50,7 +50,7 @@ public abstract class AbstractTransformer implements Transformer {
   }
 
   /**
-   * Transforms this media and replaces the previous file.
+   * Transforms the input media and replaces the previous file.
    *
    * @param media A {@code MediaRef} representing the current artifact.
    * @return A {@code MediaRef} representing the transformed artifact.
