@@ -50,7 +50,7 @@ public abstract class AbstractTransformer implements Transformer {
   }
 
   /**
-   * Applies this transformer and replaces the previous file.
+   * Transforms this media and replaces the previous file.
    *
    * @param media A {@code MediaRef} representing the current artifact.
    * @return A {@code MediaRef} representing the transformed artifact.
@@ -59,9 +59,9 @@ public abstract class AbstractTransformer implements Transformer {
    * @throws RuntimeException      if deleting the previous file fails.
    */
   @Override
-  public MediaRef apply(MediaRef media) {
+  public MediaRef transform(MediaRef media) {
     Path source = media.file();
-    MediaRef result = transform(media);
+    MediaRef result = apply(media);
     Path output = result.file();
 
     if (source == null || output == null || source.equals(output)) {
@@ -89,5 +89,5 @@ public abstract class AbstractTransformer implements Transformer {
    * @param media A {@code MediaRef} representing the current artifact.
    * @return A {@code MediaRef} representing the transformed artifact.
    */
-  protected abstract MediaRef transform(MediaRef media);
+  protected abstract MediaRef apply(MediaRef media);
 }

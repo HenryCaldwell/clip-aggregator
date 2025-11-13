@@ -18,10 +18,10 @@ public interface Transformer {
   String getName();
 
   /**
-   * Applies a transformation to the input media.
+   * Transforms the input media.
    *
    * @param media A {@code MediaRef} representing the current artifact.
    * @return A {@code MediaRef} representing the transformed artifact.
    */
-  MediaRef apply(MediaRef media);
+  MediaRef transform(MediaRef media);
 }
