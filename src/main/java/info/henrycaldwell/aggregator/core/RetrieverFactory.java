@@ -2,8 +2,8 @@ package info.henrycaldwell.aggregator.core;
 
 import com.typesafe.config.Config;
 
-import info.henrycaldwell.aggregator.retrieval.Retriever;
-import info.henrycaldwell.aggregator.retrieval.TwitchRetriever;
+import info.henrycaldwell.aggregator.retrieve.Retriever;
+import info.henrycaldwell.aggregator.retrieve.TwitchRetriever;
 
 /**
  * Class for constructing retrievers from HOCON configuration blocks.
