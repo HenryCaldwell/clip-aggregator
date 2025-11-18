@@ -1,4 +1,4 @@
-package info.henrycaldwell.aggregator.retrieval;
+package info.henrycaldwell.aggregator.retrieve;
 
 import java.time.Duration;
 import java.time.Instant;
