@@ -7,6 +7,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 
 import info.henrycaldwell.aggregator.transform.FpsTransformer;
+import info.henrycaldwell.aggregator.transform.Pipeline;
 import info.henrycaldwell.aggregator.transform.Transformer;
 import info.henrycaldwell.aggregator.transform.VerticalBlurTransformer;
 
