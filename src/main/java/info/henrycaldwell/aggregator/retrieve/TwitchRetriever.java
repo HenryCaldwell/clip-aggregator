@@ -25,7 +25,7 @@ public class TwitchRetriever extends AbstractRetriever {
   public static final Spec SPEC = Spec.builder()
       .requiredString("token")
       .optionalString("gameId", "broadcasterId", "language")
-      .optionalNumber("hours", "limit")
+      .optionalNumber("window", "limit")
       .build();
 
   private final TwitchClient twitch;
@@ -50,11 +50,11 @@ public class TwitchRetriever extends AbstractRetriever {
     this.broadcasterId = config.hasPath("broadcasterId") ? config.getString("broadcasterId") : null;
     this.language = config.hasPath("language") ? config.getString("language") : null;
 
-    long hours = config.hasPath("hours") ? config.getNumber("hours").longValue() : 24L;
-    if (hours <= 0) {
-      throw new IllegalArgumentException("Field hours must be greater than 0 (" + name + ")");
+    long window = config.hasPath("window") ? config.getNumber("window").longValue() : 24L;
+    if (window <= 0) {
+      throw new IllegalArgumentException("Field window must be greater than 0 (" + name + ")");
     }
-    this.window = Duration.ofHours(hours);
+    this.window = Duration.ofHours(window);
 
     int limit = config.hasPath("limit") ? config.getNumber("limit").intValue() : 20;
     if (limit <= 0) {
