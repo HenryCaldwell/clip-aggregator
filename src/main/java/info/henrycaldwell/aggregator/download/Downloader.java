@@ -22,9 +22,9 @@ public interface Downloader {
   /**
    * Downloads a single clip to the specified path.
    * 
-   * @param clip A record referencing the clip to download.
-   * @param path A path representing the destination media file.
+   * @param clip   A record referencing the clip to download.
+   * @param target A path representing the destination media file.
    * @return A {@link DownloadRef} representing the downloaded file.
    */
-  DownloadRef download(ClipRef clip, Path path);
+  DownloadRef download(ClipRef clip, Path target);
 }
