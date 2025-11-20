@@ -305,7 +305,7 @@ public final class Spec {
      * @return A {@link Spec} containing the accumulated required and optional keys.
      */
     public Spec build() {
-      return this.spec;
+      return spec;
     }
   }
 }
