@@ -2,6 +2,7 @@ package info.henrycaldwell.aggregator.core;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.aggregator.publish.InstagramPublisher;
 import info.henrycaldwell.aggregator.publish.NoOpPublisher;
 import info.henrycaldwell.aggregator.publish.Publisher;
 
@@ -37,6 +38,9 @@ public final class PublisherFactory {
     String type = config.getString("type");
 
     switch (type) {
+      case "instagram" -> {
+        return new InstagramPublisher(config);
+      }
       case "no_op" -> {
         return new NoOpPublisher(config);
       }
