@@ -1,19 +1,21 @@
 package info.henrycaldwell.aggregator.history;
 
-import java.io.Closeable;
-
 /**
  * Interface for tracking which clips have been published.
  *
  * This interface defines a contract for claiming clips to prevent reposts.
  */
-public interface History extends Closeable {
+public interface History {
 
   /**
-   * Closes the history and releases any resources.
+   * Initializes any underlying resources required by the history.
    */
-  @Override
-  void close();
+  void start();
+
+  /**
+   * Releases any resources acquired by {@link #start()}.
+   */
+  void stop();
 
   /**
    * Returns the configured history name.

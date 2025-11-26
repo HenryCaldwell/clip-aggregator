@@ -22,58 +22,68 @@ public final class SqliteHistory extends AbstractHistory {
       .requiredString("path")
       .build();
 
-  private final Connection connection;
+  private Connection connection;
+
+  private final String path;
 
   /**
    * Constructs an SqliteHistory.
    *
    * @param config A {@link Config} representing the history block.
-   * @throws RuntimeException if the database cannot be opened or initialized.
    */
   public SqliteHistory(Config config) {
     super(config, SPEC);
 
-    String path = config.getString("path");
+    this.path = config.getString("path");
+  }
+
+  /**
+   * Initializes a SQLite connection and schema.
+   *
+   * @throws RuntimeException if the database cannot be opened or initialized.
+   */
+  @Override
+  public void start() {
+    if (connection != null) {
+      return;
+    }
+
     try {
-      this.connection = DriverManager.getConnection("jdbc:sqlite:" + path);
-      init();
+      connection = DriverManager.getConnection("jdbc:sqlite:" + path);
+
+      String sql = """
+          CREATE TABLE IF NOT EXISTS clips (
+            id        TEXT NOT NULL,
+            runner    TEXT NOT NULL,
+            publisher TEXT NOT NULL,
+            claimed   TEXT NOT NULL,
+            PRIMARY KEY (id, runner, publisher)
+          );
+          """;
+
+      try (Statement statement = connection.createStatement()) {
+        statement.executeUpdate(sql);
+      }
     } catch (SQLException e) {
       throw new RuntimeException("Failed to open SQLite history database (path: " + path + ")", e);
     }
   }
 
   /**
-   * Initializes the database schema if it does not already exist.
+   * Releases the SQLite connection connection acquired by {@link #start()}.
    *
-   * @throws SQLException if schema creation fails.
-   */
-  private void init() throws SQLException {
-    String sql = """
-        CREATE TABLE IF NOT EXISTS clips (
-          id        TEXT NOT NULL,
-          runner    TEXT NOT NULL,
-          publisher TEXT NOT NULL,
-          claimed   TEXT NOT NULL,
-          PRIMARY KEY (id, runner, publisher)
-        );
-        """;
-
-    try (Statement statement = connection.createStatement()) {
-      statement.executeUpdate(sql);
-    }
-  }
-
-  /**
-   * Closes the underlying database connection.
-   *
-   * @throws RuntimeException if closing the database fails.
+   * @throws RuntimeException if the database cannot be closed.
    */
   @Override
-  public void close() {
-    try {
-      connection.close();
-    } catch (SQLException e) {
-      throw new RuntimeException("Failed to close SQLite history database connection (" + name + ")", e);
+  public void stop() {
+    if (connection != null) {
+      try {
+        connection.close();
+      } catch (SQLException e) {
+        throw new RuntimeException("Failed to close SQLite history database connection (" + name + ")", e);
+      } finally {
+        connection = null;
+      }
     }
   }
 

@@ -37,6 +37,22 @@ public abstract class AbstractHistory implements History {
   }
 
   /**
+   * Initializes any underlying resources required by the history.
+   */
+  @Override
+  public void start() {
+    // No-op by default
+  }
+
+  /**
+   * Releases any resources acquired by {@link #start()}.
+   */
+  @Override
+  public void stop() {
+    // No-op by default
+  }
+
+  /**
    * Returns the configured history name.
    *
    * @return A string representing the history name.
