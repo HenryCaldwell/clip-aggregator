@@ -124,7 +124,7 @@ public final class InstagramPublisher extends AbstractPublisher {
    *                          timeout or enters an error state.
    */
   private void awaitContainer(String containerId) {
-    long timeout = TimeUnit.MINUTES.toNanos(10);
+    long timeout = TimeUnit.MINUTES.toNanos(5);
     long start = System.nanoTime();
 
     while (System.nanoTime() - start < timeout) {
@@ -158,7 +158,7 @@ public final class InstagramPublisher extends AbstractPublisher {
       }
 
       try {
-        Thread.sleep(2000L);
+        Thread.sleep(30000L);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new RuntimeException("Interrupted while waiting for reels container (id: " + containerId + ")", e);
