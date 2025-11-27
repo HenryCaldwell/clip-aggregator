@@ -27,15 +27,13 @@ public interface History {
   /**
    * Attempts to claim a clip.
    * 
-   * @param id        A string representing the clip identifier.
-   * @param runner    A string representing the runner name.
-   * @param publisher A string representing the publisher name.
+   * @param id     A string representing the clip identifier.
+   * @param runner A string representing the runner name.
    * @return {@code true} if the clip was successfully claimed, {@code false} if
    *         the clip was already claimed.
    */
   boolean claim(
       String id,
-      String runner,
-      String publisher
+      String runner
   );
 }

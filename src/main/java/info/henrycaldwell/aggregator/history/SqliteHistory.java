@@ -55,9 +55,8 @@ public final class SqliteHistory extends AbstractHistory {
           CREATE TABLE IF NOT EXISTS clips (
             id        TEXT NOT NULL,
             runner    TEXT NOT NULL,
-            publisher TEXT NOT NULL,
             claimed   TEXT NOT NULL,
-            PRIMARY KEY (id, runner, publisher)
+            PRIMARY KEY (id, runner)
           );
           """;
 
@@ -90,32 +89,29 @@ public final class SqliteHistory extends AbstractHistory {
   /**
    * Attempts to claim a clip.
    *
-   * @param id        A string representing the clip identifier.
-   * @param runner    A string representing the runner name.
-   * @param publisher A string representing the publisher name.
+   * @param id     A string representing the clip identifier.
+   * @param runner A string representing the runner name.
    * @return {@code true} if the clip was successfully claimed, {@code false}
    *         if the clip was already claimed.
    * @throws RuntimeException if the database operation fails.
    */
   @Override
-  public boolean claim(String id, String runner, String publisher) {
+  public boolean claim(String id, String runner) {
     String sql = """
-        INSERT OR IGNORE INTO clips (id, runner, publisher, claimed)
-        VALUES (?, ?, ?, ?);
+        INSERT OR IGNORE INTO clips (id, runner, claimed)
+        VALUES (?, ?, ?);
         """;
 
     try (PreparedStatement statement = connection.prepareStatement(sql)) {
       statement.setString(1, id);
       statement.setString(2, runner);
-      statement.setString(3, publisher);
-      statement.setString(4, Instant.now().toString());
+      statement.setString(3, Instant.now().toString());
 
       int updated = statement.executeUpdate();
 
       return updated == 1;
     } catch (SQLException e) {
-      throw new RuntimeException("Failed to claim clip in SQLite history (id: " + id + ", runner: " + runner
-          + ", publisher: " + publisher + ")", e);
+      throw new RuntimeException("Failed to claim clip in SQLite history (id: " + id + ", runner: " + runner + ")", e);
     }
   }
 }
