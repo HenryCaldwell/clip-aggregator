@@ -19,12 +19,12 @@ import info.henrycaldwell.aggregator.config.Spec;
 public final class SqliteHistory extends AbstractHistory {
 
   private static final Spec SPEC = Spec.builder()
-      .requiredString("path")
+      .requiredString("databasePath")
       .build();
 
   private Connection connection;
 
-  private final String path;
+  private final String databasePath;
 
   /**
    * Constructs an SqliteHistory.
@@ -34,7 +34,7 @@ public final class SqliteHistory extends AbstractHistory {
   public SqliteHistory(Config config) {
     super(config, SPEC);
 
-    this.path = config.getString("path");
+    this.databasePath = config.getString("databasePath");
   }
 
   /**
@@ -49,7 +49,7 @@ public final class SqliteHistory extends AbstractHistory {
     }
 
     try {
-      connection = DriverManager.getConnection("jdbc:sqlite:" + path);
+      connection = DriverManager.getConnection("jdbc:sqlite:" + databasePath);
 
       String sql = """
           CREATE TABLE IF NOT EXISTS clips (
@@ -64,7 +64,7 @@ public final class SqliteHistory extends AbstractHistory {
         statement.executeUpdate(sql);
       }
     } catch (SQLException e) {
-      throw new RuntimeException("Failed to open SQLite history database (path: " + path + ")", e);
+      throw new RuntimeException("Failed to open SQLite history database (path: " + databasePath + ")", e);
     }
   }
 
