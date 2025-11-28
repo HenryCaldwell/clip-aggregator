@@ -20,7 +20,7 @@ import info.henrycaldwell.aggregator.core.ClipRef;
  * 
  * This class queries the Twitch Clips endpoint for a game or broadcaster.
  */
-public class TwitchRetriever extends AbstractRetriever {
+public final class TwitchRetriever extends AbstractRetriever {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("token")
