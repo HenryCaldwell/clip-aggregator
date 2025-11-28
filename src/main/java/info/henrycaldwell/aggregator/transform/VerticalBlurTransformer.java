@@ -17,7 +17,7 @@ import info.henrycaldwell.aggregator.core.MediaRef;
  * This class creates a 9:16 output by generating a blurred background from the
  * source and centering the original clip on top.
  */
-public class VerticalBlurTransformer extends AbstractTransformer {
+public final class VerticalBlurTransformer extends AbstractTransformer {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("ffmpegPath")
