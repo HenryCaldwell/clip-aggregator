@@ -17,7 +17,7 @@ import info.henrycaldwell.aggregator.core.DownloadRef;
  * This class invokes yt-dlp as a subprocess and writes the resulting media
  * file.
  */
-public class YtDlpDownloader extends AbstractDownloader {
+public final class YtDlpDownloader extends AbstractDownloader {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("ytDlpPath")
