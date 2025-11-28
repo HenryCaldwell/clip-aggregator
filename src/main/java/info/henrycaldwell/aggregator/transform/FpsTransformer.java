@@ -16,7 +16,7 @@ import info.henrycaldwell.aggregator.core.MediaRef;
  * 
  * This class re-samples the input to a target frames-per-second value.
  */
-public class FpsTransformer extends AbstractTransformer {
+public final class FpsTransformer extends AbstractTransformer {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("ffmpegPath")
