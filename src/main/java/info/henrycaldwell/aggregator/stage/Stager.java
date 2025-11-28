@@ -34,4 +34,11 @@ public interface Stager {
    * @return A {@code MediaRef} representing the staged artifact.
    */
   MediaRef stage(MediaRef media);
+
+  /**
+   * Cleans staged media resources associated with the artifact.
+   *
+   * @param media A {@link MediaRef} representing the staged artifact.
+   */
+  void clean(MediaRef media);
 }

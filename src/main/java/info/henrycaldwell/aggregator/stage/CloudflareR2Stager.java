@@ -14,6 +14,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /**
@@ -132,5 +133,47 @@ public final class CloudflareR2Stager extends AbstractStager {
     URI base = URI.create(publicUrl.endsWith("/") ? publicUrl : publicUrl + "/");
     URI uri = URI.create(base + key);
     return media.withUri(uri).withFile(null);
+  }
+
+  /**
+   * Deletes the input file from Cloudflare R2.
+   *
+   * @param media A {@code MediaRef} representing the staged artifact.
+   * @throws IllegalStateException if the stager is not started.
+   * @throws RuntimeException      if the delete fails.
+   */
+  @Override
+  public void clean(MediaRef media) {
+    if (s3 == null) {
+      throw new IllegalStateException("Stager not started (" + name + ")");
+    }
+
+    if (media == null || media.uri() == null) {
+      return;
+    }
+
+    URI uri = media.uri();
+    String path = uri.getPath();
+
+    if (path == null || path.isBlank()) {
+      return;
+    }
+
+    String key = path.startsWith("/") ? path.substring(1) : path;
+    if (key.isBlank()) {
+      return;
+    }
+
+    try {
+      DeleteObjectRequest request = DeleteObjectRequest.builder()
+          .bucket(bucket)
+          .key(key)
+          .build();
+
+      s3.deleteObject(request);
+    } catch (Exception e) {
+      throw new RuntimeException(
+          "Failed to delete staged object from R2 (bucket: " + bucket + ", key: " + key + ") (" + name + ")", e);
+    }
   }
 }

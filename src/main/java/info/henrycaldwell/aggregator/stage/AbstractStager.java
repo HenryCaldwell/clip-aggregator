@@ -102,6 +102,16 @@ public abstract class AbstractStager implements Stager {
   }
 
   /**
+   * Cleans staged media resources associated with the artifact.
+   *
+   * @param media A {@link MediaRef} representing the staged artifact.
+   */
+  @Override
+  public void clean(MediaRef media) {
+    // No-op by default
+  }
+
+  /**
    * Applies a subclass-specific staging.
    *
    * @param media A {@code MediaRef} representing the current artifact.
