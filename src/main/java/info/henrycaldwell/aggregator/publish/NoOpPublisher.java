@@ -11,7 +11,7 @@ import info.henrycaldwell.aggregator.core.PublishRef;
  * 
  * This class consumes a media reference without publishing it.
  */
-public class NoOpPublisher extends AbstractPublisher {
+public final class NoOpPublisher extends AbstractPublisher {
 
   public static final Spec SPEC = Spec.builder()
       .build();
