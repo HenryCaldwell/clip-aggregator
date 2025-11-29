@@ -3,11 +3,13 @@ package info.henrycaldwell.aggregator.stage;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
+import info.henrycaldwell.aggregator.error.ComponentException;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -107,13 +109,13 @@ public final class CloudflareR2Stager extends AbstractStager {
   @Override
   public MediaRef apply(MediaRef media) {
     if (s3 == null) {
-      throw new IllegalStateException("Stager not started (" + name + ")");
+      throw new ComponentException(name, "Stager not started");
     }
 
     Path src = media.file();
 
     if (src == null || !Files.isRegularFile(src)) {
-      throw new IllegalArgumentException("Input file missing or not a regular file (path: " + src + ")");
+      throw new ComponentException(name, "Input file missing or not a regular file", Map.of("sourcePath", src));
     }
 
     String key = src.getFileName().toString();
@@ -127,7 +129,8 @@ public final class CloudflareR2Stager extends AbstractStager {
 
       s3.putObject(request, RequestBody.fromFile(src));
     } catch (Exception e) {
-      throw new RuntimeException("Failed to upload to R2 (bucket: " + bucket + ", key: " + key + ") (" + name + ")", e);
+      throw new ComponentException(name, "Failed to upload object to R2",
+          Map.of("bucket", bucket, "objectKey", key, "sourcePath", src), e);
     }
 
     URI base = URI.create(publicUrl.endsWith("/") ? publicUrl : publicUrl + "/");
@@ -145,7 +148,7 @@ public final class CloudflareR2Stager extends AbstractStager {
   @Override
   public void clean(MediaRef media) {
     if (s3 == null) {
-      throw new IllegalStateException("Stager not started (" + name + ")");
+      throw new ComponentException(name, "Stager not started");
     }
 
     if (media == null || media.uri() == null) {
@@ -172,8 +175,8 @@ public final class CloudflareR2Stager extends AbstractStager {
 
       s3.deleteObject(request);
     } catch (Exception e) {
-      throw new RuntimeException(
-          "Failed to delete staged object from R2 (bucket: " + bucket + ", key: " + key + ") (" + name + ")", e);
+      throw new ComponentException(name, "Failed to delete object from R2",
+          Map.of("bucket", bucket, "objectKey", key, "uri", uri.toString()), e);
     }
   }
 }
