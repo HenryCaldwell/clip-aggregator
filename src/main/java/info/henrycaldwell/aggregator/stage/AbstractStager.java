@@ -1,13 +1,16 @@
 package info.henrycaldwell.aggregator.stage;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
+import info.henrycaldwell.aggregator.error.ComponentException;
 
 /**
  * Base class for stagers that parses common configuration.
@@ -82,20 +85,17 @@ public abstract class AbstractStager implements Stager {
     MediaRef result = apply(media);
     URI output = result.uri();
 
-    if (output == null) {
-      throw new IllegalStateException("Stager must produce a new output URI + (" + name + ")");
-    }
-
-    if (!"http".equalsIgnoreCase(output.getScheme()) && !"https".equalsIgnoreCase(output.getScheme())) {
-      throw new IllegalStateException("Stager must produce a remote URI + (URI: " + output + ")");
+    if (output == null
+        || (!"http".equalsIgnoreCase(output.getScheme()) && !"https".equalsIgnoreCase(output.getScheme()))) {
+      throw new ComponentException(name, "Stager did not produce an HTTP(S) URI", Map.of("uri", output));
     }
 
     try {
       if (source != null && Files.isRegularFile(source)) {
         Files.delete(source);
       }
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to delete previous file (path: " + source + ")", e);
+    } catch (IOException e) {
+      throw new ComponentException(name, "Failed to delete previous file", Map.of("sourcePath", source), e);
     }
 
     return result;
