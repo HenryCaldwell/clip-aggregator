@@ -4,12 +4,14 @@ import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
+import info.henrycaldwell.aggregator.error.SpecException;
 
 /**
  * Class for converting a video's frame rate.
@@ -39,8 +41,10 @@ public final class FpsTransformer extends AbstractTransformer {
 
     int targetFps = config.hasPath("targetFps") ? config.getNumber("targetFps").intValue() : 30;
     if (targetFps <= 0) {
-      throw new IllegalArgumentException("Target fps must be positive (fps: " + targetFps + ")");
+      throw new SpecException(name, "Invalid key value (expected targetFps to be greater than 0)",
+          Map.of("key", "targetFps", "value", targetFps));
     }
+
     this.targetFps = targetFps;
   }
 
