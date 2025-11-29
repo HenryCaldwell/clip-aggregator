@@ -11,6 +11,7 @@ import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
+import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
 
 /**
@@ -62,7 +63,7 @@ public final class FpsTransformer extends AbstractTransformer {
     Path src = media.file();
 
     if (src == null || !Files.isRegularFile(src)) {
-      throw new IllegalArgumentException("Input file missing or not a regular file (path: " + src + ")");
+      throw new ComponentException(name, "Input file missing or not a regular file", Map.of("sourcePath", src));
     }
 
     Path target = deriveOut(src, "-fps" + targetFps + ".mp4");
@@ -71,12 +72,13 @@ public final class FpsTransformer extends AbstractTransformer {
       try {
         Files.createDirectories(parent);
       } catch (IOException e) {
-        throw new RuntimeException("Failed to create parent directories (target: " + target + ")", e);
+        throw new ComponentException(name, "Failed to create parent directories",
+            Map.of("targetPath", target, "parentPath", parent), e);
       }
     }
 
     if (Files.exists(target)) {
-      throw new IllegalStateException("Target already exists (target: " + target + ")");
+      throw new ComponentException(name, "Target file already exists", Map.of("targetPath", target));
     }
 
     Process process;
@@ -96,7 +98,8 @@ public final class FpsTransformer extends AbstractTransformer {
       pb.redirectOutput(Redirect.DISCARD);
       process = pb.start();
     } catch (IOException e) {
-      throw new RuntimeException("Failed to start ffmpeg (path: " + ffmpegPath + ")", e);
+      throw new ComponentException(name, "Failed to start ffmpeg process",
+          Map.of("ffmpegPath", ffmpegPath, "sourcePath", src, "targetPath", target), e);
     }
 
     boolean complete;
@@ -105,31 +108,34 @@ public final class FpsTransformer extends AbstractTransformer {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       process.destroyForcibly();
-      throw new RuntimeException("Interrupted while waiting for ffmpeg (clip: " + media.id() + ")", e);
+      throw new ComponentException(name, "Interrupted while waiting for ffmpeg process", Map.of("clipId", media.id()),
+          e);
     }
 
     if (!complete) {
       process.destroyForcibly();
-      throw new RuntimeException("Timed out waiting for ffmpeg (clip: " + media.id() + ")");
+      throw new ComponentException(name, "Timed out while waiting for ffmpeg process", Map.of("clipId", media.id()));
     }
 
     int code = process.exitValue();
     if (code != 0) {
-      throw new RuntimeException("Exited ffmpeg with non-zero code " + code + " (clip: " + media.id() + ")");
+      throw new ComponentException(name, "ffmpeg process exited with non-zero code",
+          Map.of("clipId", media.id(), "exitCode", code));
     }
 
     if (!Files.exists(target)) {
-      throw new RuntimeException("Output file missing (path: " + target + ")");
+      throw new ComponentException(name, "Output file missing after transform", Map.of("targetPath", target));
     }
 
     try {
       long size = Files.size(target);
 
       if (size <= 0) {
-        throw new RuntimeException("Output file empty (path: " + target + ")");
+        throw new ComponentException(name, "Output file empty after transform",
+            Map.of("targetPath", target, "sizeBytes", size));
       }
     } catch (IOException e) {
-      throw new RuntimeException("Failed to stat output file (path: " + target + ")");
+      throw new ComponentException(name, "Failed to stat output file", Map.of("targetPath", target), e);
     }
 
     return media.withFile(target);
