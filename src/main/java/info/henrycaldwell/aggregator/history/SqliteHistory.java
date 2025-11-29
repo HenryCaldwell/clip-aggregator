@@ -6,10 +6,12 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.Map;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
+import info.henrycaldwell.aggregator.error.ComponentException;
 
 /**
  * Class for tracking published clips using a SQLite database.
@@ -64,7 +66,7 @@ public final class SqliteHistory extends AbstractHistory {
         statement.executeUpdate(sql);
       }
     } catch (SQLException e) {
-      throw new RuntimeException("Failed to open SQLite history database (path: " + databasePath + ")", e);
+      throw new ComponentException(name, "Failed to open SQLite database", Map.of("databasePath", databasePath), e);
     }
   }
 
@@ -79,7 +81,8 @@ public final class SqliteHistory extends AbstractHistory {
       try {
         connection.close();
       } catch (SQLException e) {
-        throw new RuntimeException("Failed to close SQLite history database connection (" + name + ")", e);
+        throw new ComponentException(name, "Failed to close SQLite database connection",
+            Map.of("databasePath", databasePath), e);
       } finally {
         connection = null;
       }
@@ -97,6 +100,10 @@ public final class SqliteHistory extends AbstractHistory {
    */
   @Override
   public boolean claim(String id, String runner) {
+    if (connection == null) {
+      throw new ComponentException(name, "History not started");
+    }
+
     String sql = """
         INSERT OR IGNORE INTO clips (id, runner, claimed)
         VALUES (?, ?, ?);
@@ -111,7 +118,8 @@ public final class SqliteHistory extends AbstractHistory {
 
       return updated == 1;
     } catch (SQLException e) {
-      throw new RuntimeException("Failed to claim clip in SQLite history (id: " + id + ", runner: " + runner + ")", e);
+      throw new ComponentException(name, "Failed to claim in SQLite database",
+          Map.of("databasePath", databasePath, "clipId", id, "runner", runner), e);
     }
   }
 }
