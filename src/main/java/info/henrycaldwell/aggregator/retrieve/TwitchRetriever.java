@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
@@ -14,6 +15,7 @@ import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.ClipRef;
+import info.henrycaldwell.aggregator.error.SpecException;
 
 /**
  * Class for retrieving clips from Twitch Helix.
@@ -52,22 +54,25 @@ public final class TwitchRetriever extends AbstractRetriever {
 
     long window = config.hasPath("window") ? config.getNumber("window").longValue() : 24L;
     if (window <= 0) {
-      throw new IllegalArgumentException("Field window must be greater than 0 (" + name + ")");
+      throw new SpecException(name, "Invalid key value (expected window to be greater than 0)",
+          Map.of("key", "window", "value", window));
     }
     this.window = Duration.ofHours(window);
 
     int limit = config.hasPath("limit") ? config.getNumber("limit").intValue() : 20;
     if (limit <= 0) {
-      throw new IllegalArgumentException("Field limit must be greater than 0 (" + name + ")");
+      throw new SpecException(name, "Invalid key value (expected limit to be greater than 0)",
+          Map.of("key", "limit", "value", limit));
     }
     this.limit = limit;
 
     if ((gameId == null) == (broadcasterId == null)) {
-      throw new IllegalArgumentException("Specify exactly one of gameId or broadcasterId (" + name + ")");
+      throw new SpecException(name,
+          "Invalid key combination (expected exactly one of gameId or broadcasterId)");
     }
 
     if (broadcasterId != null && language != null) {
-      throw new IllegalArgumentException("Field language is only allowed with gameId (" + name + ")");
+      throw new SpecException(name, "Invalid key combination (expected language only with gameId)");
     }
 
     this.twitch = TwitchClientBuilder.builder().withEnableHelix(true).build();
