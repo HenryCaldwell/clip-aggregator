@@ -42,13 +42,15 @@ public final class Runner {
    */
   public static void main(String[] args) {
     if (args.length != 1) {
-      throw new IllegalArgumentException("Expected exactly one argument: config path");
+      throw new SpecException("CLI", "Invalid arguments (expected exactly one config path argument)",
+          Map.of("argCount", args.length));
     }
 
     File file = new File(args[0]);
 
     if (!file.isFile()) {
-      throw new IllegalArgumentException("Config file does not exist or is not a file: " + file);
+      throw new SpecException("CLI", "Config file missing or not a regular file",
+          Map.of("configPath", file.toString()));
     }
 
     Config config = ConfigFactory.parseFile(file).resolve();
