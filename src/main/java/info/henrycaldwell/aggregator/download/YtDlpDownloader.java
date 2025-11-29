@@ -3,6 +3,7 @@ package info.henrycaldwell.aggregator.download;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
@@ -10,6 +11,7 @@ import com.typesafe.config.Config;
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.ClipRef;
 import info.henrycaldwell.aggregator.core.DownloadRef;
+import info.henrycaldwell.aggregator.error.ComponentException;
 
 /**
  * Class for downloading clips via the yt-dlp command-line extractor.
@@ -51,12 +53,13 @@ public final class YtDlpDownloader extends AbstractDownloader {
       try {
         Files.createDirectories(parent);
       } catch (IOException e) {
-        throw new RuntimeException("Failed to create parent directories (target: " + target + ")", e);
+        throw new ComponentException(name, "Failed to create parent directories",
+            Map.of("targetPath", target, "parentPath", parent), e);
       }
     }
 
     if (Files.exists(target)) {
-      throw new IllegalStateException("Target already exists (target: " + target + ")");
+      throw new ComponentException(name, "Target file already exists", Map.of("targetPath", target));
     }
 
     Path temp = target.resolveSibling(target.getFileName().toString() + ".part");
@@ -76,7 +79,8 @@ public final class YtDlpDownloader extends AbstractDownloader {
       pb.redirectErrorStream(true);
       process = pb.start();
     } catch (IOException e) {
-      throw new RuntimeException("Failed to start yt-dlp (path: " + ytDlpPath + ")", e);
+      throw new ComponentException(name, "Failed to start yt-dlp process",
+          Map.of("ytDlpPath", ytDlpPath, "clipId", clip.id(), "targetPath", target), e);
     }
 
     boolean complete;
@@ -85,33 +89,36 @@ public final class YtDlpDownloader extends AbstractDownloader {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       process.destroyForcibly();
-      throw new RuntimeException("Interrupted while waiting for yt-dlp (clip: " + clip.id() + ")", e);
+      throw new ComponentException(name, "Interrupted while waiting for yt-dlp process", Map.of("clipId", clip.id()),
+          e);
     }
 
     if (!complete) {
       process.destroyForcibly();
-      throw new RuntimeException("Timed out waiting for yt-dlp (clip: " + clip.id() + ")");
+      throw new ComponentException(name, "Timed out while waiting for yt-dlp process", Map.of("clipId", clip.id()));
     }
 
     int code = process.exitValue();
     if (code != 0) {
-      throw new RuntimeException("Exited yt-dlp with non-zero code " + code + " (clip: " + clip.id() + ")");
+      throw new ComponentException(name, "yt-dlp process exited with non-zero code",
+          Map.of("clipId", clip.id(), "exitCode", code));
     }
 
     if (!Files.exists(target)) {
-      throw new RuntimeException("Output file missing (path: " + temp + ")");
+      throw new ComponentException(name, "Output file missing after download", Map.of("targetPath", target));
     }
 
     try {
       long size = Files.size(target);
 
       if (size <= 0) {
-        throw new RuntimeException("Output file empty (path: " + temp + ")");
+        throw new ComponentException(name, "Output file empty after download",
+            Map.of("targetPath", target, "sizeBytes", size));
       }
 
       return new DownloadRef(clip.id(), target, size);
     } catch (IOException e) {
-      throw new RuntimeException("Failed to stat output file (path: " + target + ")");
+      throw new ComponentException(name, "Failed to stat output file", Map.of("targetPath", target), e);
     }
   }
 }
