@@ -5,6 +5,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +15,7 @@ import com.typesafe.config.Config;
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.core.PublishRef;
+import info.henrycaldwell.aggregator.error.ComponentException;
 
 /**
  * Class for publishing media artifacts to Instagram Reels.
@@ -61,7 +63,7 @@ public final class InstagramPublisher extends AbstractPublisher {
 
     if (uri == null || uri.getScheme() == null
         || (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme()))) {
-      throw new IllegalArgumentException("Media URI must be HTTP or HTTPS (uri: " + uri + ")");
+      throw new ComponentException(name, "Media URI missing or not HTTP(S)", Map.of("uri", uri, "mediaId", media.id()));
     }
 
     String url = uri.toString();
@@ -93,8 +95,10 @@ public final class InstagramPublisher extends AbstractPublisher {
       root.put("caption", caption);
     }
 
+    URI endpoint = URI.create("https://graph.instagram.com/v23.0/" + accountId + "/media");
+
     HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create("https://graph.instagram.com/v23.0/" + accountId + "/media"))
+        .uri(endpoint)
         .header("Content-Type", "application/json")
         .header("Authorization", "Bearer " + accessKey)
         .POST(HttpRequest.BodyPublishers.ofString(root.toString()))
@@ -105,12 +109,14 @@ public final class InstagramPublisher extends AbstractPublisher {
     String id;
     try {
       id = MAPPER.readTree(json).at("/id").asText(null);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to parse id", e);
+    } catch (IOException e) {
+      throw new ComponentException(name, "Failed to parse Instagram media container id",
+          Map.of("endpoint", endpoint.toString(), "responseBody", json), e);
     }
 
     if (id == null || id.isBlank()) {
-      throw new RuntimeException("Instagram media creation did not return an id (response: " + json + ")");
+      throw new ComponentException(name, "Instagram media container creation did not return an id",
+          Map.of("endpoint", endpoint.toString(), "responseBody", json));
     }
 
     return id;
@@ -128,8 +134,10 @@ public final class InstagramPublisher extends AbstractPublisher {
     long start = System.nanoTime();
 
     while (System.nanoTime() - start < timeout) {
+      URI endpoint = URI.create("https://graph.instagram.com/v23.0/" + containerId + "?fields=status_code");
+
       HttpRequest request = HttpRequest.newBuilder()
-          .uri(URI.create("https://graph.instagram.com/v23.0/" + containerId + "?fields=status_code"))
+          .uri(endpoint)
           .header("Authorization", "Bearer " + accessKey)
           .GET()
           .build();
@@ -139,13 +147,14 @@ public final class InstagramPublisher extends AbstractPublisher {
       String status;
       try {
         status = MAPPER.readTree(json).at("/status_code").asText(null);
-      } catch (Exception e) {
-        throw new RuntimeException("Failed to parse status_code", e);
+      } catch (IOException e) {
+        throw new ComponentException(name, "Failed to parse Instagram media container status",
+            Map.of("containerId", containerId, "endpoint", endpoint.toString(), "responseBody", json), e);
       }
 
       if (status == null || status.isBlank()) {
-        throw new RuntimeException("Instagram container status response did not include status_code (id: " + containerId
-            + ", response: " + json + ")");
+        throw new ComponentException(name, "Instagram media container status missing status code",
+            Map.of("containerId", containerId, "endpoint", endpoint.toString(), "responseBody", json));
       }
 
       if ("FINISHED".equalsIgnoreCase(status)) {
@@ -153,19 +162,21 @@ public final class InstagramPublisher extends AbstractPublisher {
       }
 
       if ("ERROR".equalsIgnoreCase(status)) {
-        throw new RuntimeException(
-            "Reels container entered error state (id: " + containerId + ", response: " + json + ")");
+        throw new ComponentException(name, "Instagram media container status entered error state",
+            Map.of("containerId", containerId, "endpoint", endpoint.toString(), "responseBody", json));
       }
 
       try {
         Thread.sleep(30000L);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new RuntimeException("Interrupted while waiting for reels container (id: " + containerId + ")", e);
+        throw new ComponentException(name, "Interrupted while waiting for Instagram media container",
+            Map.of("containerId", containerId), e);
       }
     }
 
-    throw new RuntimeException("Timed out waiting for reels container (id: " + containerId + ")");
+    throw new ComponentException(name, "Timed out while waiting for Instagram media container",
+        Map.of("containerId", containerId));
   }
 
   /**
@@ -180,8 +191,10 @@ public final class InstagramPublisher extends AbstractPublisher {
     ObjectNode root = MAPPER.createObjectNode();
     root.put("creation_id", containerId);
 
+    URI endpoint = URI.create("https://graph.instagram.com/v23.0/" + accountId + "/media_publish");
+
     HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create("https://graph.instagram.com/v23.0/" + accountId + "/media_publish"))
+        .uri(endpoint)
         .header("Content-Type", "application/json")
         .header("Authorization", "Bearer " + accessKey)
         .POST(HttpRequest.BodyPublishers.ofString(root.toString()))
@@ -192,12 +205,14 @@ public final class InstagramPublisher extends AbstractPublisher {
     String id;
     try {
       id = MAPPER.readTree(json).at("/id").asText(null);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to parse id", e);
+    } catch (IOException e) {
+      throw new ComponentException(name, "Failed to parse Instagram media id",
+          Map.of("endpoint", endpoint.toString(), "responseBody", json), e);
     }
 
     if (id == null || id.isBlank()) {
-      throw new RuntimeException("Instagram media publish did not return an id (response: " + json + ")");
+      throw new ComponentException(name, "Instagram media publish did not return an id",
+          Map.of("endpoint", endpoint.toString(), "responseBody", json));
     }
 
     return id;
@@ -212,22 +227,28 @@ public final class InstagramPublisher extends AbstractPublisher {
    *                          code.
    */
   private String send(HttpRequest request) {
+    URI uri = request.uri();
+    String method = request.method();
+
     HttpResponse<String> response;
     try {
       response = http.send(request, HttpResponse.BodyHandlers.ofString());
     } catch (IOException e) {
-      throw new RuntimeException("Failed to call Instagram Graph API (I/O error)", e);
+      throw new ComponentException(name, "Failed to call Instagram Graph API",
+          Map.of("method", method, "uri", uri.toString()), e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException("Interrupted while calling Instagram Graph API", e);
+      throw new ComponentException(name, "Interrupted while calling Instagram Graph API",
+          Map.of("method", method, "uri", uri.toString()), e);
     }
 
     int status = response.statusCode();
+    String body = response.body();
     if (status < 200 || status >= 300) {
-      throw new RuntimeException(
-          "Instagram Graph API returned non-2xx status " + status + " (body: " + response.body() + ")");
+      throw new ComponentException(name, "Instagram Graph API returned non-2xx status",
+          Map.of("method", method, "uri", uri.toString(), "statusCode", status, "responseBody", body));
     }
 
-    return response.body();
+    return body;
   }
 }
