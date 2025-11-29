@@ -2,10 +2,12 @@ package info.henrycaldwell.aggregator.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 
+import info.henrycaldwell.aggregator.error.SpecException;
 import info.henrycaldwell.aggregator.transform.FpsTransformer;
 import info.henrycaldwell.aggregator.transform.Pipeline;
 import info.henrycaldwell.aggregator.transform.Transformer;
@@ -27,24 +29,25 @@ public final class PipelineFactory {
    *
    * @param config A {@link Config} representing a single pipeline block.
    * @return A {@link Pipeline} representing an ordered list of transformers.
-   * @throws IllegalArgumentException if the type is unknown.
+   * @throws SpecException if the configuration is missing required fields or the
+   *                       type is unknown.
    */
   public static Pipeline fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {
-      throw new IllegalArgumentException("Missing required key name (UNNAMED_PIPELINE)");
+      throw new SpecException("UNNAMED_PIPELINE", "Missing required key", Map.of("key", "name"));
     }
 
     String pipelineName = config.getString("name");
 
     if (!config.hasPath("transformers")) {
-      throw new IllegalArgumentException("Missing required key transformers (" + pipelineName + ")");
+      throw new SpecException(pipelineName, "Missing required key", Map.of("key", "transformers"));
     }
 
     List<? extends Config> transformers;
     try {
       transformers = config.getConfigList("transformers");
     } catch (ConfigException.WrongType e) {
-      throw new IllegalArgumentException("Invalid type for key transformers (" + pipelineName + ")", e);
+      throw new SpecException(pipelineName, "Incorrect key type (expected list)", Map.of("key", "transformers"), e);
     }
 
     List<Transformer> steps = new ArrayList<>();
@@ -53,13 +56,13 @@ public final class PipelineFactory {
       Config transformerConfig = transformers.get(i);
 
       if (!transformerConfig.hasPath("name") || transformerConfig.getString("name").isBlank()) {
-        throw new IllegalArgumentException("Missing required key name (UNNAMED_TRANSFORMER)");
+        throw new SpecException("UNNAMED_TRANSFORMER", "Missing required key", Map.of("key", "name"));
       }
 
       String transformerName = transformerConfig.getString("name");
 
       if (!transformerConfig.hasPath("type") || transformerConfig.getString("type").isBlank()) {
-        throw new IllegalArgumentException("Missing required key type (" + transformerName + ")");
+        throw new SpecException(transformerName, "Missing required key", Map.of("key", "type"));
       }
 
       String type = transformerConfig.getString("type");
@@ -71,8 +74,7 @@ public final class PipelineFactory {
         case "fps" -> {
           steps.add(new FpsTransformer(transformerConfig));
         }
-        default ->
-          throw new IllegalArgumentException("Unknown transformer type " + type + " (" + transformerName + ")");
+        default -> throw new SpecException(transformerName, "Unknown transformer type", Map.of("type", type));
       }
     }
 

@@ -1,9 +1,12 @@
 package info.henrycaldwell.aggregator.core;
 
+import java.util.Map;
+
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.download.Downloader;
 import info.henrycaldwell.aggregator.download.YtDlpDownloader;
+import info.henrycaldwell.aggregator.error.SpecException;
 
 /**
  * Class for constructing downloaders from HOCON configuration blocks.
@@ -21,17 +24,18 @@ public final class DownloaderFactory {
    *
    * @param config A {@link Config} representing a single downloader block.
    * @return A {@link Downloader} representing the downloader.
-   * @throws IllegalArgumentException if the type is unknown.
+   * @throws SpecException if the configuration is missing required fields or the
+   *                       type is unknown.
    */
   public static Downloader fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {
-      throw new IllegalArgumentException("Missing required key name (UNNAMED_DOWNLOADER)");
+      throw new SpecException("UNNAMED_DOWNLOADER", "Missing required key", Map.of("key", "name"));
     }
 
     String name = config.getString("name");
 
     if (!config.hasPath("type") || config.getString("type").isBlank()) {
-      throw new IllegalArgumentException("Missing required key type (" + name + ")");
+      throw new SpecException(name, "Missing required key", Map.of("key", "type"));
     }
 
     String type = config.getString("type");
@@ -40,7 +44,7 @@ public final class DownloaderFactory {
       case "yt-dlp" -> {
         return new YtDlpDownloader(config);
       }
-      default -> throw new IllegalArgumentException("Unknown downloader type " + type + " (" + name + ")");
+      default -> throw new SpecException(name, "Unknown downloader type", Map.of("type", type));
     }
   }
 }
