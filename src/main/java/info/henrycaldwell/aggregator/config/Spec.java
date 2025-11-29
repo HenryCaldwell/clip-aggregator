@@ -8,6 +8,8 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigValue;
 
+import info.henrycaldwell.aggregator.error.SpecException;
+
 /**
  * Class for validating HOCON configuration blocks against type requirements.
  * 
@@ -112,7 +114,7 @@ public final class Spec {
    *
    * @param config A {@link Config} representing the block to validate.
    * @param name   A string representing a display name for error messages.
-   * @throws IllegalArgumentException if validation fails at any step.
+   * @throws SpecException if validation fails at any step.
    */
   public void validate(Config config, String name) {
     Set<String> legal = new LinkedHashSet<>();
@@ -128,25 +130,25 @@ public final class Spec {
       String key = entry.getKey();
 
       if (!legal.contains(key)) {
-        throw new IllegalArgumentException("Unknown key " + key + " (" + name + ")");
+        throw new SpecException(name, "Unknown configuration key", Map.of("key", key));
       }
     }
 
     for (String key : requiredStrings) {
-      if (!config.hasPath(key) || config.getString(key).isBlank()) {
-        throw new IllegalArgumentException("Missing required key " + key + " (" + name + ")");
+      if (!config.hasPath(key)) {
+        throw new SpecException(name, "Missing required key", Map.of("key", key));
       }
     }
 
     for (String key : requiredNumbers) {
       if (!config.hasPath(key)) {
-        throw new IllegalArgumentException("Missing required key " + key + " (" + name + ")");
+        throw new SpecException(name, "Missing required key", Map.of("key", key));
       }
     }
 
     for (String key : requiredBooleans) {
       if (!config.hasPath(key)) {
-        throw new IllegalArgumentException("Missing required key " + key + " (" + name + ")");
+        throw new SpecException(name, "Missing required key", Map.of("key", key));
       }
     }
 
@@ -154,7 +156,7 @@ public final class Spec {
       try {
         config.getString(key);
       } catch (ConfigException.WrongType e) {
-        throw new IllegalArgumentException("Wrong type for key " + key + " (expected string) (" + name + ")", e);
+        throw new SpecException(name, "Incorrect key type (expected string)", Map.of("key", key), e);
       }
     }
 
@@ -162,7 +164,7 @@ public final class Spec {
       try {
         config.getNumber(key);
       } catch (ConfigException.WrongType e) {
-        throw new IllegalArgumentException("Wrong type for key " + key + " (expected number) (" + name + ")", e);
+        throw new SpecException(name, "Incorrect key type (expected number)", Map.of("key", key), e);
       }
     }
 
@@ -170,7 +172,7 @@ public final class Spec {
       try {
         config.getBoolean(key);
       } catch (ConfigException.WrongType e) {
-        throw new IllegalArgumentException("Wrong type for key " + key + " (expected boolean) (" + name + ")", e);
+        throw new SpecException(name, "Incorrect key type (expected boolean)", Map.of("key", key), e);
       }
     }
 
@@ -179,7 +181,7 @@ public final class Spec {
         try {
           config.getString(key);
         } catch (ConfigException.WrongType e) {
-          throw new IllegalArgumentException("Wrong type for key " + key + " (expected string) (" + name + ")", e);
+          throw new SpecException(name, "Incorrect key type (expected string)", Map.of("key", key), e);
         }
       }
     }
@@ -188,8 +190,8 @@ public final class Spec {
       if (config.hasPath(key)) {
         try {
           config.getNumber(key);
-        } catch (com.typesafe.config.ConfigException.WrongType e) {
-          throw new IllegalArgumentException("Wrong type for key " + key + " (expected number) (" + name + ")", e);
+        } catch (ConfigException.WrongType e) {
+          throw new SpecException(name, "Incorrect key type (expected number)", Map.of("key", key), e);
         }
       }
     }
@@ -198,8 +200,8 @@ public final class Spec {
       if (config.hasPath(key)) {
         try {
           config.getBoolean(key);
-        } catch (com.typesafe.config.ConfigException.WrongType e) {
-          throw new IllegalArgumentException("Wrong type for key " + key + " (expected boolean) (" + name + ")", e);
+        } catch (ConfigException.WrongType e) {
+          throw new SpecException(name, "Incorrect key type (expected boolean)", Map.of("key", key), e);
         }
       }
     }
