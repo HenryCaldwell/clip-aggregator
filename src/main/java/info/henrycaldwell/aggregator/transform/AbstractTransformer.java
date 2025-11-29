@@ -1,12 +1,15 @@
 package info.henrycaldwell.aggregator.transform;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
+import info.henrycaldwell.aggregator.error.ComponentException;
 
 /**
  * Base class for transformers that parses common configuration.
@@ -65,19 +68,21 @@ public abstract class AbstractTransformer implements Transformer {
     Path output = result.file();
 
     if (source == null || output == null || source.equals(output)) {
-      throw new IllegalStateException("Transformer must produce a new output file + (" + name + ")");
+      throw new ComponentException(name, "Transformer did not produce a new output file",
+          Map.of("sourcePath", source, "outputPath", output));
     }
 
     if (!Files.isRegularFile(output)) {
-      throw new IllegalStateException("Transformer produced a non-existent output (path: " + output + ")");
+      throw new ComponentException(name, "Transformer produced a non-regular output file",
+          Map.of("outputPath", output));
     }
 
     try {
       if (Files.isRegularFile(source)) {
         Files.delete(source);
       }
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to delete previous file (path: " + source + ")", e);
+    } catch (IOException e) {
+      throw new ComponentException(name, "Failed to delete previous file", Map.of("sourcePath", source), e);
     }
 
     return result;
