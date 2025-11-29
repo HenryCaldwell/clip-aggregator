@@ -13,6 +13,7 @@ import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 
 import info.henrycaldwell.aggregator.download.Downloader;
+import info.henrycaldwell.aggregator.error.SpecException;
 import info.henrycaldwell.aggregator.history.History;
 import info.henrycaldwell.aggregator.publish.Publisher;
 import info.henrycaldwell.aggregator.retrieve.Retriever;
@@ -112,19 +113,25 @@ public final class Runner {
    */
   private static RunnerContext buildContext(Config root) {
     if (!root.hasPath("name") || root.getString("name").isBlank()) {
-      throw new IllegalArgumentException("Missing required key name (ROOT)");
+      throw new SpecException("ROOT", "Missing required key", Map.of("key", "name"));
     }
 
     String name = root.getString("name");
 
     if (!root.hasPath("posts")) {
-      throw new IllegalArgumentException("Missing required key posts (" + name + ")");
+      throw new SpecException(name, "Missing required key", Map.of("key", "posts"));
     }
-    
-    int posts = root.getInt("posts");
+
+    int posts;
+    try {
+      posts = root.getInt("posts");
+    } catch (ConfigException.WrongType e) {
+      throw new SpecException(name, "Incorrect key type (expected number)", Map.of("key", "posts"), e);
+    }
 
     if (posts <= 0) {
-      throw new IllegalArgumentException("Field posts must be greater than 0 (" + name + ")");
+      throw new SpecException(name, "Invalid key value (expected posts to be greater than 0)",
+          Map.of("key", "posts", "value", posts));
     }
 
     Map<String, Retriever> retrievers = buildRetrievers(root);
@@ -135,23 +142,24 @@ public final class Runner {
     Map<String, Publisher> publishers = buildPublishers(root);
 
     if (retrievers.isEmpty()) {
-      throw new IllegalArgumentException("At least one retriever is required (" + name + ")");
+      throw new SpecException(name, "Invalid key value (expected at least 1 retriever)", Map.of("key", "retrievers"));
     }
 
     if (downloader == null) {
-      throw new IllegalArgumentException("Exactly one downloader is required (" + name + ")");
+      throw new SpecException(name, "Invalid key value (expected at exactly 1 downloader)",
+          Map.of("key", "downloader"));
     }
 
     if (publishers.isEmpty()) {
-      throw new IllegalArgumentException("At least one publisher is required (" + name + ")");
+      throw new SpecException(name, "Invalid key value (expected at least 1 publisher)", Map.of("key", "publishers"));
     }
 
     for (Retriever retriever : retrievers.values()) {
       String pipeline = retriever.getPipeline();
 
       if (pipeline != null && !pipelines.containsKey(pipeline)) {
-        throw new IllegalArgumentException(
-            "Retriever (" + retriever.getName() + ") references unknown pipeline (" + pipeline + ")");
+        throw new SpecException(name, "Retriever references unknown pipeline",
+            Map.of("retriever", retriever.getName(), "pipeline", pipeline));
       }
     }
 
@@ -299,7 +307,7 @@ public final class Runner {
     try {
       configs = root.getConfigList("retrievers");
     } catch (ConfigException.WrongType e) {
-      throw new IllegalArgumentException("Invalid type for key retrievers (ROOT)", e);
+      throw new SpecException("ROOT", "Incorrect key type (expected list)", Map.of("key", "retrievers"), e);
     }
 
     for (Config config : configs) {
@@ -307,7 +315,7 @@ public final class Runner {
       String name = retriever.getName();
 
       if (retrievers.containsKey(name)) {
-        throw new IllegalArgumentException("Duplicate retriever name (" + name + ")");
+        throw new SpecException("ROOT", "Duplicate retriever name", Map.of("name", name));
       }
 
       retrievers.put(name, retriever);
@@ -332,7 +340,7 @@ public final class Runner {
     try {
       config = root.getConfig("history");
     } catch (ConfigException.WrongType e) {
-      throw new IllegalArgumentException("Invalid type for key history (ROOT)", e);
+      throw new SpecException("ROOT", "Incorrect key type (expected object)", Map.of("key", "history"), e);
     }
 
     return HistoryFactory.fromConfig(config);
@@ -354,7 +362,7 @@ public final class Runner {
     try {
       config = root.getConfig("downloader");
     } catch (ConfigException.WrongType e) {
-      throw new IllegalArgumentException("Invalid type for key downloader (ROOT)", e);
+      throw new SpecException("ROOT", "Incorrect key type (expected object)", Map.of("key", "downloader"), e);
     }
 
     return DownloaderFactory.fromConfig(config);
@@ -379,7 +387,7 @@ public final class Runner {
     try {
       configs = root.getConfigList("pipelines");
     } catch (ConfigException.WrongType e) {
-      throw new IllegalArgumentException("Invalid type for key pipelines (ROOT)", e);
+      throw new SpecException("ROOT", "Incorrect key type (expected list)", Map.of("key", "pipelines"), e);
     }
 
     for (Config config : configs) {
@@ -387,7 +395,7 @@ public final class Runner {
       String name = pipeline.getName();
 
       if (pipelines.containsKey(name)) {
-        throw new IllegalArgumentException("Duplicate pipeline name (" + name + ")");
+        throw new SpecException("ROOT", "Duplicate pipeline name", Map.of("name", name));
       }
 
       pipelines.put(name, pipeline);
@@ -412,7 +420,7 @@ public final class Runner {
     try {
       config = root.getConfig("stager");
     } catch (ConfigException.WrongType e) {
-      throw new IllegalArgumentException("Invalid type for key stager (ROOT)", e);
+      throw new SpecException("ROOT", "Incorrect key type (expected object)", Map.of("key", "stager"), e);
     }
 
     return StagerFactory.fromConfig(config);
@@ -437,7 +445,7 @@ public final class Runner {
     try {
       configs = root.getConfigList("publishers");
     } catch (ConfigException.WrongType e) {
-      throw new IllegalArgumentException("Invalid type for key publishers (ROOT)", e);
+      throw new SpecException("ROOT", "Incorrect key type (expected list)", Map.of("key", "publishers"), e);
     }
 
     for (Config config : configs) {
@@ -445,7 +453,7 @@ public final class Runner {
       String name = publisher.getName();
 
       if (publishers.containsKey(name)) {
-        throw new IllegalArgumentException("Duplicate publisher name (" + name + ")");
+        throw new SpecException("ROOT", "Duplicate publisher name", Map.of("name", name));
       }
 
       publishers.put(name, publisher);
@@ -468,6 +476,6 @@ public final class Runner {
       Downloader downloader,
       Map<String, Pipeline> pipelines,
       Stager stager,
-      Map<String, Publisher> publishers
-  ) {}
+      Map<String, Publisher> publishers) {
+  }
 }
