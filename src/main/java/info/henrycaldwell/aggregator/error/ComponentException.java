@@ -5,13 +5,13 @@ import java.util.Map;
 /**
  * Class for representing component runtime errors.
  * 
- * This class identifies failures related to execution of a specific component
- * such as a retriever, history, downloader, transformer, stager, or publisher.
+ * This class reports failures related to execution of a specific component such
+ * as a retriever, history, downloader, transformer, stager, or publisher.
  */
 public class ComponentException extends AbstractException {
 
   /**
-   * Constructs a component exception with a message.
+   * Constructs a ComponentException.
    * 
    * @param component A string representing the component name, or {@code null}.
    * @param message   A string representing the human-readable error message, or
@@ -24,7 +24,7 @@ public class ComponentException extends AbstractException {
   }
 
   /**
-   * Constructs a component exception with a message and detail map.
+   * Constructs a ComponentException.
    * 
    * @param component A string representing the component name, or {@code null}.
    * @param message   A string representing the human-readable error message, or
@@ -40,7 +40,7 @@ public class ComponentException extends AbstractException {
   }
 
   /**
-   * Constructs a component exception with a message, detail map, and cause.
+   * Constructs a ComponentException.
    * 
    * @param component A string representing the component name, or {@code null}.
    * @param message   A string representing the human-readable error message, or

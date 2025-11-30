@@ -5,13 +5,13 @@ import java.util.Map;
 /**
  * Class for representing configuration specification errors.
  * 
- * This class identifies failures related to configuration shapes, required
- * fields, and type mismatches detected during specification validation.
+ * This class reports failures related to configuration structure, required
+ * fields, and type mismatches detected during validation.
  */
 public class SpecException extends AbstractException {
 
   /**
-   * Constructs a specification exception with a message.
+   * Constructs a SpecException.
    * 
    * @param component A string representing the component name, or {@code null}.
    * @param message   A string representing the human-readable error message, or
@@ -24,7 +24,7 @@ public class SpecException extends AbstractException {
   }
 
   /**
-   * Constructs a specification exception with a message and detail map.
+   * Constructs a SpecException.
    * 
    * @param component A string representing the component name, or {@code null}.
    * @param message   A string representing the human-readable error message, or
@@ -40,7 +40,7 @@ public class SpecException extends AbstractException {
   }
 
   /**
-   * Constructs a specification exception with a message, detail map, and cause.
+   * Constructs a SpecException.
    * 
    * @param component A string representing the component name, or {@code null}.
    * @param message   A string representing the human-readable error message, or

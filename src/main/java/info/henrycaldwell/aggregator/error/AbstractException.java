@@ -3,7 +3,7 @@ package info.henrycaldwell.aggregator.error;
 import java.util.Map;
 
 /**
- * Base class for formatting structured runtime exceptions.
+ * Base class for structured runtime exceptions.
  * 
  * This class formats error messages with an optional category, component, and
  * structured detail map for consistent logging and debugging.
@@ -11,7 +11,7 @@ import java.util.Map;
 public abstract class AbstractException extends RuntimeException {
 
   /**
-   * Constructs a base formatted exception.
+   * Constructs an abstract exception.
    * 
    * @param category  A string representing the high-level error category, or
    *                  {@code null}.
@@ -27,7 +27,7 @@ public abstract class AbstractException extends RuntimeException {
   }
 
   /**
-   * Constructs a base formatted exception.
+   * Constructs an abstract exception.
    * 
    * @param category  A string representing the high-level error category, or
    *                  {@code null}.
@@ -46,7 +46,7 @@ public abstract class AbstractException extends RuntimeException {
   }
 
   /**
-   * Constructs a base formatted exception.
+   * Constructs an abstract exception.
    * 
    * @param category  A string representing the high-level error category, or
    *                  {@code null}.
