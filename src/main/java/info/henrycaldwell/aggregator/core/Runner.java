@@ -215,16 +215,7 @@ public final class Runner {
         MediaRef media;
         try {
           Path target = Paths.get("work", clipId + ".mp4");
-          DownloadRef download = context.downloader().download(clip, target);
-
-          media = new MediaRef(
-              download.id(),
-              download.file(),
-              null,
-              clip.title(),
-              clip.broadcaster(),
-              clip.language(),
-              List.of());
+          media = context.downloader().download(clip, target);
 
           if (pipeline != null) {
             media = pipeline.run(media);

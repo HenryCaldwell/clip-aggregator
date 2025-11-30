@@ -3,7 +3,7 @@ package info.henrycaldwell.aggregator.download;
 import java.nio.file.Path;
 
 import info.henrycaldwell.aggregator.core.ClipRef;
-import info.henrycaldwell.aggregator.core.DownloadRef;
+import info.henrycaldwell.aggregator.core.MediaRef;
 
 /**
  * Interface for downloading clips to a target file path.
@@ -22,9 +22,9 @@ public interface Downloader {
   /**
    * Downloads a single clip to the specified path.
    * 
-   * @param clip   A record referencing the clip to download.
-   * @param target A path representing the destination media file.
-   * @return A {@link DownloadRef} representing the downloaded file.
+   * @param clip   A {@link ClipRef} representing the clip to download.
+   * @param target A {@link Path} representing the destination media file.
+   * @return A {@link MediaRef} representing the downloaded artifact.
    */
-  DownloadRef download(ClipRef clip, Path target);
+  MediaRef download(ClipRef clip, Path target);
 }
