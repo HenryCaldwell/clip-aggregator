@@ -1,6 +1,7 @@
 package info.henrycaldwell.aggregator.config;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -11,10 +12,11 @@ import com.typesafe.config.ConfigValue;
 import info.henrycaldwell.aggregator.error.SpecException;
 
 /**
- * Class for validating HOCON configuration blocks against type requirements.
+ * Class for validating HOCON configuration blocks.
  * 
- * This class defines required and optional keys by primitive type (string,
- * number, boolean) and validates presence, unknown keys, and type access.
+ * This class records required and optional keys by primitive type (string,
+ * number, boolean) and validates configuration blocks for unknown keys, missing
+ * required keys, and type mismatches.
  */
 public final class Spec {
 
@@ -26,7 +28,7 @@ public final class Spec {
   private final Set<String> optionalBooleans = new LinkedHashSet<>();
 
   /**
-   * Creates a new builder for constructing a {@link Spec}.
+   * Creates a new builder for constructing a spec.
    *
    * @return A {@link SpecBuilder} for defining required and optional keys.
    */
@@ -37,7 +39,8 @@ public final class Spec {
   /**
    * Merges required and optional keys across the provided specs.
    * 
-   * @param specs An array of {@link Spec} values representing the specs to merge.
+   * @param specs An {@link List} of {@link Spec} values representing the specs to
+   *              merge.
    * @return A {@link Spec} representing the combined set of keys.
    */
   public static Spec union(Spec... specs) {
@@ -110,10 +113,10 @@ public final class Spec {
   }
 
   /**
-   * Validates a configuration block against the spec.
+   * Validates a configuration block against this spec.
    *
    * @param config A {@link Config} representing the block to validate.
-   * @param name   A string representing a display name for error messages.
+   * @param name   A string representing a display name.
    * @throws SpecException if validation fails at any step.
    */
   public void validate(Config config, String name) {
@@ -208,10 +211,10 @@ public final class Spec {
   }
 
   /**
-   * Class for building a {@link Spec} with required and optional keys.
+   * Class for building a spec with required and optional keys.
    * 
-   * This class collects desired keys by primitive type and produces an immutable
-   * {@link Spec} on build.
+   * This class collects desired keys by primitive type and produces a configured
+   * {@link Spec} instance.
    */
   public static final class SpecBuilder {
 
