@@ -18,8 +18,8 @@ public final class Pipeline {
    * Constructs a pipeline.
    *
    * @param name         A string representing the pipeline name.
-   * @param transformers A list of {@link Transformer} representing the changes to
-   *                     apply in order.
+   * @param transformers A {@link List} of {@link Transformer} representing the
+   *                     changes to apply in order.
    */
   public Pipeline(String name, List<Transformer> transformers) {
     this.name = name;
