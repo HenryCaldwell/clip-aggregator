@@ -9,10 +9,10 @@ import info.henrycaldwell.aggregator.stage.CloudflareR2Stager;
 import info.henrycaldwell.aggregator.stage.Stager;
 
 /**
- * Class for constructing stagers from HOCON configuration blocks.
+ * Factory for constructing stagers from configuration.
  * 
- * This class validates a stager block using its spec and instantiates
- * a concrete stager.
+ * This class validates a stager configuration block and instantiates a concrete
+ * stager implementation.
  */
 public final class StagerFactory {
 
@@ -20,12 +20,12 @@ public final class StagerFactory {
   }
 
   /**
-   * Builds a stager from a HOCON configuration block.
+   * Builds a stager from the given configuration block.
    *
-   * @param config A {@link Config} representing a single stager block.
-   * @return A {@link Stager} representing the stager.
-   * @throws SpecException if the configuration is missing required fields or the
-   *                       type is unknown.
+   * @param config A {@link Config} representing the stager configuration.
+   * @return A {@link Stager} representing the configured stager.
+   * @throws SpecException if the configuration is invalid or the stager type is
+   *                       unknown.
    */
   public static Stager fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {

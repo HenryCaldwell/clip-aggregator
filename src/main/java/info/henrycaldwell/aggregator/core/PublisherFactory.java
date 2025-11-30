@@ -10,10 +10,10 @@ import info.henrycaldwell.aggregator.publish.NoOpPublisher;
 import info.henrycaldwell.aggregator.publish.Publisher;
 
 /**
- * Class for constructing publishers from HOCON configuration blocks.
+ * Factory for constructing publishers from configuration.
  * 
- * This class validates a publisher block using its spec and instantiates
- * a concrete publisher.
+ * This class validates a publisher configuration block and instantiates a
+ * concrete publisher implementation.
  */
 public final class PublisherFactory {
 
@@ -21,12 +21,12 @@ public final class PublisherFactory {
   }
 
   /**
-   * Builds a publisher from a HOCON configuration block.
+   * Builds a publisher from the given configuration block.
    *
-   * @param config A {@link Config} representing a single publisher block.
-   * @return A {@link Publisher} representing the destination.
-   * @throws SpecException if the configuration is missing required fields or the
-   *                       type is unknown.
+   * @param config A {@link Config} representing the publisher configuration.
+   * @return A {@link Publisher} representing the configured publisher.
+   * @throws SpecException if the configuration is invalid or the publisher type
+   *                       is unknown.
    */
   public static Publisher fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {

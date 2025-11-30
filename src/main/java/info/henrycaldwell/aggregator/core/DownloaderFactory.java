@@ -9,10 +9,10 @@ import info.henrycaldwell.aggregator.download.YtDlpDownloader;
 import info.henrycaldwell.aggregator.error.SpecException;
 
 /**
- * Class for constructing downloaders from HOCON configuration blocks.
+ * Factory for constructing downloaders from configuration.
  * 
- * This class validates a downloader block using its spec and instantiates
- * a concrete downloader.
+ * This class validates a downloader configuration block and instantiates a
+ * concrete downloader implementation.
  */
 public final class DownloaderFactory {
 
@@ -20,12 +20,12 @@ public final class DownloaderFactory {
   }
 
   /**
-   * Builds a downloader from a HOCON configuration block.
+   * Builds a downloader from the given configuration block.
    *
-   * @param config A {@link Config} representing a single downloader block.
-   * @return A {@link Downloader} representing the downloader.
-   * @throws SpecException if the configuration is missing required fields or the
-   *                       type is unknown.
+   * @param config A {@link Config} representing the downloader configuration.
+   * @return A {@link Downloader} representing the configured downloader.
+   * @throws SpecException if the configuration is invalid or the downloader type
+   *                       is unknown.
    */
   public static Downloader fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {

@@ -14,10 +14,10 @@ import info.henrycaldwell.aggregator.transform.Transformer;
 import info.henrycaldwell.aggregator.transform.VerticalBlurTransformer;
 
 /**
- * Class for constructing pipelines from HOCON configuration blocks.
+ * Factory for constructing pipelines from configuration.
  * 
- * This class validates each transformer block using its spec and instantiates
- * the transformer pipeline.
+ * This class validates transformer configuration blocks and assembles them into
+ * an ordered pipeline.
  */
 public final class PipelineFactory {
 
@@ -25,12 +25,12 @@ public final class PipelineFactory {
   }
 
   /**
-   * Builds a pipeline from a HOCON configuration block.
+   * Builds a pipeline from the given configuration block.
    *
-   * @param config A {@link Config} representing a single pipeline block.
-   * @return A {@link Pipeline} representing an ordered list of transformers.
-   * @throws SpecException if the configuration is missing required fields or the
-   *                       type is unknown.
+   * @param config A {@link Config} representing the pipeline configuration.
+   * @return A {@link Pipeline} representing the configured transformer pipeline.
+   * @throws SpecException if the configuration is invalid or any transformer type
+   *                       is unknown.
    */
   public static Pipeline fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {

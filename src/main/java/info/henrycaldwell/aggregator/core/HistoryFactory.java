@@ -9,10 +9,10 @@ import info.henrycaldwell.aggregator.history.History;
 import info.henrycaldwell.aggregator.history.SqliteHistory;
 
 /**
- * Class for constructing histories from HOCON configuration blocks.
+ * Factory for constructing histories from configuration.
  * 
- * This class validates a history block using its spec and instantiates
- * a concrete history.
+ * This class validates a history configuration block and instantiates a
+ * concrete history implementation.
  */
 public final class HistoryFactory {
 
@@ -20,12 +20,12 @@ public final class HistoryFactory {
   }
 
   /**
-   * Builds a history from a HOCON configuration block.
+   * Builds a history from the given configuration block.
    *
-   * @param config A {@link Config} representing a single history block.
-   * @return A {@link History} representing the history.
-   * @throws SpecException if the configuration is missing required fields or the
-   *                       type is unknown.
+   * @param config A {@link Config} representing the history configuration.
+   * @return A {@link History} representing the configured history.
+   * @throws SpecException if the configuration is invalid or the history type is
+   *                       unknown.
    */
   public static History fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {

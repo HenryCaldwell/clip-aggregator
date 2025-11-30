@@ -9,10 +9,10 @@ import info.henrycaldwell.aggregator.retrieve.Retriever;
 import info.henrycaldwell.aggregator.retrieve.TwitchRetriever;
 
 /**
- * Class for constructing retrievers from HOCON configuration blocks.
+ * Factory for constructing retrievers from configuration.
  * 
- * This class validates a retriever block using its spec and instantiates
- * a concrete retriever.
+ * This class validates a retriever configuration block and instantiates a
+ * concrete retriever implementation.
  */
 public final class RetrieverFactory {
 
@@ -20,12 +20,12 @@ public final class RetrieverFactory {
   }
 
   /**
-   * Builds a retriever from a HOCON configuration block.
+   * Builds a retriever from the given configuration block.
    *
-   * @param config A {@link Config} representing a single retriever block.
-   * @return A {@link Retriever} representing the source.
-   * @throws SpecException if the configuration is missing required fields or the
-   *                       type is unknown.
+   * @param config A {@link Config} representing the retriever configuration.
+   * @return A {@link Retriever} representing the configured retriever.
+   * @throws SpecException if the configuration is invalid or the retriever type
+   *                       is unknown.
    */
   public static Retriever fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {
