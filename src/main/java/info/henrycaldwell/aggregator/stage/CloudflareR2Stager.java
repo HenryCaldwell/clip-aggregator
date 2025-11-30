@@ -20,10 +20,10 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /**
- * Class for staging media artifacts to Cloudflare R2.
+ * Class for staging media via Cloudflare R2 object storage.
  *
- * This class uploads the input file to Cloudflare R2 using an S3-compatible
- * client and returns a media reference with a publicly accessible URL.
+ * This class uploads the input media file using an S3-compatible client and
+ * returns a media with a publicly accessible URL.
  */
 public final class CloudflareR2Stager extends AbstractStager {
 
@@ -45,7 +45,7 @@ public final class CloudflareR2Stager extends AbstractStager {
   /**
    * Constructs a CloudflareR2Stager.
    *
-   * @param config A {@link Config} representing the stager block.
+   * @param config A {@link Config} representing the stager configuration.
    */
   public CloudflareR2Stager(Config config) {
     super(config, SPEC);
@@ -97,14 +97,11 @@ public final class CloudflareR2Stager extends AbstractStager {
   }
 
   /**
-   * Uploads the input file to Cloudflare R2.
+   * Uploads the input media to Cloudflare R2 and updates its remote URI.
    *
-   * @param media A {@code MediaRef} representing the current artifact.
-   * @return A {@code MediaRef} representing the staged artifact.
-   * @throws IllegalStateException    if the stager is not started.
-   * @throws RuntimeException         if the upload fails.
-   * @throws IllegalArgumentException if the input file is missing or not a
-   *                                  regular file.
+   * @param media A {@link MediaRef} representing the media to stage.
+   * @return A {@link MediaRef} representing the staged media.
+   * @throws ComponentException if staging fails at any step.
    */
   @Override
   public MediaRef apply(MediaRef media) {
@@ -139,11 +136,10 @@ public final class CloudflareR2Stager extends AbstractStager {
   }
 
   /**
-   * Deletes the input file from Cloudflare R2.
+   * Deletes the staged media from Cloudflare R2.
    *
-   * @param media A {@code MediaRef} representing the staged artifact.
-   * @throws IllegalStateException if the stager is not started.
-   * @throws RuntimeException      if the delete fails.
+   * @param media A {@link MediaRef} representing the staged media.
+   * @throws ComponentException if deletion fails at any step.
    */
   @Override
   public void clean(MediaRef media) {

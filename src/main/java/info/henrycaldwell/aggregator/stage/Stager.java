@@ -3,10 +3,10 @@ package info.henrycaldwell.aggregator.stage;
 import info.henrycaldwell.aggregator.core.MediaRef;
 
 /**
- * Interface for staging a media artifact to a remote location.
+ * Interface for staging media.
  * 
- * This interface defines a contract for producing a new media reference with a
- * remotely accessible URL from an input media reference.
+ * This interface defines a contract for producing remote media from local
+ * media.
  */
 public interface Stager {
 
@@ -30,15 +30,15 @@ public interface Stager {
   /**
    * Stages the input media to a remote location.
    *
-   * @param media A {@code MediaRef} representing the artifact to stage.
-   * @return A {@code MediaRef} representing the staged artifact.
+   * @param media A {@link MediaRef} representing the media to stage.
+   * @return A {@link MediaRef} representing the staged media.
    */
   MediaRef stage(MediaRef media);
 
   /**
-   * Cleans staged media resources associated with the artifact.
+   * Cleans staged resources associated with the media.
    *
-   * @param media A {@link MediaRef} representing the staged artifact.
+   * @param media A {@link MediaRef} representing the staged media.
    */
   void clean(MediaRef media);
 }

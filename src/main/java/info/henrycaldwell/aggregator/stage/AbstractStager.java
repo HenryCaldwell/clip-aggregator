@@ -15,8 +15,8 @@ import info.henrycaldwell.aggregator.error.ComponentException;
 /**
  * Base class for stagers that parses common configuration.
  * 
- * This class reads the required stager base properties, and validates
- * using a composite Spec of the base keys and the subclass-specific keys.
+ * This class validates stager configuration using a shared base spec combined
+ * with subclass-specific requirements.
  */
 public abstract class AbstractStager implements Stager {
 
@@ -27,7 +27,7 @@ public abstract class AbstractStager implements Stager {
   protected final String name;
 
   /**
-   * Constructs a base stager.
+   * Constructs an abstract stager.
    *
    * @param config A {@link Config} representing the stager block.
    * @param spec   A {@link Spec} representing the subclass-specific spec.
@@ -73,11 +73,9 @@ public abstract class AbstractStager implements Stager {
   /**
    * Stages the input media and replaces the previous file.
    *
-   * @param media A {@code MediaRef} representing the current artifact.
-   * @return A {@code MediaRef} representing the staged artifact.
-   * @throws IllegalStateException if the stager does not produce a new remote URI
-   *                               or the URI is not HTTP or HTTPS.
-   * @throws RuntimeException      if deleting the previous file fails.
+   * @param media A {@link MediaRef} representing the media to stage.
+   * @return A {@link MediaRef} representing the staged media.
+   * @throws ComponentException if staging fails at any step.
    */
   @Override
   public MediaRef stage(MediaRef media) {
@@ -102,9 +100,9 @@ public abstract class AbstractStager implements Stager {
   }
 
   /**
-   * Cleans staged media resources associated with the artifact.
+   * Cleans staged resources associated with the media.
    *
-   * @param media A {@link MediaRef} representing the staged artifact.
+   * @param media A {@link MediaRef} representing the staged media.
    */
   @Override
   public void clean(MediaRef media) {
@@ -114,8 +112,8 @@ public abstract class AbstractStager implements Stager {
   /**
    * Applies a subclass-specific staging.
    *
-   * @param media A {@code MediaRef} representing the current artifact.
-   * @return A {@code MediaRef} representing the staged artifact.
+   * @param media A {@link MediaRef} representing the media to stage.
+   * @return A {@link MediaRef} representing the staged media.
    */
   protected abstract MediaRef apply(MediaRef media);
 }
