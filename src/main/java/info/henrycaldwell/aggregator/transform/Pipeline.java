@@ -5,9 +5,9 @@ import java.util.List;
 import info.henrycaldwell.aggregator.core.MediaRef;
 
 /**
- * Class for executing an ordered set of media transformations.
+ * Class for running media transformers in sequence.
  * 
- * This class applies each transformer in sequence to a given media file.
+ * This class applies transformers to media in the configured order.
  */
 public final class Pipeline {
 
@@ -15,7 +15,7 @@ public final class Pipeline {
   private final List<Transformer> transformers;
 
   /**
-   * Constructs a pipeline with an ordered list of transformers.
+   * Constructs a pipeline.
    *
    * @param name         A string representing the pipeline name.
    * @param transformers A list of {@link Transformer} representing the changes to
@@ -36,9 +36,9 @@ public final class Pipeline {
   }
 
   /**
-   * Applies the configured transformers to the provided media.
+   * Applies the configured transformers to the input media.
    *
-   * @param media A {@link MediaRef} representing the input media.
+   * @param media A {@link MediaRef} representing the media to transform.
    * @return A {@link MediaRef} representing the transformed media.
    */
   public MediaRef run(MediaRef media) {

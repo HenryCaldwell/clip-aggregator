@@ -15,10 +15,11 @@ import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
 
 /**
- * Class for formatting a video with a blurred vertical backdrop.
+ * Class for formatting a video with a blurred vertical backdrop via the FFmpeg
+ * command-line utility.
  * 
- * This class creates a 9:16 output by generating a blurred background from the
- * source and centering the original clip on top.
+ * This class invokes FFmpeg as a subprocess and centers the original clip on
+ * top of a blurred background.
  */
 public final class VerticalBlurTransformer extends AbstractTransformer {
 
@@ -36,7 +37,8 @@ public final class VerticalBlurTransformer extends AbstractTransformer {
   /**
    * Constructs a VerticalBlurTransformer.
    *
-   * @param config A {@link Config} representing the transformer block.
+   * @param config A {@link Config} representing the transformer configuration.
+   * @throws SpecException if the configuration violates the transformer spec.
    */
   public VerticalBlurTransformer(Config config) {
     super(config, SPEC);
@@ -73,13 +75,11 @@ public final class VerticalBlurTransformer extends AbstractTransformer {
   }
 
   /**
-   * Applies a blurred background vertical layout with a centered foreground.
+   * Applies a vertical blur layout transformation to the input media.
    *
-   * @param media A {@code MediaRef} representing the current artifact.
-   * @return A {@code MediaRef} representing the transformed artifact.
-   * @throws RuntimeException         if the transform fails at any step.
-   * @throws IllegalArgumentException if the input file is missing or not a
-   *                                  regular file.
+   * @param media A {@link MediaRef} representing the media to transform.
+   * @return A {@link MediaRef} representing the transformed media.
+   * @throws ComponentException if transforming fails at any step.
    */
   @Override
   public MediaRef apply(MediaRef media) {
@@ -176,10 +176,10 @@ public final class VerticalBlurTransformer extends AbstractTransformer {
    * Derives an output path by appending a suffix before the original file
    * extension.
    *
-   * @param in     A path representing the input file.
+   * @param in     A {@link Path} representing the input file.
    * @param suffix A string representing the suffix to append to the base
    *               filename.
-   * @return A path representing the derived sibling file.
+   * @return A {@link Path} representing the derived sibling file.
    */
   private static Path deriveOut(Path in, String suffix) {
     String name = in.getFileName().toString();

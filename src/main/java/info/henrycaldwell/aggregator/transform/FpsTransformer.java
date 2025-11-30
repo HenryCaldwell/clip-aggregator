@@ -15,9 +15,11 @@ import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
 
 /**
- * Class for converting a video's frame rate.
+ * Class for converting a video's frame rate via the FFmpeg command-line
+ * utility.
  * 
- * This class re-samples the input to a target frames-per-second value.
+ * This class invokes FFmpeg as a subprocess and re-samples input media to a
+ * target frames-per-second value.
  */
 public final class FpsTransformer extends AbstractTransformer {
 
@@ -32,8 +34,8 @@ public final class FpsTransformer extends AbstractTransformer {
   /**
    * Constructs an FpsTransformer.
    *
-   * @param config A {@link Config} representing the transformer block.
-   * @throws IllegalArgumentException if the target fps is not positive.
+   * @param config A {@link Config} representing the transformer configuration.
+   * @throws SpecException if the configuration violates the transformer spec.
    */
   public FpsTransformer(Config config) {
     super(config, SPEC);
@@ -50,13 +52,11 @@ public final class FpsTransformer extends AbstractTransformer {
   }
 
   /**
-   * Applies a frame rate conversion.
+   * Applies a frame rate transformation to the input media.
    * 
-   * @param media A {@code MediaRef} representing the current artifact.
-   * @return A {@code MediaRef} representing the transformed artifact.
-   * @throws RuntimeException         if the transform fails at any step.
-   * @throws IllegalArgumentException if the input file is missing or not a
-   *                                  regular file.
+   * @param media A {@link MediaRef} representing the media to transform.
+   * @return A {@link MediaRef} representing the transformed media.
+   * @throws ComponentException if transforming fails at any step.
    */
   @Override
   public MediaRef apply(MediaRef media) {
@@ -145,10 +145,10 @@ public final class FpsTransformer extends AbstractTransformer {
    * Derives an output path by appending a suffix before the original file
    * extension.
    *
-   * @param in     A path representing the input file.
+   * @param in     A {@link Path} representing the input file.
    * @param suffix A string representing the suffix to append to the base
    *               filename.
-   * @return A path representing the derived sibling file.
+   * @return A {@link Path} representing the derived sibling file.
    */
   private static Path deriveOut(Path in, String suffix) {
     String name = in.getFileName().toString();

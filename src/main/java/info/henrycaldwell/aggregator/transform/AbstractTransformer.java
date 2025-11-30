@@ -14,8 +14,8 @@ import info.henrycaldwell.aggregator.error.ComponentException;
 /**
  * Base class for transformers that parses common configuration.
  * 
- * This class reads the required transformer base properties, and validates
- * using a composite Spec of the base keys and the subclass-specific keys.
+ * This class validates transformer configuration using a shared base spec
+ * combined with subclass-specific requirements.
  */
 public abstract class AbstractTransformer implements Transformer {
   protected static final Spec BASE_SPEC = Spec.builder()
@@ -25,7 +25,7 @@ public abstract class AbstractTransformer implements Transformer {
   protected final String name;
 
   /**
-   * Constructs a base transformer.
+   * Constructs an abstract transformer.
    *
    * @param config A {@link Config} representing the transformer block.
    * @param spec   A {@link Spec} representing the subclass-specific spec.
@@ -55,11 +55,9 @@ public abstract class AbstractTransformer implements Transformer {
   /**
    * Transforms the input media and replaces the previous file.
    *
-   * @param media A {@code MediaRef} representing the current artifact.
-   * @return A {@code MediaRef} representing the transformed artifact.
-   * @throws IllegalStateException if the transformer does not produce a new
-   *                               output file or the output is missing.
-   * @throws RuntimeException      if deleting the previous file fails.
+   * @param media A {@link MediaRef} representing the media to transform.
+   * @return A {@link MediaRef} representing the transformed media.
+   * @throws ComponentException if transforming fails at any step.
    */
   @Override
   public MediaRef transform(MediaRef media) {
@@ -91,8 +89,8 @@ public abstract class AbstractTransformer implements Transformer {
   /**
    * Applies a subclass-specific transformation.
    *
-   * @param media A {@code MediaRef} representing the current artifact.
-   * @return A {@code MediaRef} representing the transformed artifact.
+   * @param media A {@link MediaRef} representing the media to transform.
+   * @return A {@link MediaRef} representing the transformed media.
    */
   protected abstract MediaRef apply(MediaRef media);
 }
