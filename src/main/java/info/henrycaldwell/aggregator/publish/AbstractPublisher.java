@@ -7,8 +7,8 @@ import info.henrycaldwell.aggregator.config.Spec;
 /**
  * Base class for publishers that parses common configuration.
  * 
- * This class reads the required publisher base properties, and validates using
- * a composite Spec of the base keys and the subclass-specific keys.
+ * This class validates publisher configuration using a shared base spec
+ * combined with subclass-specific requirements.
  */
 public abstract class AbstractPublisher implements Publisher {
   protected static final Spec BASE_SPEC = Spec.builder()
@@ -18,7 +18,7 @@ public abstract class AbstractPublisher implements Publisher {
   protected final String name;
 
   /**
-   * Constructs a base publisher.
+   * Constructs an abstract publisher.
    *
    * @param config A {@link Config} representing the publisher block.
    * @param spec   A {@link Spec} representing the subclass-specific spec.

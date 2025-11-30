@@ -18,10 +18,10 @@ import info.henrycaldwell.aggregator.core.PublishRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
 
 /**
- * Class for publishing media artifacts to Instagram Reels.
+ * Class for publishing media to Instagram Reels via the Instagram Graph API.
  * 
- * This class publishes the input media reference to Instagram Reels
- * using the Instagram Graph API.
+ * This class publishes the input media to Instagram Reels and returns a
+ * publish for the resulting short.
  */
 public final class InstagramPublisher extends AbstractPublisher {
 
@@ -38,7 +38,7 @@ public final class InstagramPublisher extends AbstractPublisher {
   /**
    * Constructs an InstagramPublisher.
    *
-   * @param config A {@link Config} representing the publisher block.
+   * @param config A {@link Config} representing the publisher configuration.
    */
   public InstagramPublisher(Config config) {
     super(config, SPEC);
@@ -49,13 +49,11 @@ public final class InstagramPublisher extends AbstractPublisher {
   }
 
   /**
-   * Publishes a media artifact as an Instagram reel.
+   * Publishes the input media as an Instagram Reel.
    *
-   * @param media A {@link MediaRef} representing the artifact to publish.
-   * @return A {@link PublishRef} representing the published location.
-   * @throws IllegalArgumentException if the media URI is missing or not HTTP or
-   *                                  HTTPS.
-   * @throws RuntimeException         if the Instagram Graph API calls fail.
+   * @param media A {@link MediaRef} representing the media to publish.
+   * @return A {@link PublishRef} representing the published short.
+   * @throws ComponentException if publishing fails at any step.
    */
   @Override
   public PublishRef publish(MediaRef media) {
@@ -77,14 +75,13 @@ public final class InstagramPublisher extends AbstractPublisher {
   }
 
   /**
-   * Creates a reels media container.
+   * Creates an Instagram Reels media container.
    *
    * @param url     A string representing the public video URL.
-   * @param caption A string representing the caption to associate with the reel,
-   *                or {@code null}.
+   * @param caption A string representing the caption, or {@code null}.
    * @return A string representing the container identifier.
-   * @throws RuntimeException if the Instagram Graph API call fails or the
-   *                          response is invalid.
+   * @throws ComponentException if the Instagram Graph API call fails or the
+   *                            response is invalid.
    */
   private String createContainer(String url, String caption) {
     ObjectNode root = MAPPER.createObjectNode();
@@ -123,11 +120,11 @@ public final class InstagramPublisher extends AbstractPublisher {
   }
 
   /**
-   * Waits for the reels media container to become ready for publishing.
+   * Waits for the Instagram Reels media container to become ready for publishing.
    *
    * @param containerId A string representing the container identifier.
-   * @throws RuntimeException if the container does not become ready within the
-   *                          timeout or enters an error state.
+   * @throws ComponentException if the container does not become ready within the
+   *                            timeout or enters an error state.
    */
   private void awaitContainer(String containerId) {
     long timeout = TimeUnit.MINUTES.toNanos(5);
@@ -180,12 +177,12 @@ public final class InstagramPublisher extends AbstractPublisher {
   }
 
   /**
-   * Publishes a reels media container.
+   * Publishes an Instagram Reels media container.
    *
    * @param containerId A string representing the container identifier.
    * @return A string representing the Instagram media identifier.
-   * @throws RuntimeException if the Instagram Graph API call fails or the
-   *                          response is invalid.
+   * @throws ComponentException if the Instagram Graph API call fails or the
+   *                            response is invalid.
    */
   private String publishContainer(String containerId) {
     ObjectNode root = MAPPER.createObjectNode();
@@ -223,8 +220,8 @@ public final class InstagramPublisher extends AbstractPublisher {
    *
    * @param request A {@link HttpRequest} representing the request to send.
    * @return A string representing the response body.
-   * @throws RuntimeException if the request fails or returns a non-2xx status
-   *                          code.
+   * @throws ComponentException if the request fails or returns a non-2xx status
+   *                            code.
    */
   private String send(HttpRequest request) {
     URI uri = request.uri();

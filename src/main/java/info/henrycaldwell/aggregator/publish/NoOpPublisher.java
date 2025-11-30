@@ -7,9 +7,9 @@ import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.core.PublishRef;
 
 /**
- * Class for a publisher that performs no external action.
+ * Class for publishing media by performing no action.
  * 
- * This class consumes a media reference without publishing it.
+ * This class accept a media without publishing it to an external platform.
  */
 public final class NoOpPublisher extends AbstractPublisher {
 
@@ -19,17 +19,17 @@ public final class NoOpPublisher extends AbstractPublisher {
   /**
    * Constructs a NoOpPublisher.
    *
-   * @param config A {@link Config} representing the publisher block.
+   * @param config A {@link Config} representing the publisher configuration.
    */
   public NoOpPublisher(Config config) {
     super(config, SPEC);
   }
 
   /**
-   * Publishes a media artifact by performing no operation.
+   * Publishes the input media by performing no external action.
    *
-   * @param media A {@link MediaRef} representing the artifact to publish.
-   * @return A {@link PublishRef} representing the published location.
+   * @param media A {@link MediaRef} representing the media to publish.
+   * @return A {@link PublishRef} representing the published short.
    */
   @Override
   public PublishRef publish(MediaRef media) {
