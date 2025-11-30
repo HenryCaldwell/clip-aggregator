@@ -14,9 +14,9 @@ import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.error.ComponentException;
 
 /**
- * Class for tracking published clips using a SQLite database.
+ * Class for tracking clips via a SQLite database.
  *
- * This class stores claimed clips in a local SQLite database file.
+ * This class stores claimed clip identifiers in a local SQLite database file.
  */
 public final class SqliteHistory extends AbstractHistory {
 
@@ -29,9 +29,9 @@ public final class SqliteHistory extends AbstractHistory {
   private final String databasePath;
 
   /**
-   * Constructs an SqliteHistory.
+   * Constructs a SqliteHistory.
    *
-   * @param config A {@link Config} representing the history block.
+   * @param config A {@link Config} representing the history configuration.
    */
   public SqliteHistory(Config config) {
     super(config, SPEC);
@@ -42,7 +42,7 @@ public final class SqliteHistory extends AbstractHistory {
   /**
    * Initializes a SQLite connection and schema.
    *
-   * @throws RuntimeException if the database cannot be opened or initialized.
+   * @throws ComponentException if the database cannot be opened or initialized.
    */
   @Override
   public void start() {
@@ -71,9 +71,9 @@ public final class SqliteHistory extends AbstractHistory {
   }
 
   /**
-   * Releases the SQLite connection connection acquired by {@link #start()}.
+   * Releases the SQLite connection acquired by {@link #start()}.
    *
-   * @throws RuntimeException if the database cannot be closed.
+   * @throws ComponentException if the database connection cannot be closed.
    */
   @Override
   public void stop() {
@@ -90,13 +90,14 @@ public final class SqliteHistory extends AbstractHistory {
   }
 
   /**
-   * Attempts to claim a clip.
+   * Attempts to claim a clip in the SQLite history.
    *
    * @param id     A string representing the clip identifier.
    * @param runner A string representing the runner name.
-   * @return {@code true} if the clip was successfully claimed, {@code false}
-   *         if the clip was already claimed.
-   * @throws RuntimeException if the database operation fails.
+   * @return {@code true} if the clip was successfully claimed, {@code false} if
+   *         the clip was already claimed.
+   * @throws ComponentException if the database operation fails or the history is
+   *                            not started.
    */
   @Override
   public boolean claim(String id, String runner) {

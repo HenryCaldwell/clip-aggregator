@@ -7,8 +7,8 @@ import info.henrycaldwell.aggregator.config.Spec;
 /**
  * Base class for histories that parses common configuration.
  * 
- * This class reads the required history base properties, and validates using
- * a composite Spec of the base keys and the subclass-specific keys.
+ * This class validates history configuration using a shared base spec combined
+ * with subclass-specific requirements.
  */
 public abstract class AbstractHistory implements History {
 
@@ -19,7 +19,7 @@ public abstract class AbstractHistory implements History {
   protected final String name;
 
   /**
-   * Constructs a base history.
+   * Constructs an abstract history.
    *
    * @param config A {@link Config} representing the history block.
    * @param spec   A {@link Spec} representing the subclass-specific spec.

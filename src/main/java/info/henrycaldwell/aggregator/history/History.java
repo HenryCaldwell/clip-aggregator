@@ -1,9 +1,10 @@
 package info.henrycaldwell.aggregator.history;
 
 /**
- * Interface for tracking which clips have been published.
+ * Interface for tracking clips.
  *
- * This interface defines a contract for claiming clips to prevent reposts.
+ * This interface defines a contract for recording claimed clips to prevent
+ * reposts.
  */
 public interface History {
 
@@ -32,8 +33,5 @@ public interface History {
    * @return {@code true} if the clip was successfully claimed, {@code false} if
    *         the clip was already claimed.
    */
-  boolean claim(
-      String id,
-      String runner
-  );
+  boolean claim(String id, String runner);
 }
