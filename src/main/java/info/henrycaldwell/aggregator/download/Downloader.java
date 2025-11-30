@@ -6,9 +6,9 @@ import info.henrycaldwell.aggregator.core.ClipRef;
 import info.henrycaldwell.aggregator.core.MediaRef;
 
 /**
- * Interface for downloading clips to a target file path.
+ * Interface for downloading clips.
  * 
- * This interface defines a contract for retrieving a media file for a clip.
+ * This interface defines a contract for producing local media from input clips.
  */
 public interface Downloader {
 
@@ -20,11 +20,11 @@ public interface Downloader {
   String getName();
 
   /**
-   * Downloads a single clip to the specified path.
+   * Downloads the input clip to the specified path.
    * 
    * @param clip   A {@link ClipRef} representing the clip to download.
-   * @param target A {@link Path} representing the destination media file.
-   * @return A {@link MediaRef} representing the downloaded artifact.
+   * @param target A {@link Path} representing the media destination.
+   * @return A {@link MediaRef} representing the downloaded media.
    */
   MediaRef download(ClipRef clip, Path target);
 }

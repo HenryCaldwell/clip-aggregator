@@ -31,7 +31,7 @@ public final class YtDlpDownloader extends AbstractDownloader {
   /**
    * Constructs a YtDlpDownloader.
    *
-   * @param config A {@link Config} representing the downloader block.
+   * @param config A {@link Config} representing the downloader configuration.
    */
   public YtDlpDownloader(Config config) {
     super(config, SPEC);
@@ -40,12 +40,12 @@ public final class YtDlpDownloader extends AbstractDownloader {
   }
 
   /**
-   * Downloads a single clip to the specified path.
+   * Downloads the input clip to the specified path.
    *
    * @param clip   A {@link ClipRef} representing the clip to download.
-   * @param target A {@link Path} representing the destination media file.
-   * @return @return A {@link MediaRef} representing the downloaded artifact.
-   * @throws RuntimeException if the download fails at any step.
+   * @param target A {@link Path} representing the media destination.
+   * @return @return A {@link MediaRef} representing the downloaded media.
+   * @throws ComponentException if the download fails at any step.
    */
   @Override
   public MediaRef download(ClipRef clip, Path target) {

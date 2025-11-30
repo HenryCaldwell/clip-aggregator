@@ -7,8 +7,8 @@ import info.henrycaldwell.aggregator.config.Spec;
 /**
  * Base class for downloaders that parses common configuration.
  * 
- * This class reads the required downloader base properties, and validates using
- * a composite Spec of the base keys and the subclass-specific keys.
+ * This class validates downloader configuration using a shared base spec
+ * combined with subclass-specific requirements.
  */
 public abstract class AbstractDownloader implements Downloader {
   protected static final Spec BASE_SPEC = Spec.builder()
@@ -18,7 +18,7 @@ public abstract class AbstractDownloader implements Downloader {
   protected final String name;
 
   /**
-   * Constructs a base downloader.
+   * Constructs an abstract downloader.
    * 
    * @param config A {@link Config} representing the downloader block.
    * @param spec   A {@link Spec} representing the subclass-specific spec.
