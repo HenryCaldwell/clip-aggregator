@@ -5,10 +5,9 @@ import java.util.List;
 import info.henrycaldwell.aggregator.core.ClipRef;
 
 /**
- * Interface for retrieving clips from a source.
+ * Interface for retrieving clips.
  * 
- * This interface defines a contract for returning clip references for a game or
- * broadcaster.
+ * This interface defines a contract for producing clips from external sources.
  */
 public interface Retriever {
 
@@ -27,9 +26,9 @@ public interface Retriever {
   String getPipeline();
 
   /**
-   * Retrieves clips for a game or broadcaster.
+   * Retrieves clips from the configured source.
    *
-   * @return A list of {@link ClipRef} representing the retrieved clips.
+   * @return A {@link List} of {@link ClipRef} representing the retrieved clips.
    */
   List<ClipRef> fetch();
 }

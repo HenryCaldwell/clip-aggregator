@@ -18,9 +18,10 @@ import info.henrycaldwell.aggregator.core.ClipRef;
 import info.henrycaldwell.aggregator.error.SpecException;
 
 /**
- * Class for retrieving clips from Twitch Helix.
+ * Class for retrieving clips via the Twitch Helix API.
  * 
- * This class queries the Twitch Clips endpoint for a game or broadcaster.
+ * This class queries the Twitch Clips endpoint for clips matching a configured
+ * game or broadcaster.
  */
 public final class TwitchRetriever extends AbstractRetriever {
 
@@ -42,7 +43,8 @@ public final class TwitchRetriever extends AbstractRetriever {
   /**
    * Constructs a TwitchRetriever.
    * 
-   * @param config A {@link Config} representing the retriever block.
+   * @param config A {@link Config} representing the retriever configuration.
+   * @throws SpecException if the configuration violates the retriever spec.
    */
   public TwitchRetriever(Config config) {
     super(config, SPEC);
@@ -79,9 +81,9 @@ public final class TwitchRetriever extends AbstractRetriever {
   }
 
   /**
-   * Retrieves clips for a game or broadcaster.
+   * Retrieves recent clips for a game or broadcaster.
    *
-   * @return A list of {@link ClipRef} representing the retrieved clips.
+   * @return A {@link List} of {@link ClipRef} representing the retrieved clips.
    */
   @Override
   public List<ClipRef> fetch() {
@@ -107,14 +109,16 @@ public final class TwitchRetriever extends AbstractRetriever {
   /**
    * Pages through Helix clips for the given identifiers and time range.
    *
-   * @param gameId        A string representing the game id, or {@code null}.
-   * @param broadcasterId A string representing the broadcaster id, or
+   * @param gameId        A string representing the game identifier, or
    *                      {@code null}.
-   * @param start         An instant representing the inclusive start time.
-   * @param end           An instant representing the exclusive end time.
+   * @param broadcasterId A string representing the broadcaster identifier, or
+   *                      {@code null}.
+   * @param start         An {@link Instant} representing the inclusive start
+   *                      time.
+   * @param end           An {@link Instant} representing the exclusive end time.
    * @param limit         An integer representing the maximum number of clips to
    *                      return.
-   * @return A list of {@link Clip} values gathered across pages.
+   * @return A {@link List} of {@link Clip} values gathered across pages.
    */
   private List<Clip> pageClips(String gameId, String broadcasterId, Instant start, Instant end, int limit) {
     List<Clip> all = new ArrayList<>();

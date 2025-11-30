@@ -7,8 +7,8 @@ import info.henrycaldwell.aggregator.config.Spec;
 /**
  * Base class for retrievers that parses common configuration.
  * 
- * This class reads the required retriever base properties, and validates using
- * a composite Spec of the base keys and the subclass-specific keys.
+ * This class validates retriever configuration using a shared base spec
+ * combined with subclass-specific requirements.
  */
 public abstract class AbstractRetriever implements Retriever {
 
@@ -21,7 +21,7 @@ public abstract class AbstractRetriever implements Retriever {
   protected final String pipeline;
 
   /**
-   * Constructs a base retriever.
+   * Constructs an abstract retriever.
    *
    * @param config A {@link Config} representing the retriever block.
    * @param spec   A {@link Spec} representing the subclass-specific spec.
