@@ -1,15 +1,15 @@
 package info.henrycaldwell.aggregator.core;
 
 /**
- * Record for referencing a clip to download.
+ * Record for referencing a source clip.
  * 
- * This record defines a contract for carrying minimal fields required by
- * downloaders.
+ * This record defines a contract for carrying clip metadata used to fetch
+ * and process clips from external platforms.
  */
 public record ClipRef(
     String id,
     String url,
     String title,
     String broadcaster,
-    String language
-) {}
+    String language) {
+}
