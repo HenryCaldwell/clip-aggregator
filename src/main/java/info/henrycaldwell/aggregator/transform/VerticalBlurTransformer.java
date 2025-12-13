@@ -18,8 +18,8 @@ import info.henrycaldwell.aggregator.error.SpecException;
  * Class for formatting a video with a blurred vertical backdrop via the FFmpeg
  * command-line utility.
  * 
- * This class invokes FFmpeg as a subprocess and centers the original clip on
- * top of a blurred background.
+ * This class invokes FFmpeg as a subprocess and centers the clip on top of a
+ * blurred background.
  */
 public final class VerticalBlurTransformer extends AbstractTransformer {
 

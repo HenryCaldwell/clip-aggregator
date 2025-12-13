@@ -18,8 +18,8 @@ import info.henrycaldwell.aggregator.error.SpecException;
  * Class for converting a video's frame rate via the FFmpeg command-line
  * utility.
  * 
- * This class invokes FFmpeg as a subprocess and re-samples input media to a
- * target frames-per-second value.
+ * This class invokes FFmpeg as a subprocess and re-samples the clip to a target
+ * frames-per-second value.
  */
 public final class FpsTransformer extends AbstractTransformer {
 
