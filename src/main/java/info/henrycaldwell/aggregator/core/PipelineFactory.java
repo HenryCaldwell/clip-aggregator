@@ -12,6 +12,7 @@ import info.henrycaldwell.aggregator.transform.FpsTransformer;
 import info.henrycaldwell.aggregator.transform.Pipeline;
 import info.henrycaldwell.aggregator.transform.Transformer;
 import info.henrycaldwell.aggregator.transform.VerticalBlurTransformer;
+import info.henrycaldwell.aggregator.transform.WatermarkTransformer;
 
 /**
  * Factory for constructing pipelines from configuration.
@@ -73,6 +74,9 @@ public final class PipelineFactory {
         }
         case "fps" -> {
           steps.add(new FpsTransformer(transformerConfig));
+        }
+        case "watermark" -> {
+          steps.add(new WatermarkTransformer(transformerConfig));
         }
         default -> throw new SpecException(transformerName, "Unknown transformer type", Map.of("type", type));
       }
