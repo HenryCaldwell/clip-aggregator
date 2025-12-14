@@ -102,7 +102,8 @@ public final class TwitchRetriever extends AbstractRetriever {
             c.getUrl(),
             c.getTitle(),
             c.getBroadcasterName(),
-            c.getLanguage()))
+            c.getLanguage(),
+            List.of()))
         .toList();
   }
 

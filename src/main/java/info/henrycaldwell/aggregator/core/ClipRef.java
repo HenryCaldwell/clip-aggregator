@@ -1,5 +1,7 @@
 package info.henrycaldwell.aggregator.core;
 
+import java.util.List;
+
 /**
  * Record for referencing a source clip.
  * 
@@ -11,5 +13,6 @@ public record ClipRef(
     String url,
     String title,
     String broadcaster,
-    String language) {
+    String language,
+    List<String> tags) {
 }
