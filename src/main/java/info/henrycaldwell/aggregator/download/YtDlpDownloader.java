@@ -127,6 +127,6 @@ public final class YtDlpDownloader extends AbstractDownloader {
         clip.title(),
         clip.broadcaster(),
         clip.language(),
-        List.of());
+        clip.tags() != null ? List.copyOf(clip.tags()) : null);
   }
 }
