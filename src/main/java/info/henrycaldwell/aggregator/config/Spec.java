@@ -1,7 +1,6 @@
 package info.henrycaldwell.aggregator.config;
 
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,9 +13,9 @@ import info.henrycaldwell.aggregator.error.SpecException;
 /**
  * Class for validating HOCON configuration blocks.
  * 
- * This class records required and optional keys by primitive type (string,
- * number, boolean) and validates configuration blocks for unknown keys, missing
- * required keys, and type mismatches.
+ * This class records required and optional keys by primitive type and list type
+ * and validates configuration blocks for unknown keys, missing required keys,
+ * and type mismatches.
  */
 public final class Spec {
 
@@ -26,6 +25,12 @@ public final class Spec {
   private final Set<String> optionalNumbers = new LinkedHashSet<>();
   private final Set<String> requiredBooleans = new LinkedHashSet<>();
   private final Set<String> optionalBooleans = new LinkedHashSet<>();
+  private final Set<String> requiredStringLists = new LinkedHashSet<>();
+  private final Set<String> optionalStringLists = new LinkedHashSet<>();
+  private final Set<String> requiredNumberLists = new LinkedHashSet<>();
+  private final Set<String> optionalNumberLists = new LinkedHashSet<>();
+  private final Set<String> requiredBooleanLists = new LinkedHashSet<>();
+  private final Set<String> optionalBooleanLists = new LinkedHashSet<>();
 
   /**
    * Creates a new builder for constructing a spec.
@@ -39,8 +44,7 @@ public final class Spec {
   /**
    * Merges required and optional keys across the provided specs.
    * 
-   * @param specs An {@link List} of {@link Spec} values representing the specs to
-   *              merge.
+   * @param specs An array of {@link Spec} values representing the specs to merge.
    * @return A {@link Spec} representing the combined set of keys.
    */
   public static Spec union(Spec... specs) {
@@ -53,6 +57,12 @@ public final class Spec {
       composite.optionalNumbers.addAll(spec.optionalNumbers);
       composite.requiredBooleans.addAll(spec.requiredBooleans);
       composite.optionalBooleans.addAll(spec.optionalBooleans);
+      composite.requiredStringLists.addAll(spec.requiredStringLists);
+      composite.optionalStringLists.addAll(spec.optionalStringLists);
+      composite.requiredNumberLists.addAll(spec.requiredNumberLists);
+      composite.optionalNumberLists.addAll(spec.optionalNumberLists);
+      composite.requiredBooleanLists.addAll(spec.requiredBooleanLists);
+      composite.optionalBooleanLists.addAll(spec.optionalBooleanLists);
     }
 
     return composite;
@@ -113,6 +123,60 @@ public final class Spec {
   }
 
   /**
+   * Adds a single required string list key to this spec.
+   *
+   * @param param A string representing the key name.
+   */
+  private void addRequiredStringList(String param) {
+    requiredStringLists.add(param);
+  }
+
+  /**
+   * Adds a single optional string list key to this spec.
+   *
+   * @param param A string representing the key name.
+   */
+  private void addOptionalStringList(String param) {
+    optionalStringLists.add(param);
+  }
+
+  /**
+   * Adds a single required number list key to this spec.
+   * 
+   * @param param A string representing the key name.
+   */
+  private void addRequiredNumberList(String param) {
+    requiredNumberLists.add(param);
+  }
+
+  /**
+   * Adds a single optional number list key to this spec.
+   * 
+   * @param param A string representing the key name.
+   */
+  private void addOptionalNumberList(String param) {
+    optionalNumberLists.add(param);
+  }
+
+  /**
+   * Adds a single required boolean list key to this spec.
+   * 
+   * @param param A string representing the key name.
+   */
+  private void addRequiredBooleanList(String param) {
+    requiredBooleanLists.add(param);
+  }
+
+  /**
+   * Adds a single optional boolean list key to this spec.
+   * 
+   * @param param A string representing the key name.
+   */
+  private void addOptionalBooleanList(String param) {
+    optionalBooleanLists.add(param);
+  }
+
+  /**
    * Validates a configuration block against this spec.
    *
    * @param config A {@link Config} representing the block to validate.
@@ -128,6 +192,12 @@ public final class Spec {
     legal.addAll(optionalNumbers);
     legal.addAll(requiredBooleans);
     legal.addAll(optionalBooleans);
+    legal.addAll(requiredStringLists);
+    legal.addAll(optionalStringLists);
+    legal.addAll(requiredNumberLists);
+    legal.addAll(optionalNumberLists);
+    legal.addAll(requiredBooleanLists);
+    legal.addAll(optionalBooleanLists);
 
     for (Map.Entry<String, ConfigValue> entry : config.entrySet()) {
       String key = entry.getKey();
@@ -150,6 +220,24 @@ public final class Spec {
     }
 
     for (String key : requiredBooleans) {
+      if (!config.hasPath(key)) {
+        throw new SpecException(name, "Missing required key", Map.of("key", key));
+      }
+    }
+
+    for (String key : requiredStringLists) {
+      if (!config.hasPath(key)) {
+        throw new SpecException(name, "Missing required key", Map.of("key", key));
+      }
+    }
+
+    for (String key : requiredNumberLists) {
+      if (!config.hasPath(key)) {
+        throw new SpecException(name, "Missing required key", Map.of("key", key));
+      }
+    }
+
+    for (String key : requiredBooleanLists) {
       if (!config.hasPath(key)) {
         throw new SpecException(name, "Missing required key", Map.of("key", key));
       }
@@ -179,6 +267,30 @@ public final class Spec {
       }
     }
 
+    for (String key : requiredStringLists) {
+      try {
+        config.getStringList(key);
+      } catch (ConfigException.WrongType e) {
+        throw new SpecException(name, "Incorrect key type (expected list<string>)", Map.of("key", key), e);
+      }
+    }
+
+    for (String key : requiredNumberLists) {
+      try {
+        config.getNumberList(key);
+      } catch (ConfigException.WrongType e) {
+        throw new SpecException(name, "Incorrect key type (expected list<number>)", Map.of("key", key), e);
+      }
+    }
+
+    for (String key : requiredBooleanLists) {
+      try {
+        config.getBooleanList(key);
+      } catch (ConfigException.WrongType e) {
+        throw new SpecException(name, "Incorrect key type (expected list<boolean>)", Map.of("key", key), e);
+      }
+    }
+
     for (String key : optionalStrings) {
       if (config.hasPath(key)) {
         try {
@@ -205,6 +317,36 @@ public final class Spec {
           config.getBoolean(key);
         } catch (ConfigException.WrongType e) {
           throw new SpecException(name, "Incorrect key type (expected boolean)", Map.of("key", key), e);
+        }
+      }
+    }
+
+    for (String key : optionalStringLists) {
+      if (config.hasPath(key)) {
+        try {
+          config.getStringList(key);
+        } catch (ConfigException.WrongType e) {
+          throw new SpecException(name, "Incorrect key type (expected list<string>)", Map.of("key", key), e);
+        }
+      }
+    }
+
+    for (String key : optionalNumberLists) {
+      if (config.hasPath(key)) {
+        try {
+          config.getNumberList(key);
+        } catch (ConfigException.WrongType e) {
+          throw new SpecException(name, "Incorrect key type (expected list<number>)", Map.of("key", key), e);
+        }
+      }
+    }
+
+    for (String key : optionalBooleanLists) {
+      if (config.hasPath(key)) {
+        try {
+          config.getBooleanList(key);
+        } catch (ConfigException.WrongType e) {
+          throw new SpecException(name, "Incorrect key type (expected list<boolean>)", Map.of("key", key), e);
         }
       }
     }
@@ -299,6 +441,90 @@ public final class Spec {
     public SpecBuilder optionalBoolean(String... params) {
       for (String param : params) {
         spec.addOptionalBoolean(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more required string list keys to the spec.
+     *
+     * @param params An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredStringList(String... params) {
+      for (String param : params) {
+        spec.addRequiredStringList(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional string list keys to the spec.
+     *
+     * @param params An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalStringList(String... params) {
+      for (String param : params) {
+        spec.addOptionalStringList(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more required number list keys to the spec.
+     * 
+     * @param params An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredNumberList(String... params) {
+      for (String param : params) {
+        spec.addRequiredNumberList(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional number list keys to the spec.
+     * 
+     * @param params An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalNumberList(String... params) {
+      for (String param : params) {
+        spec.addOptionalNumberList(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more required boolean list keys to the spec.
+     * 
+     * @param params An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredBooleanList(String... params) {
+      for (String param : params) {
+        spec.addRequiredBooleanList(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional boolean list keys to the spec.
+     * 
+     * @param params An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalBooleanList(String... params) {
+      for (String param : params) {
+        spec.addOptionalBooleanList(param);
       }
 
       return this;
