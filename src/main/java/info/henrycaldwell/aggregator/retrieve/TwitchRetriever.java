@@ -29,6 +29,7 @@ public final class TwitchRetriever extends AbstractRetriever {
       .requiredString("token")
       .optionalString("gameId", "broadcasterId", "language")
       .optionalNumber("window", "limit")
+      .optionalStringList("tags")
       .build();
 
   private final TwitchClient twitch;
@@ -39,6 +40,7 @@ public final class TwitchRetriever extends AbstractRetriever {
   private final String language;
   private final Duration window;
   private final int limit;
+  private final List<String> tags;
 
   /**
    * Constructs a TwitchRetriever.
@@ -67,6 +69,17 @@ public final class TwitchRetriever extends AbstractRetriever {
           Map.of("key", "limit", "value", limit));
     }
     this.limit = limit;
+
+    List<String> tags = config.hasPath("tags") ? config.getStringList("tags") : List.of();
+    for (int i = 0; i < tags.size(); i++) {
+      String tag = tags.get(i);
+
+      if (tag == null || tag.isBlank()) {
+        throw new SpecException(name, "Invalid key value (expected tags to be non-blank strings)",
+            Map.of("key", "tags", "value", tag, "index", i));
+      }
+    }
+    this.tags = List.copyOf(tags);
 
     if ((gameId == null) == (broadcasterId == null)) {
       throw new SpecException(name,
@@ -103,7 +116,7 @@ public final class TwitchRetriever extends AbstractRetriever {
             c.getTitle(),
             c.getBroadcasterName(),
             c.getLanguage(),
-            List.of()))
+            tags))
         .toList();
   }
 
