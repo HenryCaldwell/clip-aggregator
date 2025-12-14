@@ -27,6 +27,7 @@ public final class InstagramPublisher extends AbstractPublisher {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("accountId", "accessKey")
+      .optionalString("captionText")
       .build();
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -34,6 +35,7 @@ public final class InstagramPublisher extends AbstractPublisher {
   private final HttpClient http;
   private final String accountId;
   private final String accessKey;
+  private final String captionText;
 
   /**
    * Constructs an InstagramPublisher.
@@ -46,6 +48,7 @@ public final class InstagramPublisher extends AbstractPublisher {
     this.http = HttpClient.newHttpClient();
     this.accountId = config.getString("accountId");
     this.accessKey = config.getString("accessKey");
+    this.captionText = config.hasPath("captionText") ? config.getString("captionText") : null;
   }
 
   /**
@@ -65,7 +68,7 @@ public final class InstagramPublisher extends AbstractPublisher {
     }
 
     String url = uri.toString();
-    String caption = media.title();
+    String caption = buildCaption(media);
 
     String containerId = createContainer(url, caption);
     awaitContainer(containerId);
@@ -248,4 +251,45 @@ public final class InstagramPublisher extends AbstractPublisher {
 
     return body;
   }
+
+  /**
+   * Builds the Instagram caption.
+   * 
+   * @param media A {@link MediaRef} representing the media to caption.
+   * @return A string representing the Instagram caption.
+   */
+  private String buildCaption(MediaRef media) {
+    String broadcaster = media.broadcaster();
+    String title = media.title();
+
+    StringBuilder sb = new StringBuilder();
+    sb.append(broadcaster != null ? broadcaster : "N/A")
+        .append(" - ")
+        .append(title != null ? title : "N/A");
+
+    if (captionText != null && !captionText.isBlank()) {
+      sb.append("\n\n").append(captionText);
+    }
+
+    if (media.tags() != null && !media.tags().isEmpty()) {
+      sb.append("\n\n");
+
+      boolean first = true;
+      for (String tag : media.tags()) {
+        if (tag == null || tag.isBlank()) {
+          continue;
+        }
+
+        if (!first) {
+          sb.append(" ");
+        }
+
+        sb.append("#").append(tag);
+        first = false;
+      }
+    }
+
+    return sb.toString();
+  }
+
 }
