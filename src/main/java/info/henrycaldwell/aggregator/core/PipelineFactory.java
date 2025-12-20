@@ -9,6 +9,7 @@ import com.typesafe.config.ConfigException;
 
 import info.henrycaldwell.aggregator.error.SpecException;
 import info.henrycaldwell.aggregator.transform.FpsTransformer;
+import info.henrycaldwell.aggregator.transform.MusicTransformer;
 import info.henrycaldwell.aggregator.transform.Pipeline;
 import info.henrycaldwell.aggregator.transform.Transformer;
 import info.henrycaldwell.aggregator.transform.VerticalBlurTransformer;
@@ -77,6 +78,9 @@ public final class PipelineFactory {
         }
         case "watermark" -> {
           steps.add(new WatermarkTransformer(transformerConfig));
+        }
+        case "music" -> {
+          steps.add(new MusicTransformer(transformerConfig));
         }
         default -> throw new SpecException(transformerName, "Unknown transformer type", Map.of("type", type));
       }
