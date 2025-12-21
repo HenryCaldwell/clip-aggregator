@@ -75,7 +75,7 @@ public final class VerticalBlurTransformer extends AbstractTransformer {
   }
 
   /**
-   * Applies a vertical blur layout transformation to the input media.
+   * Applies a vertical blur transformation to the input media.
    *
    * @param media A {@link MediaRef} representing the media to transform.
    * @return A {@link MediaRef} representing the transformed media.
