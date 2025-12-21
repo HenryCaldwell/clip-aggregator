@@ -8,6 +8,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
@@ -29,6 +32,8 @@ import info.henrycaldwell.aggregator.transform.Pipeline;
  * publish flow.
  */
 public final class Runner {
+
+  private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
 
   private Runner() {
   }
@@ -71,36 +76,47 @@ public final class Runner {
   public static void run(Config config) {
     RunnerContext context = buildContext(config);
 
+    LOG.info(
+        "Built runner context (runner={}, posts={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
+        context.name(),
+        context.posts(),
+        context.retrievers().keySet(),
+        context.history() != null ? context.history().getName() : null,
+        context.downloader().getName(),
+        context.pipelines().keySet(),
+        context.stager() != null ? context.stager().getName() : null,
+        context.publishers().keySet());
+
     try {
       if (context.history() != null) {
         context.history().start();
+        LOG.info("Started history (runner={}, history={})",
+            context.name(), context.history().getName());
       }
 
       if (context.stager() != null) {
         context.stager().start();
+        LOG.info("Started stager (runner={}, stager={})",
+            context.name(), context.stager().getName());
       }
 
-      System.out.println("Configuration OK: "
-          + "name: " + context.name() + ", "
-          + "posts: " + context.posts() + ", "
-          + "retriever(s): " + context.retrievers().size() + ", "
-          + "history: " + (context.history() != null ? "1, " : "0, ")
-          + "downloader: 1, "
-          + "pipeline(s): " + context.pipelines().size() + ", "
-          + "stager: " + (context.stager() != null ? "1, " : "0, ")
-          + "publisher(s): " + context.publishers().size());
+      LOG.info("Starting run (runner={}, posts={})", context.name(), context.posts());
 
       int published = process(context);
 
-      System.out.println("Run complete. Published " + published + " unique clip(s) (target=" + context.posts()
-          + "), to " + context.publishers().size() + " publisher(s).");
+      LOG.info("Run completed (runner={}, posts={}, published={}, publishers={})",
+          context.name(), context.posts(), published, context.publishers().size());
     } finally {
       if (context.history() != null) {
         context.history().stop();
+        LOG.info("Stopped history (runner={}, history={})",
+            context.name(), context.history().getName());
       }
 
       if (context.stager() != null) {
         context.stager().stop();
+        LOG.info("Stopped stager (runner={}, stager={})",
+            context.name(), context.stager().getName());
       }
     }
   }
@@ -197,6 +213,9 @@ public final class Runner {
       String pipelineName = retriever.getPipeline();
       Pipeline pipeline = (pipelineName != null) ? context.pipelines().get(pipelineName) : null;
 
+      LOG.info("Processing retriever (runner={}, retriever={}, pipeline={}, clips={})",
+          context.name(), retrieverName, pipelineName, clips.size());
+
       for (ClipRef clip : clips) {
         if (published >= posts) {
           break;
@@ -208,6 +227,8 @@ public final class Runner {
           boolean claimed = context.history().claim(clipId, context.name());
 
           if (!claimed) {
+            LOG.info("Skipping claimed clip (runner={}, retriever={}, clipId={})",
+                context.name(), retrieverName, clipId);
             continue;
           }
         }
@@ -225,11 +246,18 @@ public final class Runner {
             media = context.stager().stage(media);
           }
         } catch (RuntimeException e) {
-          System.err.println("Failed to prepare clip id=" + clipId
-              + " (retriever=" + retrieverName + "): " + e.getMessage());
-          e.printStackTrace(System.err);
+          LOG.error("Failed to prepare clip (runner={}, retriever={}, clipId={})",
+              context.name(), retrieverName, clipId, e);
           continue;
         }
+
+        LOG.info(
+            "Prepared clip (runner={}, retriever={}, pipeline={}, stager={}, clipId={})",
+            context.name(),
+            retrieverName,
+            pipelineName,
+            context.stager() != null ? context.stager().getName() : null,
+            clipId);
 
         for (Publisher publisher : context.publishers().values()) {
           String publisherName = publisher.getName();
@@ -237,15 +265,11 @@ public final class Runner {
           try {
             PublishRef ref = publisher.publish(media);
 
-            System.out.println("Published clip id=" + clipId
-                + " via retriever=" + retrieverName
-                + ", publisher=" + publisherName
-                + ", publishId=" + ref.id());
+            LOG.info("Published clip (runner={}, retriever={}, publisher={}, clipId={}, publishId={})",
+                context.name(), retrieverName, publisherName, clipId, ref.id());
           } catch (RuntimeException e) {
-            System.err.println("Failed to publish clip id=" + clipId
-                + " (retriever=" + retrieverName
-                + ", publisher=" + publisherName + "): " + e.getMessage());
-            e.printStackTrace(System.err);
+            LOG.error("Failed to publish clip (runner={}, retriever={}, publisher={}, clipId={})",
+                context.name(), retrieverName, publisherName, clipId, e);
           }
         }
 
@@ -256,21 +280,22 @@ public final class Runner {
             try {
               if (Files.isRegularFile(file)) {
                 Files.delete(file);
+                LOG.info("Deleted local file (runner={}, retriever={}, clipId={}, path={})",
+                    context.name(), retrieverName, clipId, file);
               }
             } catch (Exception e) {
-              System.err.println("Failed to delete local file after publish (path: " + file + "): "
-                  + e.getMessage());
-              e.printStackTrace(System.err);
+              LOG.warn("Failed to delete local file (runner={}, retriever={}, clipId={}, path={})",
+                  context.name(), retrieverName, clipId, file, e);
             }
           }
         } else {
           try {
             context.stager().clean(media);
+            LOG.info("Deleted staged media (runner={}, retriever={}, stager={}, clipId={})",
+                context.name(), retrieverName, context.stager().getName(), clipId);
           } catch (RuntimeException e) {
-            System.err.println("Failed to clean staged media for clip id=" + clipId
-                + " (retriever=" + retrieverName
-                + ", stager=" + context.stager().getName() + "): " + e.getMessage());
-            e.printStackTrace(System.err);
+            LOG.warn("Failed to delete staged media (runner={}, retriever={}, stager={}, clipId={})",
+                context.name(), retrieverName, context.stager().getName(), clipId, e);
           }
         }
 
