@@ -108,12 +108,13 @@ public final class TwitchRetriever extends AbstractRetriever {
 
     return candidates.stream()
         .sorted(Comparator.comparingInt(Clip::getViewCount).reversed())
-        .map(c -> new ClipRef(
-            c.getId(),
-            c.getUrl(),
-            c.getTitle(),
-            c.getBroadcasterName(),
-            c.getLanguage(),
+        .map(clip -> new ClipRef(
+            clip.getId(),
+            clip.getUrl(),
+            clip.getTitle(),
+            clip.getBroadcasterName(),
+            clip.getLanguage(),
+            clip.getViewCount() != null ? clip.getViewCount() : 0,
             tags))
         .toList();
   }

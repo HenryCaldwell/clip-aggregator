@@ -14,5 +14,6 @@ public record ClipRef(
     String title,
     String broadcaster,
     String language,
+    int views,
     List<String> tags) {
 }
