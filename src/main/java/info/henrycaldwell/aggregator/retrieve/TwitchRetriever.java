@@ -103,13 +103,11 @@ public final class TwitchRetriever extends AbstractRetriever {
     Instant end = Instant.now();
     Instant start = end.minus(window);
     List<Clip> candidates = (gameId != null)
-        ? pageClips(gameId, null, start, end, limit)
-        : pageClips(null, broadcasterId, start, end, limit);
+        ? pageClips(gameId, null, start, end, limit, language)
+        : pageClips(null, broadcasterId, start, end, limit, null);
 
     return candidates.stream()
         .sorted(Comparator.comparingInt(Clip::getViewCount).reversed())
-        .filter(c -> gameId == null || language == null || language.equalsIgnoreCase(c.getLanguage()))
-        .limit(limit)
         .map(c -> new ClipRef(
             c.getId(),
             c.getUrl(),
@@ -132,13 +130,21 @@ public final class TwitchRetriever extends AbstractRetriever {
    * @param end           An {@link Instant} representing the exclusive end time.
    * @param limit         An integer representing the maximum number of clips to
    *                      return.
+   * @param language      A string representing the clip language, or
+   *                      {@code null}.
    * @return A {@link List} of {@link Clip} values gathered across pages.
    */
-  private List<Clip> pageClips(String gameId, String broadcasterId, Instant start, Instant end, int limit) {
-    List<Clip> all = new ArrayList<>();
+  private List<Clip> pageClips(
+      String gameId,
+      String broadcasterId,
+      Instant start,
+      Instant end,
+      int limit,
+      String language) {
+    List<Clip> matches = new ArrayList<>();
     String cursor = null;
 
-    while (all.size() < limit) {
+    while (matches.size() < limit) {
       ClipList page = twitch.getHelix()
           .getClips(
               token,
@@ -157,7 +163,16 @@ public final class TwitchRetriever extends AbstractRetriever {
         break;
       }
 
-      all.addAll(page.getData());
+      for (Clip clip : page.getData()) {
+        if (language == null || language.equalsIgnoreCase(clip.getLanguage())) {
+          matches.add(clip);
+
+          if (matches.size() >= limit) {
+            break;
+          }
+        }
+      }
+
       cursor = (page.getPagination() != null) ? page.getPagination().getCursor() : null;
 
       if (cursor == null) {
@@ -165,6 +180,6 @@ public final class TwitchRetriever extends AbstractRetriever {
       }
     }
 
-    return all;
+    return matches;
   }
 }
