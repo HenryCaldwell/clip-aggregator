@@ -8,7 +8,7 @@ import java.util.List;
  * Record for referencing a media artifact.
  * 
  * This record defines a contract for carrying media metadata used by components
- * that operate on downloaded media.
+ * that operate on media.
  */
 public record MediaRef(
     String id,
