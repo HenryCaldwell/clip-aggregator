@@ -1,9 +1,10 @@
 package info.henrycaldwell.aggregator.core;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -203,104 +204,96 @@ public final class Runner {
     int published = 0;
     int posts = context.posts();
 
-    for (Retriever retriever : context.retrievers().values()) {
-      if (published >= posts) {
-        break;
-      }
+    List<Candidate> candidates = new ArrayList<>();
 
-      List<ClipRef> clips = retriever.fetch();
+    for (Retriever retriever : context.retrievers().values()) {
       String retrieverName = retriever.getName();
       String pipelineName = retriever.getPipeline();
       Pipeline pipeline = (pipelineName != null) ? context.pipelines().get(pipelineName) : null;
 
-      LOG.info("Processing retriever (runner={}, retriever={}, pipeline={}, clips={})",
+      List<ClipRef> clips;
+      try {
+        clips = retriever.fetch();
+      } catch (RuntimeException e) {
+        LOG.error("Failed to fetch clips (runner={}, retriever={})", context.name(), retrieverName, e);
+        continue;
+      }
+
+      LOG.info("Fetched retriever clips (runner={}, retriever={}, pipeline={}, clips={})",
           context.name(), retrieverName, pipelineName, clips.size());
 
       for (ClipRef clip : clips) {
-        if (published >= posts) {
-          break;
-        }
+        candidates.add(new Candidate(retriever, pipeline, clip));
+      }
+    }
 
-        String clipId = clip.id();
+    candidates.sort(Comparator.comparingInt((Candidate candidate) -> candidate.clip().views()).reversed());
 
-        if (context.history() != null) {
-          boolean claimed = context.history().claim(clipId, context.name());
+    for (Candidate candidate : candidates) {
+      if (published >= posts) {
+        break;
+      }
 
-          if (!claimed) {
-            LOG.info("Skipping claimed clip (runner={}, retriever={}, clipId={})",
-                context.name(), retrieverName, clipId);
-            continue;
-          }
-        }
+      Retriever retriever = candidate.retriever();
+      Pipeline pipeline = candidate.pipeline();
+      ClipRef clip = candidate.clip();
 
-        MediaRef media;
-        try {
-          Path target = Paths.get("work", clipId + ".mp4");
-          media = context.downloader().download(clip, target);
+      String retrieverName = retriever.getName();
+      String pipelineName = retriever.getPipeline();
+      String clipId = clip.id();
 
-          if (pipeline != null) {
-            media = pipeline.run(media);
-          }
+      if (context.history() != null) {
+        boolean claimed = context.history().claim(clipId, context.name());
 
-          if (context.stager() != null) {
-            media = context.stager().stage(media);
-          }
-        } catch (RuntimeException e) {
-          LOG.error("Failed to prepare clip (runner={}, retriever={}, clipId={})",
-              context.name(), retrieverName, clipId, e);
+        if (!claimed) {
+          LOG.info("Skipping claimed clip (runner={}, retriever={}, clipId={})",
+              context.name(), retrieverName, clipId);
           continue;
         }
-
-        LOG.info(
-            "Prepared clip (runner={}, retriever={}, pipeline={}, stager={}, clipId={})",
-            context.name(),
-            retrieverName,
-            pipelineName,
-            context.stager() != null ? context.stager().getName() : null,
-            clipId);
-
-        for (Publisher publisher : context.publishers().values()) {
-          String publisherName = publisher.getName();
-
-          try {
-            PublishRef ref = publisher.publish(media);
-
-            LOG.info("Published clip (runner={}, retriever={}, publisher={}, clipId={}, publishId={})",
-                context.name(), retrieverName, publisherName, clipId, ref.id());
-          } catch (RuntimeException e) {
-            LOG.error("Failed to publish clip (runner={}, retriever={}, publisher={}, clipId={})",
-                context.name(), retrieverName, publisherName, clipId, e);
-          }
-        }
-
-        if (context.stager() == null) {
-          Path file = media.file();
-
-          if (file != null) {
-            try {
-              if (Files.isRegularFile(file)) {
-                Files.delete(file);
-                LOG.info("Deleted local file (runner={}, retriever={}, clipId={}, path={})",
-                    context.name(), retrieverName, clipId, file);
-              }
-            } catch (Exception e) {
-              LOG.warn("Failed to delete local file (runner={}, retriever={}, clipId={}, path={})",
-                  context.name(), retrieverName, clipId, file, e);
-            }
-          }
-        } else {
-          try {
-            context.stager().clean(media);
-            LOG.info("Deleted staged media (runner={}, retriever={}, stager={}, clipId={})",
-                context.name(), retrieverName, context.stager().getName(), clipId);
-          } catch (RuntimeException e) {
-            LOG.warn("Failed to delete staged media (runner={}, retriever={}, stager={}, clipId={})",
-                context.name(), retrieverName, context.stager().getName(), clipId, e);
-          }
-        }
-
-        published++;
       }
+
+      MediaRef media;
+      try {
+        Path target = Paths.get("work", clipId + ".mp4");
+        media = context.downloader().download(clip, target);
+
+        if (pipeline != null) {
+          media = pipeline.run(media);
+        }
+
+        if (context.stager() != null) {
+          media = context.stager().stage(media);
+        }
+      } catch (RuntimeException e) {
+        LOG.error("Failed to prepare clip (runner={}, retriever={}, clipId={})",
+            context.name(), retrieverName, clipId, e);
+        continue;
+      }
+
+      LOG.info(
+          "Prepared clip (runner={}, retriever={}, pipeline={}, stager={}, clipId={}, VIEWS={})",
+          context.name(),
+          retrieverName,
+          pipelineName,
+          context.stager() != null ? context.stager().getName() : null,
+          clipId,
+          clip.views());
+
+      for (Publisher publisher : context.publishers().values()) {
+        String publisherName = publisher.getName();
+
+        try {
+          PublishRef ref = publisher.publish(media);
+
+          LOG.info("Published clip (runner={}, retriever={}, publisher={}, clipId={}, publishId={})",
+              context.name(), retrieverName, publisherName, clipId, ref.id());
+        } catch (RuntimeException e) {
+          LOG.error("Failed to publish clip (runner={}, retriever={}, publisher={}, clipId={})",
+              context.name(), retrieverName, publisherName, clipId, e);
+        }
+      }
+
+      published++;
     }
 
     return published;
@@ -486,7 +479,7 @@ public final class Runner {
    * This record defines a contract for carrying the resolved components required
    * to execute a single run.
    */
-  private static final record RunnerContext(
+  private static record RunnerContext(
       String name,
       int posts,
       Map<String, Retriever> retrievers,
@@ -495,5 +488,11 @@ public final class Runner {
       Map<String, Pipeline> pipelines,
       Stager stager,
       Map<String, Publisher> publishers) {
+  }
+
+  private static record Candidate(
+      Retriever retriever,
+      Pipeline pipeline,
+      ClipRef clip) {
   }
 }
