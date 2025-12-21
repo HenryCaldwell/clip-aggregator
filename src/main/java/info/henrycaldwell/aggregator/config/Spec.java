@@ -185,6 +185,7 @@ public final class Spec {
    */
   public void validate(Config config, String name) {
     Set<String> legal = new LinkedHashSet<>();
+    Set<String> required = new LinkedHashSet<>();
 
     legal.addAll(requiredStrings);
     legal.addAll(optionalStrings);
@@ -199,6 +200,13 @@ public final class Spec {
     legal.addAll(requiredBooleanLists);
     legal.addAll(optionalBooleanLists);
 
+    required.addAll(requiredStrings);
+    required.addAll(requiredNumbers);
+    required.addAll(requiredBooleans);
+    required.addAll(requiredStringLists);
+    required.addAll(requiredNumberLists);
+    required.addAll(requiredBooleanLists);
+
     for (Map.Entry<String, ConfigValue> entry : config.entrySet()) {
       String key = entry.getKey();
 
@@ -207,37 +215,7 @@ public final class Spec {
       }
     }
 
-    for (String key : requiredStrings) {
-      if (!config.hasPath(key)) {
-        throw new SpecException(name, "Missing required key", Map.of("key", key));
-      }
-    }
-
-    for (String key : requiredNumbers) {
-      if (!config.hasPath(key)) {
-        throw new SpecException(name, "Missing required key", Map.of("key", key));
-      }
-    }
-
-    for (String key : requiredBooleans) {
-      if (!config.hasPath(key)) {
-        throw new SpecException(name, "Missing required key", Map.of("key", key));
-      }
-    }
-
-    for (String key : requiredStringLists) {
-      if (!config.hasPath(key)) {
-        throw new SpecException(name, "Missing required key", Map.of("key", key));
-      }
-    }
-
-    for (String key : requiredNumberLists) {
-      if (!config.hasPath(key)) {
-        throw new SpecException(name, "Missing required key", Map.of("key", key));
-      }
-    }
-
-    for (String key : requiredBooleanLists) {
+    for (String key : required) {
       if (!config.hasPath(key)) {
         throw new SpecException(name, "Missing required key", Map.of("key", key));
       }
