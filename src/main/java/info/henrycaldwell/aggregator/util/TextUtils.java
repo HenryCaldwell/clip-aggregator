@@ -108,6 +108,26 @@ public final class TextUtils {
     return String.join("\n", lines);
   }
 
+  /**
+   * Filters out unsupported characters from a string.
+   * 
+   * @param text A string representing the text to filter, or {@code null}.
+   * @return A string representing the filtered text.
+   */
+  public static String filterCharacters(String text) {
+    if (text == null || text.isEmpty()) {
+      return "";
+    }
+
+    StringBuilder sb = new StringBuilder();
+
+    text.codePoints()
+        .filter(cp -> cp <= 0xFFFF)
+        .forEach(sb::appendCodePoint);
+
+    return sb.toString();
+  }
+
   private static String normalizeWhitespace(String text) {
     if (text == null) {
       return "";
