@@ -9,11 +9,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Utility class for text operations.
+ * 
+ * This class provides helpers for processing and measuring text for use in
+ * rendering and layout components.
+ */
 public final class TextUtils {
 
   private TextUtils() {
   }
 
+  /**
+   * Record for specifying a font resource.
+   * 
+   * This record defines a contract for carrying font metadata used when measuring
+   * text.
+   */
   public record FontSpec(Path fontPath, float fontSize) {
     public FontSpec {
       if (fontPath == null) {
@@ -26,6 +38,17 @@ public final class TextUtils {
     }
   }
 
+  /**
+   * Wraps text into lines constrained by a maximum width and line count.
+   * 
+   * @param text     A string representing the text to wrap.
+   * @param fontSpec A {@link FontSpec} representing the font to use.
+   * @param maxWidth An integer representing the maximum line width.
+   * @param maxLines An integer representing the maximum number of lines.
+   * @return A string representing the wrapped text.
+   * @throws IllegalArgumentException if the arguments are invalid or the font
+   *                                  cannot be loaded.
+   */
   public static String wrap(String text, FontSpec fontSpec, int maxWidth, int maxLines) {
     if (maxWidth <= 0) {
       throw new IllegalArgumentException("maxWidth must be greater than 0");
