@@ -187,16 +187,19 @@ public final class TitleTransformer extends AbstractTransformer {
       throw new ComponentException(name, "Target file already exists", Map.of("targetPath", target));
     }
 
-    String title = media.title();
-    if (title == null || title.isBlank()) {
+    String rawTitle = media.title();
+    if (rawTitle == null || rawTitle.isBlank()) {
       throw new ComponentException(name, "Title missing",
-          Map.of("clipId", media.id(), "title", title));
+          Map.of("clipId", media.id(), "title", rawTitle));
     }
 
-    String caption = TextUtils.wrap(title, new FontSpec(Paths.get(fontPath), (float) fontSize), targetWidth, maxLines);
+    String safeTitle = TextUtils.filterCharacters(rawTitle);
+
+    String caption = TextUtils.wrap(safeTitle, new FontSpec(Paths.get(fontPath), (float) fontSize), targetWidth,
+        maxLines);
     if (caption.isBlank()) {
-      throw new ComponentException(name, "Title empty after wrapping",
-          Map.of("clipId", media.id(), "title", title));
+      throw new ComponentException(name, "Title empty after formatting",
+          Map.of("clipId", media.id(), "title", rawTitle));
     }
 
     Path captionFile = null;
