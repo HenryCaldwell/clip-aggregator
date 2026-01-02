@@ -33,8 +33,10 @@ public final class InstagramPublisher extends AbstractPublisher {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private final HttpClient http;
+
   private final String accountId;
   private final String accessKey;
+
   private final String captionText;
 
   /**
