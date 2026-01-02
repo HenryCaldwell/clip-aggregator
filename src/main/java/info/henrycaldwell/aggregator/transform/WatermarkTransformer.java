@@ -2,6 +2,7 @@ package info.henrycaldwell.aggregator.transform;
 
 import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -13,6 +14,7 @@ import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
+import info.henrycaldwell.aggregator.util.TextUtils;
 
 /**
  * Class for overlaying a watermark onto a video via the FFmpeg command-line
@@ -152,110 +154,139 @@ public final class WatermarkTransformer extends AbstractTransformer {
       throw new ComponentException(name, "Target file already exists", Map.of("targetPath", target));
     }
 
-    String broadcaster = media.broadcaster();
-    if (broadcaster == null || broadcaster.isBlank()) {
+    String rawBroadcaster = media.broadcaster();
+    if (rawBroadcaster == null || rawBroadcaster.isBlank()) {
       throw new ComponentException(name, "Broadcaster name missing",
-          Map.of("clipId", media.id(), "broadcaster", broadcaster));
+          Map.of("clipId", media.id(), "broadcaster", rawBroadcaster));
+    }
+
+    String broadcaster = TextUtils.filterCharacters(rawBroadcaster);
+    if (broadcaster.isBlank()) {
+      throw new ComponentException(name, "Broadcaster name empty after filtering",
+          Map.of("clipId", media.id(), "broadcaster", rawBroadcaster));
     }
 
     if (logoPath != null && !Files.isRegularFile(Path.of(logoPath))) {
       throw new ComponentException(name, "Logo file missing or not a regular file", Map.of("logoPath", logoPath));
     }
 
-    String filterComplex = buildFilter(broadcaster);
-
-    Process process;
+    Path broadcasterFile = null;
     try {
-      ProcessBuilder pb;
-      if (logoPath != null) {
-        pb = new ProcessBuilder(ffmpegPath, "-y",
-            "-i", src.toString(),
-            "-i", logoPath,
-            "-filter_complex", filterComplex,
-            "-c:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-ar", "48000",
-            target.toString());
-      } else {
-        pb = new ProcessBuilder(ffmpegPath, "-y",
-            "-i", src.toString(),
-            "-filter_complex", filterComplex,
-            "-c:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-ar", "48000",
-            target.toString());
+      Path directory = target.toAbsolutePath().getParent();
+      if (directory == null) {
+        throw new ComponentException(name, "Failed to determine broadcaster label temporary directory",
+            Map.of("sourcePath", src, "targetPath", target));
       }
 
-      pb.redirectErrorStream(true);
-      pb.redirectOutput(Redirect.DISCARD);
-      process = pb.start();
-    } catch (IOException e) {
-      throw new ComponentException(name, "Failed to start ffmpeg process",
-          Map.of("ffmpegPath", ffmpegPath, "sourcePath", src, "targetPath", target), e);
-    }
+      broadcasterFile = Files.createTempFile(directory, "broadcaster-", ".txt");
+      Files.writeString(broadcasterFile, broadcaster, StandardCharsets.UTF_8);
 
-    boolean complete;
-    try {
-      complete = process.waitFor(2, TimeUnit.MINUTES);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      process.destroyForcibly();
-      throw new ComponentException(name, "Interrupted while waiting for ffmpeg process", Map.of("clipId", media.id()),
-          e);
-    }
+      String filterComplex = buildFilter(broadcasterFile);
 
-    if (!complete) {
-      process.destroyForcibly();
-      throw new ComponentException(name, "Timed out while waiting for ffmpeg process", Map.of("clipId", media.id()));
-    }
+      Process process;
+      try {
+        ProcessBuilder pb;
+        if (logoPath != null) {
+          pb = new ProcessBuilder(ffmpegPath, "-y",
+              "-i", src.toString(),
+              "-i", logoPath,
+              "-filter_complex", filterComplex,
+              "-c:v", "libx264",
+              "-pix_fmt", "yuv420p",
+              "-c:a", "aac",
+              "-b:a", "128k",
+              "-ar", "48000",
+              target.toString());
+        } else {
+          pb = new ProcessBuilder(ffmpegPath, "-y",
+              "-i", src.toString(),
+              "-filter_complex", filterComplex,
+              "-c:v", "libx264",
+              "-pix_fmt", "yuv420p",
+              "-c:a", "aac",
+              "-b:a", "128k",
+              "-ar", "48000",
+              target.toString());
+        }
 
-    int code = process.exitValue();
-    if (code != 0) {
-      throw new ComponentException(name, "ffmpeg process exited with non-zero code",
-          Map.of("clipId", media.id(), "exitCode", code));
-    }
-
-    if (!Files.exists(target)) {
-      throw new ComponentException(name, "Output file missing after transform", Map.of("targetPath", target));
-    }
-
-    try {
-      long size = Files.size(target);
-
-      if (size <= 0) {
-        throw new ComponentException(name, "Output file empty after transform",
-            Map.of("targetPath", target, "sizeBytes", size));
+        pb.redirectErrorStream(true);
+        pb.redirectOutput(Redirect.DISCARD);
+        process = pb.start();
+      } catch (IOException e) {
+        throw new ComponentException(name, "Failed to start ffmpeg process",
+            Map.of("ffmpegPath", ffmpegPath, "sourcePath", src, "targetPath", target), e);
       }
-    } catch (IOException e) {
-      throw new ComponentException(name, "Failed to stat output file", Map.of("targetPath", target), e);
-    }
 
-    return media.withFile(target);
+      boolean complete;
+      try {
+        complete = process.waitFor(2, TimeUnit.MINUTES);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        process.destroyForcibly();
+        throw new ComponentException(name, "Interrupted while waiting for ffmpeg process", Map.of("clipId", media.id()),
+            e);
+      }
+
+      if (!complete) {
+        process.destroyForcibly();
+        throw new ComponentException(name, "Timed out while waiting for ffmpeg process", Map.of("clipId", media.id()));
+      }
+
+      int code = process.exitValue();
+      if (code != 0) {
+        throw new ComponentException(name, "ffmpeg process exited with non-zero code",
+            Map.of("clipId", media.id(), "exitCode", code));
+      }
+
+      if (!Files.exists(target)) {
+        throw new ComponentException(name, "Output file missing after transform", Map.of("targetPath", target));
+      }
+
+      try {
+        long size = Files.size(target);
+
+        if (size <= 0) {
+          throw new ComponentException(name, "Output file empty after transform",
+              Map.of("targetPath", target, "sizeBytes", size));
+        }
+      } catch (IOException e) {
+        throw new ComponentException(name, "Failed to stat output file", Map.of("targetPath", target), e);
+      }
+
+      return media.withFile(target);
+    } catch (IOException e) {
+      throw new ComponentException(name, "Failed to write broadcaster label temp file",
+          Map.of("sourcePath", src, "targetPath", target), e);
+    } finally {
+      if (broadcasterFile != null) {
+        try {
+          Files.deleteIfExists(broadcasterFile);
+        } catch (IOException ignored) {
+        }
+      }
+    }
   }
 
   /**
    * Builds the FFmpeg filter expression.
    *
-   * @param broadcaster A string representing the broadcaster label.
+   * @param broadcaster A {@link Path} representing the broadcaster label file.
    * @return A string representing the FFmpeg filter expression.
    */
-  private String buildFilter(String broadcaster) {
+  private String buildFilter(Path broadcaster) {
     PositionExpr textPos = TEXT_POS.get(position);
     String xExpr = addOffset(textPos.x(), textOffsetX);
     String yExpr = addOffset(textPos.y(), textOffsetY);
 
     String font = normalizePath(fontPath);
-    String text = escapeText(broadcaster);
+    String textFile = escapeText(normalizePath(broadcaster.toString()));
 
     if (logoPath == null) {
       return new StringBuilder()
           .append("[0:v]drawtext=")
           .append("fontfile='").append(font).append("':")
-          .append("text='").append(text).append("':")
+          .append("textfile='").append(textFile).append("':")
+          .append("reload=0:")
           .append("fontsize=").append(fontSize).append(":")
           .append("fontcolor=white@").append(textOpacity).append(":")
           .append("borderw=").append(textBorderWidth).append(":")
@@ -278,7 +309,8 @@ public final class WatermarkTransformer extends AbstractTransformer {
         .append(":format=auto[v1];")
         .append("[v1]drawtext=")
         .append("fontfile='").append(font).append("':")
-        .append("text='").append(text).append("':")
+        .append("textfile='").append(textFile).append("':")
+        .append("reload=0:")
         .append("fontsize=").append(fontSize).append(":")
         .append("fontcolor=white@").append(textOpacity).append(":")
         .append("borderw=").append(textBorderWidth).append(":")
@@ -302,27 +334,6 @@ public final class WatermarkTransformer extends AbstractTransformer {
   }
 
   /**
-   * Escapes a string for safe use in an FFmpeg filter argument.
-   *
-   * @param text A string representing the text to escape.
-   * @return A string representing the escaped text.
-   */
-  private static String escapeText(String text) {
-    if (text == null) {
-      return null;
-    }
-
-    String out = text;
-
-    out = out.replace("\\", "\\\\");
-    out = out.replace("'", "\\'");
-    out = out.replace("%", "\\%");
-    out = out.replace("\n", "\\n");
-
-    return out;
-  }
-
-  /**
    * Normalizes a path for safe use in an FFmpeg filter argument.
    *
    * @param path A string representing the path to normalize.
@@ -334,6 +345,20 @@ public final class WatermarkTransformer extends AbstractTransformer {
     }
 
     return path.replace("\\", "/").replace(":", "\\:");
+  }
+
+  /**
+   * Escapes a string for safe use in an FFmpeg filter argument.
+   *
+   * @param text A string representing the text to escape.
+   * @return A string representing the escaped text.
+   */
+  private static String escapeText(String text) {
+    if (text == null) {
+      return null;
+    }
+
+    return text.replace("'", "\\'");
   }
 
   /**
