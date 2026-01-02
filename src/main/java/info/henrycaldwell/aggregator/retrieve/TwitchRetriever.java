@@ -35,11 +35,14 @@ public final class TwitchRetriever extends AbstractRetriever {
   private final TwitchClient twitch;
 
   private final String token;
+
   private final String gameId;
   private final String broadcasterId;
   private final String language;
+
   private final Duration window;
   private final int limit;
+
   private final List<String> tags;
 
   /**

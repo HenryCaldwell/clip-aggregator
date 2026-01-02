@@ -18,6 +18,7 @@ public abstract class AbstractRetriever implements Retriever {
       .build();
 
   protected final String name;
+
   protected final String pipeline;
 
   /**
