@@ -39,6 +39,7 @@ public final class CloudflareR2Stager extends AbstractStager {
   private final String secretKey;
   private final String bucket;
   private final String publicUrl;
+
   private final String region;
   private final String endpoint;
 
