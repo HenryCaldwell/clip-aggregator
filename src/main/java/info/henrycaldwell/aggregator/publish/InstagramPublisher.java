@@ -21,7 +21,7 @@ import info.henrycaldwell.aggregator.error.ComponentException;
  * Class for publishing media to Instagram Reels via the Instagram Graph API.
  * 
  * This class publishes the input media to Instagram Reels and returns a
- * publish for the resulting short.
+ * publish for the resulting clip.
  */
 public final class InstagramPublisher extends AbstractPublisher {
 
@@ -55,7 +55,7 @@ public final class InstagramPublisher extends AbstractPublisher {
    * Publishes the input media as an Instagram Reel.
    *
    * @param media A {@link MediaRef} representing the media to publish.
-   * @return A {@link PublishRef} representing the published short.
+   * @return A {@link PublishRef} representing the published clip.
    * @throws ComponentException if publishing fails at any step.
    */
   @Override
