@@ -1,6 +1,8 @@
 package info.henrycaldwell.aggregator.core;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -290,6 +292,32 @@ public final class Runner {
         } catch (RuntimeException e) {
           LOG.error("Failed to publish clip (runner={}, retriever={}, publisher={}, clipId={})",
               context.name(), retrieverName, publisherName, clipId, e);
+        }
+      }
+
+      if (context.stager() == null) {
+        Path file = media.file();
+
+        if (file != null) {
+          try {
+            if (Files.isRegularFile(file)) {
+              Files.delete(file);
+              LOG.info("Deleted local file (runner={}, retriever={}, clipId={}, path={})",
+                  context.name(), retrieverName, clipId, file);
+            }
+          } catch (IOException e) {
+            LOG.warn("Failed to delete local file (runner={}, retriever={}, clipId={}, path={})",
+                context.name(), retrieverName, clipId, file, e);
+          }
+        }
+      } else {
+        try {
+          context.stager().clean(media);
+          LOG.info("Deleted staged file (runner={}, retriever={}, stager={}, clipId={})",
+              context.name(), retrieverName, context.stager().getName(), clipId);
+        } catch (RuntimeException e) {
+          LOG.warn("Failed to delete staged file (runner={}, retriever={}, stager={}, clipId={})",
+              context.name(), retrieverName, context.stager().getName(), clipId, e);
         }
       }
 
