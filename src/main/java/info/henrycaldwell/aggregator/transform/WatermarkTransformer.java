@@ -44,21 +44,20 @@ public final class WatermarkTransformer extends AbstractTransformer {
       "center", new PositionExpr("(W-overlay_w)/2", "(H-overlay_h)/2"));
 
   private final String ffmpegPath;
-
   private final String fontPath;
+
+  private final String logoPath;
+  private final String position;
+
   private final int fontSize;
   private final double textOpacity;
   private final int textBorderWidth;
   private final int textOffsetX;
   private final int textOffsetY;
-
-  private final String logoPath;
   private final int logoHeight;
   private final double logoOpacity;
   private final int logoOffsetX;
   private final int logoOffsetY;
-
-  private final String position;
 
   /**
    * Constructs a WatermarkTransformer.
@@ -71,6 +70,15 @@ public final class WatermarkTransformer extends AbstractTransformer {
 
     this.ffmpegPath = config.getString("ffmpegPath");
     this.fontPath = config.getString("fontPath");
+    this.logoPath = config.hasPath("logoPath") ? config.getString("logoPath") : null;
+
+    String position = config.hasPath("position") ? config.getString("position") : "lower_center";
+    if (!TEXT_POS.containsKey(position)) {
+      throw new SpecException(name,
+          "Invalid key value (expected position to be one of upper_center, lower_center, center)",
+          Map.of("key", "position", "value", position));
+    }
+    this.position = position;
 
     int fontSize = config.hasPath("fontSize") ? config.getNumber("fontSize").intValue() : 70;
     if (fontSize <= 0) {
@@ -95,7 +103,6 @@ public final class WatermarkTransformer extends AbstractTransformer {
 
     this.textOffsetX = config.hasPath("textOffsetX") ? config.getNumber("textOffsetX").intValue() : 0;
     this.textOffsetY = config.hasPath("textOffsetY") ? config.getNumber("textOffsetY").intValue() : 0;
-    this.logoPath = config.hasPath("logoPath") ? config.getString("logoPath") : null;
 
     int logoHeight = config.hasPath("logoHeight") ? config.getNumber("logoHeight").intValue() : 200;
     if (logoHeight <= 0) {
@@ -113,14 +120,6 @@ public final class WatermarkTransformer extends AbstractTransformer {
 
     this.logoOffsetX = config.hasPath("logoOffsetX") ? config.getNumber("logoOffsetX").intValue() : 0;
     this.logoOffsetY = config.hasPath("logoOffsetY") ? config.getNumber("logoOffsetY").intValue() : 0;
-
-    String position = config.hasPath("position") ? config.getString("position") : "lower_center";
-    if (!TEXT_POS.containsKey(position)) {
-      throw new SpecException(name,
-          "Invalid key value (expected position to be one of upper_center, lower_center, center)",
-          Map.of("key", "position", "value", position));
-    }
-    this.position = position;
   }
 
   /**

@@ -29,6 +29,7 @@ public final class FpsTransformer extends AbstractTransformer {
       .build();
 
   private final String ffmpegPath;
+
   private final int targetFps;
 
   /**

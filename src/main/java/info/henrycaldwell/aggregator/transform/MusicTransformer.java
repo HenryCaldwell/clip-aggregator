@@ -31,8 +31,11 @@ public final class MusicTransformer extends AbstractTransformer {
 
   private final String ffmpegPath;
   private final String musicPath;
+
   private final String mode;
+
   private final double volume;
+
   private final boolean loop;
 
   /**

@@ -29,6 +29,7 @@ public final class VerticalBlurTransformer extends AbstractTransformer {
       .build();
 
   private final String ffmpegPath;
+
   private final int targetWidth;
   private final int targetHeight;
   private final double blurSigma;
