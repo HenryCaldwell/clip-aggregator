@@ -27,9 +27,9 @@ public final class TwitchRetriever extends AbstractRetriever {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("token")
-      .optionalString("gameId", "broadcasterId", "language")
+      .optionalString("gameId", "broadcasterId")
       .optionalNumber("window", "limit")
-      .optionalStringList("tags")
+      .optionalStringList("languages", "tags")
       .build();
 
   private final TwitchClient twitch;
@@ -38,11 +38,11 @@ public final class TwitchRetriever extends AbstractRetriever {
 
   private final String gameId;
   private final String broadcasterId;
-  private final String language;
 
   private final Duration window;
   private final int limit;
 
+  private final List<String> languages;
   private final List<String> tags;
 
   /**
@@ -57,7 +57,6 @@ public final class TwitchRetriever extends AbstractRetriever {
     this.token = config.getString("token");
     this.gameId = config.hasPath("gameId") ? config.getString("gameId") : null;
     this.broadcasterId = config.hasPath("broadcasterId") ? config.getString("broadcasterId") : null;
-    this.language = config.hasPath("language") ? config.getString("language") : null;
 
     long window = config.hasPath("window") ? config.getNumber("window").longValue() : 24L;
     if (window <= 0) {
@@ -72,6 +71,17 @@ public final class TwitchRetriever extends AbstractRetriever {
           Map.of("key", "limit", "value", limit));
     }
     this.limit = limit;
+
+    List<String> languages = config.hasPath("languages") ? config.getStringList("languages") : List.of();
+    for (int i = 0; i < languages.size(); i++) {
+      String language = languages.get(i);
+
+      if (language == null || language.isBlank()) {
+        throw new SpecException(name, "Invalid key value (expected languages to be non-blank strings)",
+            Map.of("key", "languages", "value", language, "index", i));
+      }
+    }
+    this.languages = List.copyOf(languages);
 
     List<String> tags = config.hasPath("tags") ? config.getStringList("tags") : List.of();
     for (int i = 0; i < tags.size(); i++) {
@@ -89,8 +99,8 @@ public final class TwitchRetriever extends AbstractRetriever {
           "Invalid key combination (expected exactly one of gameId or broadcasterId)");
     }
 
-    if (broadcasterId != null && language != null) {
-      throw new SpecException(name, "Invalid key combination (expected language only with gameId)");
+    if (broadcasterId != null && !languages.isEmpty()) {
+      throw new SpecException(name, "Invalid key combination (expected languages only with gameId)");
     }
 
     this.twitch = TwitchClientBuilder.builder().withEnableHelix(true).build();
@@ -106,7 +116,7 @@ public final class TwitchRetriever extends AbstractRetriever {
     Instant end = Instant.now();
     Instant start = end.minus(window);
     List<Clip> candidates = (gameId != null)
-        ? pageClips(gameId, null, start, end, limit, language)
+        ? pageClips(gameId, null, start, end, limit, languages)
         : pageClips(null, broadcasterId, start, end, limit, null);
 
     return candidates.stream()
@@ -134,8 +144,8 @@ public final class TwitchRetriever extends AbstractRetriever {
    * @param end           An {@link Instant} representing the exclusive end time.
    * @param limit         An integer representing the maximum number of clips to
    *                      return.
-   * @param language      A string representing the clip language, or
-   *                      {@code null}.
+   * @param languages     A {@link List} of strings representing the clip
+   *                      languages, or {@code null}.
    * @return A {@link List} of {@link Clip} values gathered across pages.
    */
   private List<Clip> pageClips(
@@ -144,7 +154,7 @@ public final class TwitchRetriever extends AbstractRetriever {
       Instant start,
       Instant end,
       int limit,
-      String language) {
+      List<String> languages) {
     List<Clip> matches = new ArrayList<>();
     String cursor = null;
 
@@ -168,7 +178,7 @@ public final class TwitchRetriever extends AbstractRetriever {
       }
 
       for (Clip clip : page.getData()) {
-        if (language == null || language.equalsIgnoreCase(clip.getLanguage())) {
+        if (languages == null || languages.isEmpty() || languages.contains(clip.getLanguage())) {
           matches.add(clip);
 
           if (matches.size() >= limit) {
