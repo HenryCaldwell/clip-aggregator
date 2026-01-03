@@ -29,7 +29,7 @@ public final class TitleTransformer extends AbstractTransformer {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("ffmpegPath", "fontPath")
-      .optionalString("position", "textAlign")
+      .optionalString("position", "textAlign", "fontColor", "borderColor", "boxColor")
       .requiredNumber("targetWidth")
       .optionalNumber("fontSize", "textOpacity", "textBorderWidth", "textOffsetX", "textOffsetY", "lineSpacing",
           "maxLines", "boxOpacity", "boxBorderWidth")
@@ -52,6 +52,9 @@ public final class TitleTransformer extends AbstractTransformer {
 
   private final String position;
   private final String textAlign;
+  private final String fontColor;
+  private final String borderColor;
+  private final String boxColor;
 
   private final int targetWidth;
 
@@ -102,6 +105,10 @@ public final class TitleTransformer extends AbstractTransformer {
             Map.of("key", "textAlign", "value", rawAlign));
     }
     this.textAlign = textAlign;
+
+    this.fontColor = config.hasPath("fontColor") ? config.getString("fontColor") : "white";
+    this.borderColor = config.hasPath("borderColor") ? config.getString("borderColor") : "black";
+    this.boxColor = config.hasPath("boxColor") ? config.getString("boxColor") : "black";
 
     int targetWidth = config.getNumber("targetWidth").intValue();
     if (targetWidth <= 0) {
@@ -311,13 +318,13 @@ public final class TitleTransformer extends AbstractTransformer {
         .append("text_align=").append(textAlignExpr).append(":")
         .append("line_spacing=").append(lineSpacing).append(":")
         .append("fontsize=").append(fontSize).append(":")
-        .append("fontcolor=white@").append(textOpacity).append(":")
+        .append("fontcolor=").append(fontColor).append("@").append(textOpacity).append(":")
         .append("borderw=").append(textBorderWidth).append(":")
-        .append("bordercolor=black:");
+        .append("bordercolor=").append(borderColor).append("@").append(textOpacity).append(":");
 
     if (boxOpacity > 0.0) {
       sb.append("box=1:")
-          .append("boxcolor=black@").append(boxOpacity).append(":")
+          .append("boxcolor=").append(boxColor).append("@").append(boxOpacity).append(":")
           .append("boxborderw=").append(boxBorderWidth).append(":");
     }
 
