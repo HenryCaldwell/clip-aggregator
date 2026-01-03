@@ -3,6 +3,7 @@ package info.henrycaldwell.aggregator.transform;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 
 import com.typesafe.config.Config;
@@ -53,7 +54,7 @@ public abstract class AbstractTransformer implements Transformer {
   }
 
   /**
-   * Transforms the input media and replaces the previous file.
+   * Transforms the input media and replaces the original file.
    *
    * @param media A {@link MediaRef} representing the media to transform.
    * @return A {@link MediaRef} representing the transformed media.
@@ -76,14 +77,17 @@ public abstract class AbstractTransformer implements Transformer {
     }
 
     try {
-      if (Files.isRegularFile(source)) {
-        Files.delete(source);
+      try {
+        Files.move(output, source, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+      } catch (IOException e) {
+        Files.move(output, source, StandardCopyOption.REPLACE_EXISTING);
       }
     } catch (IOException e) {
-      throw new ComponentException(name, "Failed to delete previous file", Map.of("sourcePath", source), e);
+      throw new ComponentException(name, "Failed to replace original file",
+          Map.of("sourcePath", source, "outputPath", output), e);
     }
 
-    return result;
+    return result.withFile(source);
   }
 
   /**

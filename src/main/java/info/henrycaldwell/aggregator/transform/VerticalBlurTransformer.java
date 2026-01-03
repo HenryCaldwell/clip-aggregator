@@ -90,7 +90,7 @@ public final class VerticalBlurTransformer extends AbstractTransformer {
       throw new ComponentException(name, "Input file missing or not a regular file", Map.of("sourcePath", src));
     }
 
-    Path target = deriveOut(src, "-vertical-blur.mp4");
+    Path target = deriveOut(src, "-temp.mp4");
     Path parent = target.getParent();
     if (parent != null) {
       try {
