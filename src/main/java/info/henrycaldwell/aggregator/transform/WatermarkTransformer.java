@@ -27,7 +27,7 @@ public final class WatermarkTransformer extends AbstractTransformer {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("ffmpegPath", "fontPath")
-      .optionalString("logoPath", "position")
+      .optionalString("logoPath", "position", "fontColor", "borderColor")
       .optionalNumber("fontSize", "textOpacity", "textBorderWidth", "textOffsetX", "textOffsetY",
           "logoHeight", "logoOpacity", "logoOffsetX", "logoOffsetY")
       .build();
@@ -50,6 +50,8 @@ public final class WatermarkTransformer extends AbstractTransformer {
 
   private final String logoPath;
   private final String position;
+  private final String fontColor;
+  private final String borderColor;
 
   private final int fontSize;
   private final double textOpacity;
@@ -81,6 +83,9 @@ public final class WatermarkTransformer extends AbstractTransformer {
           Map.of("key", "position", "value", position));
     }
     this.position = position;
+
+    this.fontColor = config.hasPath("fontColor") ? config.getString("fontColor") : "white";
+    this.borderColor = config.hasPath("borderColor") ? config.getString("borderColor") : "black";
 
     int fontSize = config.hasPath("fontSize") ? config.getNumber("fontSize").intValue() : 70;
     if (fontSize <= 0) {
@@ -288,9 +293,9 @@ public final class WatermarkTransformer extends AbstractTransformer {
           .append("textfile='").append(textFile).append("':")
           .append("reload=0:")
           .append("fontsize=").append(fontSize).append(":")
-          .append("fontcolor=white@").append(textOpacity).append(":")
+          .append("fontcolor=").append(fontColor).append("@").append(textOpacity).append(":")
           .append("borderw=").append(textBorderWidth).append(":")
-          .append("bordercolor=black:")
+          .append("bordercolor=").append(borderColor).append("@").append(textOpacity).append(":")
           .append("x=").append(xExpr).append(":")
           .append("y=").append(yExpr)
           .toString();
@@ -312,9 +317,9 @@ public final class WatermarkTransformer extends AbstractTransformer {
         .append("textfile='").append(textFile).append("':")
         .append("reload=0:")
         .append("fontsize=").append(fontSize).append(":")
-        .append("fontcolor=white@").append(textOpacity).append(":")
+        .append("fontcolor=").append(fontColor).append("@").append(textOpacity).append(":")
         .append("borderw=").append(textBorderWidth).append(":")
-        .append("bordercolor=black:")
+        .append("bordercolor=").append(borderColor).append("@").append(textOpacity).append(":")
         .append("x=").append(xExpr).append(":")
         .append("y=").append(yExpr)
         .toString();
