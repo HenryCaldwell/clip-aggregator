@@ -13,6 +13,7 @@ import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
+import info.henrycaldwell.aggregator.util.FFmpegUtils;
 import info.henrycaldwell.aggregator.util.TextUtils;
 import info.henrycaldwell.aggregator.util.TextUtils.FontSpec;
 
@@ -240,11 +241,11 @@ public final class TitleTransformer extends FFmpegTransformer {
    */
   private String buildFilter(Path caption) {
     PositionExpr pos = POS.get(position);
-    String xExpr = addOffset(pos.x(), textOffsetX);
-    String yExpr = addOffset(pos.y(), textOffsetY);
+    String xExpr = FFmpegUtils.addOffset(pos.x(), textOffsetX);
+    String yExpr = FFmpegUtils.addOffset(pos.y(), textOffsetY);
 
-    String font = normalizePath(fontPath);
-    String textFile = escapeText(normalizePath(caption.toString()));
+    String font = FFmpegUtils.normalizePath(fontPath);
+    String textFile = FFmpegUtils.escapeText(FFmpegUtils.normalizePath(caption.toString()));
 
     String textAlignExpr = "M+" + textAlign;
 
@@ -271,47 +272,6 @@ public final class TitleTransformer extends FFmpegTransformer {
         .append("fix_bounds=1");
 
     return sb.toString();
-  }
-
-  /**
-   * Adds an integer pixel offset to an FFmpeg position expression.
-   *
-   * @param expr   A string representing the base FFmpeg expression.
-   * @param offset An integer representing the pixel offset.
-   * @return A string representing the updated FFmpeg expression.
-   */
-  private static String addOffset(String expr, int offset) {
-    if (offset == 0)
-      return expr;
-    return expr + (offset > 0 ? "+" : "") + offset;
-  }
-
-  /**
-   * Normalizes a path for safe use in an FFmpeg filter argument.
-   *
-   * @param path A string representing the path to normalize.
-   * @return A string representing the normalized path.
-   */
-  private static String normalizePath(String path) {
-    if (path == null || path.isBlank()) {
-      return path;
-    }
-
-    return path.replace("\\", "/").replace(":", "\\:");
-  }
-
-  /**
-   * Escapes a string for safe use in an FFmpeg filter argument.
-   *
-   * @param text A string representing the text to escape.
-   * @return A string representing the escaped text.
-   */
-  private static String escapeText(String text) {
-    if (text == null) {
-      return null;
-    }
-
-    return text.replace("'", "\\'");
   }
 
   /**

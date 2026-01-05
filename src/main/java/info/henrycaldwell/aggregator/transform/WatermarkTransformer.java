@@ -12,6 +12,7 @@ import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
+import info.henrycaldwell.aggregator.util.FFmpegUtils;
 import info.henrycaldwell.aggregator.util.TextUtils;
 
 /**
@@ -218,11 +219,11 @@ public final class WatermarkTransformer extends FFmpegTransformer {
    */
   private String buildFilter(Path broadcaster) {
     PositionExpr textPos = TEXT_POS.get(position);
-    String xExpr = addOffset(textPos.x(), textOffsetX);
-    String yExpr = addOffset(textPos.y(), textOffsetY);
+    String xExpr = FFmpegUtils.addOffset(textPos.x(), textOffsetX);
+    String yExpr = FFmpegUtils.addOffset(textPos.y(), textOffsetY);
 
-    String font = normalizePath(fontPath);
-    String textFile = escapeText(normalizePath(broadcaster.toString()));
+    String font = FFmpegUtils.normalizePath(fontPath);
+    String textFile = FFmpegUtils.escapeText(FFmpegUtils.normalizePath(broadcaster.toString()));
 
     if (logoPath == null) {
       return new StringBuilder()
@@ -240,8 +241,8 @@ public final class WatermarkTransformer extends FFmpegTransformer {
     }
 
     PositionExpr logoPos = LOGO_POS.get(position);
-    String logoX = addOffset(logoPos.x(), logoOffsetX);
-    String logoY = addOffset(logoPos.y(), logoOffsetY);
+    String logoX = FFmpegUtils.addOffset(logoPos.x(), logoOffsetX);
+    String logoY = FFmpegUtils.addOffset(logoPos.y(), logoOffsetY);
 
     return new StringBuilder()
         .append("[1:v]format=rgba,scale=-1:").append(logoHeight)
@@ -261,47 +262,6 @@ public final class WatermarkTransformer extends FFmpegTransformer {
         .append("x=").append(xExpr).append(":")
         .append("y=").append(yExpr)
         .toString();
-  }
-
-  /**
-   * Adds an integer pixel offset to an FFmpeg position expression.
-   *
-   * @param expr   A string representing the base FFmpeg expression.
-   * @param offset An integer representing the pixel offset.
-   * @return A string representing the updated FFmpeg expression.
-   */
-  private static String addOffset(String expr, int offset) {
-    if (offset == 0)
-      return expr;
-    return expr + (offset > 0 ? "+" : "") + offset;
-  }
-
-  /**
-   * Normalizes a path for safe use in an FFmpeg filter argument.
-   *
-   * @param path A string representing the path to normalize.
-   * @return A string representing the normalized path.
-   */
-  private static String normalizePath(String path) {
-    if (path == null || path.isBlank()) {
-      return path;
-    }
-
-    return path.replace("\\", "/").replace(":", "\\:");
-  }
-
-  /**
-   * Escapes a string for safe use in an FFmpeg filter argument.
-   *
-   * @param text A string representing the text to escape.
-   * @return A string representing the escaped text.
-   */
-  private static String escapeText(String text) {
-    if (text == null) {
-      return null;
-    }
-
-    return text.replace("'", "\\'");
   }
 
   /**
