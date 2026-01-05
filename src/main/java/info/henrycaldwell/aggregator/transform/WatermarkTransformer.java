@@ -1,12 +1,10 @@
 package info.henrycaldwell.aggregator.transform;
 
 import java.io.IOException;
-import java.lang.ProcessBuilder.Redirect;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
 
@@ -23,10 +21,10 @@ import info.henrycaldwell.aggregator.util.TextUtils;
  * This class invokes FFmpeg as a subprocess and overlays a watermark on the
  * clip consisting of the clip's broadcaster and an optional logo.
  */
-public final class WatermarkTransformer extends AbstractTransformer {
+public final class WatermarkTransformer extends FFmpegTransformer {
 
   public static final Spec SPEC = Spec.builder()
-      .requiredString("ffmpegPath", "fontPath")
+      .requiredString("fontPath")
       .optionalString("logoPath", "position", "fontColor", "borderColor")
       .optionalNumber("fontSize", "textOpacity", "textBorderWidth", "textOffsetX", "textOffsetY",
           "logoHeight", "logoOpacity", "logoOffsetX", "logoOffsetY")
@@ -45,7 +43,6 @@ public final class WatermarkTransformer extends AbstractTransformer {
       "lower_center", new PositionExpr("(W-overlay_w)/2", "3*H/4-overlay_h/2"),
       "center", new PositionExpr("(W-overlay_w)/2", "(H-overlay_h)/2"));
 
-  private final String ffmpegPath;
   private final String fontPath;
 
   private final String logoPath;
@@ -72,7 +69,6 @@ public final class WatermarkTransformer extends AbstractTransformer {
   public WatermarkTransformer(Config config) {
     super(config, SPEC);
 
-    this.ffmpegPath = config.getString("ffmpegPath");
     this.fontPath = config.getString("fontPath");
     this.logoPath = config.hasPath("logoPath") ? config.getString("logoPath") : null;
 
@@ -138,26 +134,10 @@ public final class WatermarkTransformer extends AbstractTransformer {
    */
   @Override
   public MediaRef apply(MediaRef media) {
-    Path src = media.file();
+    Path source = media.file();
+    Path target = deriveOut(source, "-temp.mp4");
 
-    if (src == null || !Files.isRegularFile(src)) {
-      throw new ComponentException(name, "Input file missing or not a regular file", Map.of("sourcePath", src));
-    }
-
-    Path target = deriveOut(src, "-temp.mp4");
-    Path parent = target.getParent();
-    if (parent != null) {
-      try {
-        Files.createDirectories(parent);
-      } catch (IOException e) {
-        throw new ComponentException(name, "Failed to create parent directories",
-            Map.of("targetPath", target, "parentPath", parent), e);
-      }
-    }
-
-    if (Files.exists(target)) {
-      throw new ComponentException(name, "Target file already exists", Map.of("targetPath", target));
-    }
+    preflight(media, source, target);
 
     String rawBroadcaster = media.broadcaster();
     if (rawBroadcaster == null || rawBroadcaster.isBlank()) {
@@ -172,7 +152,8 @@ public final class WatermarkTransformer extends AbstractTransformer {
     }
 
     if (logoPath != null && !Files.isRegularFile(Path.of(logoPath))) {
-      throw new ComponentException(name, "Logo file missing or not a regular file", Map.of("logoPath", logoPath));
+      throw new ComponentException(name, "Logo file missing or not a regular file",
+          Map.of("clipId", media.id(), "logoPath", logoPath));
     }
 
     Path broadcasterFile = null;
@@ -180,7 +161,7 @@ public final class WatermarkTransformer extends AbstractTransformer {
       Path directory = target.toAbsolutePath().getParent();
       if (directory == null) {
         throw new ComponentException(name, "Failed to determine broadcaster label temporary directory",
-            Map.of("sourcePath", src, "targetPath", target));
+            Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target));
       }
 
       broadcasterFile = Files.createTempFile(directory, "broadcaster-", ".txt");
@@ -188,80 +169,37 @@ public final class WatermarkTransformer extends AbstractTransformer {
 
       String filterComplex = buildFilter(broadcasterFile);
 
-      Process process;
-      try {
-        ProcessBuilder pb;
-        if (logoPath != null) {
-          pb = new ProcessBuilder(ffmpegPath, "-y",
-              "-i", src.toString(),
-              "-i", logoPath,
-              "-filter_complex", filterComplex,
-              "-c:v", "libx264",
-              "-pix_fmt", "yuv420p",
-              "-c:a", "aac",
-              "-b:a", "128k",
-              "-ar", "48000",
-              target.toString());
-        } else {
-          pb = new ProcessBuilder(ffmpegPath, "-y",
-              "-i", src.toString(),
-              "-filter_complex", filterComplex,
-              "-c:v", "libx264",
-              "-pix_fmt", "yuv420p",
-              "-c:a", "aac",
-              "-b:a", "128k",
-              "-ar", "48000",
-              target.toString());
-        }
-
-        pb.redirectErrorStream(true);
-        pb.redirectOutput(Redirect.DISCARD);
-        process = pb.start();
-      } catch (IOException e) {
-        throw new ComponentException(name, "Failed to start ffmpeg process",
-            Map.of("ffmpegPath", ffmpegPath, "sourcePath", src, "targetPath", target), e);
+      ProcessBuilder pb;
+      if (logoPath != null) {
+        pb = new ProcessBuilder(ffmpegPath, "-y",
+            "-i", source.toString(),
+            "-i", logoPath,
+            "-filter_complex", filterComplex,
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-ar", "48000",
+            target.toString());
+      } else {
+        pb = new ProcessBuilder(ffmpegPath, "-y",
+            "-i", source.toString(),
+            "-filter_complex", filterComplex,
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-ar", "48000",
+            target.toString());
       }
 
-      boolean complete;
-      try {
-        complete = process.waitFor(2, TimeUnit.MINUTES);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        process.destroyForcibly();
-        throw new ComponentException(name, "Interrupted while waiting for ffmpeg process", Map.of("clipId", media.id()),
-            e);
-      }
-
-      if (!complete) {
-        process.destroyForcibly();
-        throw new ComponentException(name, "Timed out while waiting for ffmpeg process", Map.of("clipId", media.id()));
-      }
-
-      int code = process.exitValue();
-      if (code != 0) {
-        throw new ComponentException(name, "ffmpeg process exited with non-zero code",
-            Map.of("clipId", media.id(), "exitCode", code));
-      }
-
-      if (!Files.exists(target)) {
-        throw new ComponentException(name, "Output file missing after transform", Map.of("targetPath", target));
-      }
-
-      try {
-        long size = Files.size(target);
-
-        if (size <= 0) {
-          throw new ComponentException(name, "Output file empty after transform",
-              Map.of("targetPath", target, "sizeBytes", size));
-        }
-      } catch (IOException e) {
-        throw new ComponentException(name, "Failed to stat output file", Map.of("targetPath", target), e);
-      }
+      runProcess(pb, media, source, target);
+      postflight(media, source, target);
 
       return media.withFile(target);
     } catch (IOException e) {
       throw new ComponentException(name, "Failed to write broadcaster label temp file",
-          Map.of("sourcePath", src, "targetPath", target), e);
+          Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target), e);
     } finally {
       if (broadcasterFile != null) {
         try {

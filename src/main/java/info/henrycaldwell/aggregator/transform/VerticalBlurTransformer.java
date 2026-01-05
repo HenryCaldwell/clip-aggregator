@@ -1,17 +1,12 @@
 package info.henrycaldwell.aggregator.transform;
 
-import java.io.IOException;
-import java.lang.ProcessBuilder.Redirect;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
-import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
 
 /**
@@ -21,14 +16,11 @@ import info.henrycaldwell.aggregator.error.SpecException;
  * This class invokes FFmpeg as a subprocess and centers the clip on top of a
  * blurred background.
  */
-public final class VerticalBlurTransformer extends AbstractTransformer {
+public final class VerticalBlurTransformer extends FFmpegTransformer {
 
   public static final Spec SPEC = Spec.builder()
-      .requiredString("ffmpegPath")
       .optionalNumber("targetWidth", "targetHeight", "blurSigma", "blurSteps")
       .build();
-
-  private final String ffmpegPath;
 
   private final int targetWidth;
   private final int targetHeight;
@@ -43,8 +35,6 @@ public final class VerticalBlurTransformer extends AbstractTransformer {
    */
   public VerticalBlurTransformer(Config config) {
     super(config, SPEC);
-
-    this.ffmpegPath = config.getString("ffmpegPath");
 
     int targetWidth = config.hasPath("targetWidth") ? config.getNumber("targetWidth").intValue() : 1080;
     if (targetWidth <= 0) {
@@ -80,30 +70,13 @@ public final class VerticalBlurTransformer extends AbstractTransformer {
    *
    * @param media A {@link MediaRef} representing the media to transform.
    * @return A {@link MediaRef} representing the transformed media.
-   * @throws ComponentException if transforming fails at any step.
    */
   @Override
   public MediaRef apply(MediaRef media) {
-    Path src = media.file();
+    Path source = media.file();
+    Path target = deriveOut(source, "-temp.mp4");
 
-    if (src == null || !Files.isRegularFile(src)) {
-      throw new ComponentException(name, "Input file missing or not a regular file", Map.of("sourcePath", src));
-    }
-
-    Path target = deriveOut(src, "-temp.mp4");
-    Path parent = target.getParent();
-    if (parent != null) {
-      try {
-        Files.createDirectories(parent);
-      } catch (IOException e) {
-        throw new ComponentException(name, "Failed to create parent directories",
-            Map.of("targetPath", target, "parentPath", parent), e);
-      }
-    }
-
-    if (Files.exists(target)) {
-      throw new ComponentException(name, "Target file already exists", Map.of("targetPath", target));
-    }
+    preflight(media, source, target);
 
     String backgroundChain = String.format(
         java.util.Locale.ROOT,
@@ -113,62 +86,20 @@ public final class VerticalBlurTransformer extends AbstractTransformer {
         "[0:v]%s[bg];[0:v]scale=%d:-2[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,format=yuv420p",
         backgroundChain, targetWidth);
 
-    Process process;
-    try {
-      ProcessBuilder pb = new ProcessBuilder(
-          ffmpegPath,
-          "-y",
-          "-i", src.toString(),
-          "-filter_complex", filterComplex,
-          "-c:v", "libx264",
-          "-pix_fmt", "yuv420p",
-          "-c:a", "aac",
-          "-b:a", "128k",
-          "-ar", "48000",
-          target.toString());
-      pb.redirectErrorStream(true);
-      pb.redirectOutput(Redirect.DISCARD);
-      process = pb.start();
-    } catch (IOException e) {
-      throw new ComponentException(name, "Failed to start ffmpeg process",
-          Map.of("ffmpegPath", ffmpegPath, "sourcePath", src, "targetPath", target), e);
-    }
+    ProcessBuilder pb = new ProcessBuilder(
+        ffmpegPath,
+        "-y",
+        "-i", source.toString(),
+        "-filter_complex", filterComplex,
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-ar", "48000",
+        target.toString());
 
-    boolean complete;
-    try {
-      complete = process.waitFor(2, TimeUnit.MINUTES);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      process.destroyForcibly();
-      throw new ComponentException(name, "Interrupted while waiting for ffmpeg process", Map.of("clipId", media.id()),
-          e);
-    }
-
-    if (!complete) {
-      process.destroyForcibly();
-      throw new ComponentException(name, "Timed out while waiting for ffmpeg process", Map.of("clipId", media.id()));
-    }
-
-    int code = process.exitValue();
-    if (code != 0) {
-      throw new ComponentException(name, "ffmpeg process exited with non-zero code",
-          Map.of("clipId", media.id(), "exitCode", code));
-    }
-
-    if (!Files.exists(target)) {
-      throw new ComponentException(name, "Output file missing after transform", Map.of("targetPath", target));
-    }
-
-    try {
-      long size = Files.size(target);
-
-      if (size <= 0) {
-        throw new ComponentException(name, "Output file empty after transform",
-            Map.of("targetPath", target, "sizeBytes", size));
-      }
-    } catch (IOException e) {
-      throw new ComponentException(name, "Failed to stat output file", Map.of("targetPath", target), e);
-    }
+    runProcess(pb, media, source, target);
+    postflight(media, source, target);
 
     return media.withFile(target);
   }

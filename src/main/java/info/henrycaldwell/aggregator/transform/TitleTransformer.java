@@ -1,13 +1,11 @@
 package info.henrycaldwell.aggregator.transform;
 
 import java.io.IOException;
-import java.lang.ProcessBuilder.Redirect;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
 
@@ -25,10 +23,10 @@ import info.henrycaldwell.aggregator.util.TextUtils.FontSpec;
  * This class invokes FFmpeg as a subprocess and overlays a caption on the clip
  * consisting of the clip's title.
  */
-public final class TitleTransformer extends AbstractTransformer {
+public final class TitleTransformer extends FFmpegTransformer {
 
   public static final Spec SPEC = Spec.builder()
-      .requiredString("ffmpegPath", "fontPath")
+      .requiredString("fontPath")
       .optionalString("position", "textAlign", "fontColor", "borderColor", "boxColor")
       .requiredNumber("targetWidth")
       .optionalNumber("fontSize", "textOpacity", "textBorderWidth", "textOffsetX", "textOffsetY", "lineSpacing",
@@ -47,7 +45,6 @@ public final class TitleTransformer extends AbstractTransformer {
       "bottom_center", new PositionExpr("(w-text_w)/2", "h-text_h"),
       "center", new PositionExpr("(w-text_w)/2", "(h-text_h)/2"));
 
-  private final String ffmpegPath;
   private final String fontPath;
 
   private final String position;
@@ -77,7 +74,6 @@ public final class TitleTransformer extends AbstractTransformer {
   public TitleTransformer(Config config) {
     super(config, SPEC);
 
-    this.ffmpegPath = config.getString("ffmpegPath");
     this.fontPath = config.getString("fontPath");
 
     String position = config.hasPath("position") ? config.getString("position") : "center";
@@ -173,26 +169,10 @@ public final class TitleTransformer extends AbstractTransformer {
    */
   @Override
   protected MediaRef apply(MediaRef media) {
-    Path src = media.file();
+    Path source = media.file();
+    Path target = deriveOut(source, "-temp.mp4");
 
-    if (src == null || !Files.isRegularFile(src)) {
-      throw new ComponentException(name, "Input file missing or not a regular file", Map.of("sourcePath", src));
-    }
-
-    Path target = deriveOut(src, "-temp.mp4");
-    Path parent = target.getParent();
-    if (parent != null) {
-      try {
-        Files.createDirectories(parent);
-      } catch (IOException e) {
-        throw new ComponentException(name, "Failed to create parent directories",
-            Map.of("targetPath", target, "parentPath", parent), e);
-      }
-    }
-
-    if (Files.exists(target)) {
-      throw new ComponentException(name, "Target file already exists", Map.of("targetPath", target));
-    }
+    preflight(media, source, target);
 
     String rawTitle = media.title();
     if (rawTitle == null || rawTitle.isBlank()) {
@@ -206,7 +186,7 @@ public final class TitleTransformer extends AbstractTransformer {
         maxLines);
     if (caption.isBlank()) {
       throw new ComponentException(name, "Title empty after formatting",
-          Map.of("clipId", media.id(), "title", rawTitle));
+          Map.of("clipId", media.id(), "title", rawTitle, "formattedTitle", caption));
     }
 
     Path captionFile = null;
@@ -214,7 +194,7 @@ public final class TitleTransformer extends AbstractTransformer {
       Path directory = target.toAbsolutePath().getParent();
       if (directory == null) {
         throw new ComponentException(name, "Failed to determine caption temporary directory",
-            Map.of("sourcePath", src, "targetPath", target));
+            Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target));
       }
 
       captionFile = Files.createTempFile(directory, "caption-", ".txt");
@@ -222,68 +202,26 @@ public final class TitleTransformer extends AbstractTransformer {
 
       String filterComplex = buildFilter(captionFile);
 
-      Process process;
-      try {
-        ProcessBuilder pb = new ProcessBuilder(
-            ffmpegPath,
-            "-y",
-            "-i", src.toString(),
-            "-filter_complex", filterComplex,
-            "-c:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-ar", "48000",
-            target.toString());
-        pb.redirectErrorStream(true);
-        pb.redirectOutput(Redirect.DISCARD);
-        process = pb.start();
-      } catch (IOException e) {
-        throw new ComponentException(name, "Failed to start ffmpeg process",
-            Map.of("ffmpegPath", ffmpegPath, "sourcePath", src, "targetPath", target), e);
-      }
+      ProcessBuilder pb = new ProcessBuilder(
+          ffmpegPath,
+          "-y",
+          "-i", source.toString(),
+          "-filter_complex", filterComplex,
+          "-c:v", "libx264",
+          "-pix_fmt", "yuv420p",
+          "-c:a", "aac",
+          "-b:a", "128k",
+          "-ar", "48000",
+          target.toString());
 
-      boolean complete;
-      try {
-        complete = process.waitFor(2, TimeUnit.MINUTES);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        process.destroyForcibly();
-        throw new ComponentException(name, "Interrupted while waiting for ffmpeg process", Map.of("clipId", media.id()),
-            e);
-      }
-
-      if (!complete) {
-        process.destroyForcibly();
-        throw new ComponentException(name, "Timed out while waiting for ffmpeg process", Map.of("clipId", media.id()));
-      }
-
-      int code = process.exitValue();
-      if (code != 0) {
-        throw new ComponentException(name, "ffmpeg process exited with non-zero code",
-            Map.of("clipId", media.id(), "exitCode", code));
-      }
-
-      if (!Files.exists(target)) {
-        throw new ComponentException(name, "Output file missing after transform", Map.of("targetPath", target));
-      }
-
-      try {
-        long size = Files.size(target);
-
-        if (size <= 0) {
-          throw new ComponentException(name, "Output file empty after transform",
-              Map.of("targetPath", target, "sizeBytes", size));
-        }
-      } catch (IOException e) {
-        throw new ComponentException(name, "Failed to stat output file", Map.of("targetPath", target), e);
-      }
+      runProcess(pb, media, source, target);
+      postflight(media, source, target);
 
       return media.withFile(target);
 
     } catch (IOException e) {
       throw new ComponentException(name, "Failed to write caption temp file",
-          Map.of("sourcePath", src, "targetPath", target), e);
+          Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target), e);
     } finally {
       if (captionFile != null) {
         try {
