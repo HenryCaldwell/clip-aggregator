@@ -248,7 +248,7 @@ public final class Runner {
         boolean claimed = context.history().claim(clipId, context.name());
 
         if (!claimed) {
-          LOG.info("Skipping claimed clip (runner={}, retriever={}, clipId={})",
+          LOG.info("Skipping published clip (runner={}, retriever={}, clipId={})",
               context.name(), retrieverName, clipId);
           continue;
         }
@@ -269,17 +269,27 @@ public final class Runner {
       } catch (RuntimeException e) {
         LOG.error("Failed to prepare clip (runner={}, retriever={}, clipId={})",
             context.name(), retrieverName, clipId, e);
+
+        if (context.history() != null) {
+          context.history().fail(clipId, context.name(), e.getMessage());
+        }
         continue;
       }
 
+      if (context.history() != null) {
+        context.history().prepare(clipId, context.name());
+      }
+
       LOG.info(
-          "Prepared clip (runner={}, retriever={}, pipeline={}, stager={}, clipId={}, VIEWS={})",
+          "Prepared clip (runner={}, retriever={}, pipeline={}, stager={}, clipId={}, views={})",
           context.name(),
           retrieverName,
           pipelineName,
           context.stager() != null ? context.stager().getName() : null,
           clipId,
           clip.views());
+
+      boolean success = false;
 
       for (Publisher publisher : context.publishers().values()) {
         String publisherName = publisher.getName();
@@ -289,10 +299,24 @@ public final class Runner {
 
           LOG.info("Published clip (runner={}, retriever={}, publisher={}, clipId={}, publishId={})",
               context.name(), retrieverName, publisherName, clipId, ref.id());
+
+          success = true;
         } catch (RuntimeException e) {
           LOG.error("Failed to publish clip (runner={}, retriever={}, publisher={}, clipId={})",
               context.name(), retrieverName, publisherName, clipId, e);
+
+          if (context.history() != null) {
+            context.history().fail(clipId, context.name(), e.getMessage());
+          }
         }
+      }
+
+      if (success) {
+        if (context.history() != null) {
+          context.history().publish(clipId, context.name());
+        }
+
+        published++;
       }
 
       if (context.stager() == null) {
@@ -320,8 +344,6 @@ public final class Runner {
               context.name(), retrieverName, context.stager().getName(), clipId, e);
         }
       }
-
-      published++;
     }
 
     return published;

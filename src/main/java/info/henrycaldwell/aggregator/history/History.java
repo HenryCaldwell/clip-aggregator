@@ -31,7 +31,33 @@ public interface History {
    * @param id     A string representing the clip identifier.
    * @param runner A string representing the runner name.
    * @return {@code true} if the clip was successfully claimed, {@code false} if
-   *         the clip was already claimed.
+   *         the clip was already published.
    */
   boolean claim(String id, String runner);
+
+  /**
+   * Marks a clip as successfully prepared.
+   * 
+   * @param id     A string representing the clip identifier.
+   * @param runner A string representing the runner name.
+   */
+  void prepare(String id, String runner);
+
+  /**
+   * Marks a clip as successfully published.
+   * 
+   * @param id     A string representing the clip identifier.
+   * @param runner A string representing the runner name.
+   */
+  void publish(String id, String runner);
+
+  /**
+   * Marks a clip as failed.
+   * 
+   * @param id     A string representing the clip identifier.
+   * @param runner A string representing the runner name.
+   * @param error  A string representing the human-readable error message, or
+   *               {@code null}.
+   */
+  void fail(String id, String runner, String error);
 }
