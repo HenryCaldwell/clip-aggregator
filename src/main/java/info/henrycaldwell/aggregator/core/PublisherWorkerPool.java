@@ -143,8 +143,8 @@ public final class PublisherWorkerPool {
 
         try {
           PublishRef ref = publisher.publish(media);
-          LOG.info("Published clip (runner={}, publisher={}, clipId={}, publishId={}, thread={})",
-              context.name(), publisherName, clipId, ref.id(), Thread.currentThread().getName());
+          LOG.info("Published clip (runner={}, publisher={}, clipId={}, publishId={}, URI={}, thread={})",
+              context.name(), publisherName, clipId, ref.id(), ref.uri(), Thread.currentThread().getName());
           success = true;
         } catch (RuntimeException e) {
           LOG.error("Failed to publish clip (runner={}, publisher={}, clipId={}, thread={})",

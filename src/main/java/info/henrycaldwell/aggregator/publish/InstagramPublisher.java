@@ -75,8 +75,9 @@ public final class InstagramPublisher extends AbstractPublisher {
     String containerId = createContainer(url, caption);
     awaitContainer(containerId);
     String mediaId = publishContainer(containerId);
+    String permalink = fetchPermalink(mediaId);
 
-    return new PublishRef(mediaId, null);
+    return new PublishRef(mediaId, URI.create(permalink));
   }
 
   /**
@@ -185,7 +186,7 @@ public final class InstagramPublisher extends AbstractPublisher {
    * Publishes an Instagram Reels media container.
    *
    * @param containerId A string representing the container identifier.
-   * @return A string representing the Instagram media identifier.
+   * @return A string representing the media identifier.
    * @throws ComponentException if the Instagram Graph API call fails or the
    *                            response is invalid.
    */
@@ -218,6 +219,41 @@ public final class InstagramPublisher extends AbstractPublisher {
     }
 
     return id;
+  }
+
+  /**
+   * Fetches the permalink for a published Instagram media object.
+   * 
+   * @param mediaId A string representing the media identifier.
+   * @return A string representing the permalink URL.
+   * @throws ComponentException if the Instagram Graph API call fails or the
+   *                            response is invalid.
+   */
+  private String fetchPermalink(String mediaId) {
+    URI endpoint = URI.create("https://graph.instagram.com/v23.0/" + mediaId + "?fields=permalink");
+
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(endpoint)
+        .header("Authorization", "Bearer " + accessKey)
+        .GET()
+        .build();
+
+    String json = send(request);
+
+    String permalink;
+    try {
+      permalink = MAPPER.readTree(json).at("/permalink").asText(null);
+    } catch (IOException e) {
+      throw new ComponentException(name, "Failed to parse Instagram media permalink",
+          Map.of("endpoint", endpoint.toString(), "responseBody", json), e);
+    }
+
+    if (permalink == null || permalink.isBlank()) {
+      throw new ComponentException(name, "Instagram media permalink did not return a permalink",
+          Map.of("endpoint", endpoint.toString(), "responseBody", json));
+    }
+
+    return permalink;
   }
 
   /**
