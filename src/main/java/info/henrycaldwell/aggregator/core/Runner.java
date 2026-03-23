@@ -1,8 +1,6 @@
 package info.henrycaldwell.aggregator.core;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -80,9 +78,10 @@ public final class Runner {
     RunnerContext context = buildContext(config);
 
     LOG.info(
-        "Built runner context (runner={}, posts={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
+        "Built runner context (runner={}, posts={}, publisherThreads={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
         context.name(),
         context.posts(),
+        context.publisherThreads(),
         context.retrievers().keySet(),
         context.history() != null ? context.history().getName() : null,
         context.downloader().getName(),
@@ -155,6 +154,12 @@ public final class Runner {
           Map.of("key", "posts", "value", posts));
     }
 
+    int publisherThreads = root.hasPath("publisherThreads") ? root.getInt("publisherThreads") : 1;
+    if (publisherThreads <= 0) {
+      throw new SpecException(name, "Invalid key value (expected publisherThreads to be greater than 0)",
+          Map.of("key", "publisherThreads", "value", publisherThreads));
+    }
+
     Map<String, Retriever> retrievers = buildRetrievers(root);
     History history = buildHistory(root);
     Downloader downloader = buildDownloader(root);
@@ -167,7 +172,7 @@ public final class Runner {
     }
 
     if (downloader == null) {
-      throw new SpecException(name, "Invalid key value (expected at exactly 1 downloader)",
+      throw new SpecException(name, "Invalid key value (expected exactly 1 downloader)",
           Map.of("key", "downloader"));
     }
 
@@ -187,6 +192,7 @@ public final class Runner {
     return new RunnerContext(
         name,
         posts,
+        publisherThreads,
         retrievers,
         history,
         downloader,
@@ -203,150 +209,100 @@ public final class Runner {
    * @return An integer representing the number of clips published.
    */
   private static int process(RunnerContext context) {
-    int published = 0;
-    int posts = context.posts();
+    PublisherWorkerPool publisherPool = new PublisherWorkerPool(context);
+    publisherPool.start();
 
     List<Candidate> candidates = new ArrayList<>();
 
-    for (Retriever retriever : context.retrievers().values()) {
-      String retrieverName = retriever.getName();
-      String pipelineName = retriever.getPipeline();
-      Pipeline pipeline = (pipelineName != null) ? context.pipelines().get(pipelineName) : null;
+    try {
+      for (Retriever retriever : context.retrievers().values()) {
+        String retrieverName = retriever.getName();
+        String pipelineName = retriever.getPipeline();
+        Pipeline pipeline = (pipelineName != null) ? context.pipelines().get(pipelineName) : null;
 
-      List<ClipRef> clips;
-      try {
-        clips = retriever.fetch();
-      } catch (RuntimeException e) {
-        LOG.error("Failed to fetch clips (runner={}, retriever={})", context.name(), retrieverName, e);
-        continue;
-      }
-
-      LOG.info("Fetched retriever clips (runner={}, retriever={}, pipeline={}, clips={})",
-          context.name(), retrieverName, pipelineName, clips.size());
-
-      for (ClipRef clip : clips) {
-        candidates.add(new Candidate(retriever, pipeline, clip));
-      }
-    }
-
-    candidates.sort(Comparator.comparingInt((Candidate candidate) -> candidate.clip().views()).reversed());
-
-    for (Candidate candidate : candidates) {
-      if (published >= posts) {
-        break;
-      }
-
-      Retriever retriever = candidate.retriever();
-      Pipeline pipeline = candidate.pipeline();
-      ClipRef clip = candidate.clip();
-
-      String retrieverName = retriever.getName();
-      String pipelineName = retriever.getPipeline();
-      String clipId = clip.id();
-
-      if (context.history() != null) {
-        boolean claimed = context.history().claim(clipId, context.name());
-
-        if (!claimed) {
-          LOG.info("Skipping published clip (runner={}, retriever={}, clipId={})",
-              context.name(), retrieverName, clipId);
+        List<ClipRef> clips;
+        try {
+          clips = retriever.fetch();
+        } catch (RuntimeException e) {
+          LOG.error("Failed to fetch clips (runner={}, retriever={})", context.name(), retrieverName, e);
           continue;
         }
+
+        LOG.info("Fetched retriever clips (runner={}, retriever={}, pipeline={}, clips={})",
+            context.name(), retrieverName, pipelineName, clips.size());
+
+        for (ClipRef clip : clips) {
+          candidates.add(new Candidate(retriever, pipeline, clip));
+        }
       }
 
-      MediaRef media;
-      try {
-        Path target = Paths.get("work", clipId + ".mp4");
-        media = context.downloader().download(clip, target);
+      candidates.sort(Comparator.comparingInt((Candidate candidate) -> candidate.clip().views()).reversed());
 
-        if (pipeline != null) {
-          media = pipeline.run(media);
+      for (Candidate candidate : candidates) {
+        if (publisherPool.getPublished() >= context.posts()) {
+          break;
         }
 
-        if (context.stager() != null) {
-          media = context.stager().stage(media);
-        }
-      } catch (RuntimeException e) {
-        LOG.error("Failed to prepare clip (runner={}, retriever={}, clipId={})",
-            context.name(), retrieverName, clipId, e);
+        Retriever retriever = candidate.retriever();
+        Pipeline pipeline = candidate.pipeline();
+        ClipRef clip = candidate.clip();
+
+        String retrieverName = retriever.getName();
+        String pipelineName = retriever.getPipeline();
+        String clipId = clip.id();
 
         if (context.history() != null) {
-          context.history().fail(clipId, context.name(), e.getMessage());
+          boolean claimed = context.history().claim(clipId, context.name());
+
+          if (!claimed) {
+            LOG.info("Skipping published clip (runner={}, retriever={}, clipId={})",
+                context.name(), retrieverName, clipId);
+            continue;
+          }
         }
-        continue;
-      }
 
-      if (context.history() != null) {
-        context.history().prepare(clipId, context.name());
-      }
-
-      LOG.info(
-          "Prepared clip (runner={}, retriever={}, pipeline={}, stager={}, clipId={}, views={})",
-          context.name(),
-          retrieverName,
-          pipelineName,
-          context.stager() != null ? context.stager().getName() : null,
-          clipId,
-          clip.views());
-
-      boolean success = false;
-
-      for (Publisher publisher : context.publishers().values()) {
-        String publisherName = publisher.getName();
-
+        MediaRef media;
         try {
-          PublishRef ref = publisher.publish(media);
+          Path target = Paths.get("work", clipId + ".mp4");
+          media = context.downloader().download(clip, target);
 
-          LOG.info("Published clip (runner={}, retriever={}, publisher={}, clipId={}, publishId={})",
-              context.name(), retrieverName, publisherName, clipId, ref.id());
+          if (pipeline != null) {
+            media = pipeline.run(media);
+          }
 
-          success = true;
+          if (context.stager() != null) {
+            media = context.stager().stage(media);
+          }
         } catch (RuntimeException e) {
-          LOG.error("Failed to publish clip (runner={}, retriever={}, publisher={}, clipId={})",
-              context.name(), retrieverName, publisherName, clipId, e);
+          LOG.error("Failed to prepare clip (runner={}, retriever={}, clipId={})",
+              context.name(), retrieverName, clipId, e);
 
           if (context.history() != null) {
             context.history().fail(clipId, context.name(), e.getMessage());
           }
+          continue;
         }
-      }
 
-      if (success) {
         if (context.history() != null) {
-          context.history().publish(clipId, context.name());
+          context.history().prepare(clipId, context.name());
         }
 
-        published++;
+        LOG.info(
+            "Prepared clip (runner={}, retriever={}, pipeline={}, stager={}, clipId={}, views={})",
+            context.name(),
+            retrieverName,
+            pipelineName,
+            context.stager() != null ? context.stager().getName() : null,
+            clipId,
+            clip.views());
+
+        publisherPool.submit(media);
       }
-
-      if (context.stager() == null) {
-        Path file = media.file();
-
-        if (file != null) {
-          try {
-            if (Files.isRegularFile(file)) {
-              Files.delete(file);
-              LOG.info("Deleted local file (runner={}, retriever={}, clipId={}, path={})",
-                  context.name(), retrieverName, clipId, file);
-            }
-          } catch (IOException e) {
-            LOG.warn("Failed to delete local file (runner={}, retriever={}, clipId={}, path={})",
-                context.name(), retrieverName, clipId, file, e);
-          }
-        }
-      } else {
-        try {
-          context.stager().clean(media);
-          LOG.info("Deleted staged file (runner={}, retriever={}, stager={}, clipId={})",
-              context.name(), retrieverName, context.stager().getName(), clipId);
-        } catch (RuntimeException e) {
-          LOG.warn("Failed to delete staged file (runner={}, retriever={}, stager={}, clipId={})",
-              context.name(), retrieverName, context.stager().getName(), clipId, e);
-        }
-      }
+    } finally {
+      publisherPool.stop();
     }
 
-    return published;
+    return publisherPool.getPublished();
   }
 
   /**
@@ -521,23 +477,6 @@ public final class Runner {
     }
 
     return publishers;
-  }
-
-  /**
-   * Record for capturing the configuration for a runner.
-   * 
-   * This record defines a contract for carrying the resolved components required
-   * to execute a single run.
-   */
-  private static record RunnerContext(
-      String name,
-      int posts,
-      Map<String, Retriever> retrievers,
-      History history,
-      Downloader downloader,
-      Map<String, Pipeline> pipelines,
-      Stager stager,
-      Map<String, Publisher> publishers) {
   }
 
   private static record Candidate(
