@@ -8,6 +8,7 @@ import com.typesafe.config.Config;
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.SpecException;
+import info.henrycaldwell.aggregator.util.PathUtils;
 
 /**
  * Class for formatting a video with a blurred vertical backdrop via the FFmpeg
@@ -74,7 +75,7 @@ public final class VerticalBlurTransformer extends FFmpegTransformer {
   @Override
   public MediaRef apply(MediaRef media) {
     Path source = media.file();
-    Path target = deriveOut(source, "-temp.mp4");
+    Path target = PathUtils.deriveOut(source, "-temp.mp4");
 
     preflight(media, source, target);
 
@@ -102,22 +103,5 @@ public final class VerticalBlurTransformer extends FFmpegTransformer {
     postflight(media, source, target);
 
     return media.withFile(target);
-  }
-
-  /**
-   * Derives an output path by appending a suffix before the original file
-   * extension.
-   *
-   * @param in     A {@link Path} representing the input file.
-   * @param suffix A string representing the suffix to append to the base
-   *               filename.
-   * @return A {@link Path} representing the derived sibling file.
-   */
-  private static Path deriveOut(Path in, String suffix) {
-    String name = in.getFileName().toString();
-    int dot = name.lastIndexOf('.');
-    String base = (dot > 0) ? name.substring(0, dot) : name;
-
-    return in.resolveSibling(base + suffix);
   }
 }

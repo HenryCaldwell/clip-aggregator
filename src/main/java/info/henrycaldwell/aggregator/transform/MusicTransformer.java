@@ -10,6 +10,7 @@ import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
+import info.henrycaldwell.aggregator.util.PathUtils;
 
 /**
  * Class for layering music onto a video via the FFmpeg command-line utility.
@@ -71,7 +72,7 @@ public final class MusicTransformer extends FFmpegTransformer {
   @Override
   public MediaRef apply(MediaRef media) {
     Path source = media.file();
-    Path target = deriveOut(source, "-music.mp4");
+    Path target = PathUtils.deriveOut(source, "-music.mp4");
 
     preflight(media, source, target);
 
@@ -145,22 +146,5 @@ public final class MusicTransformer extends FFmpegTransformer {
         .append("[orig][music]amix=inputs=2:duration=shortest:dropout_transition=2[aout]");
 
     return sb.toString();
-  }
-
-  /**
-   * Derives an output path by appending a suffix before the original file
-   * extension.
-   *
-   * @param in     A {@link Path} representing the input file.
-   * @param suffix A string representing the suffix to append to the base
-   *               filename.
-   * @return A {@link Path} representing the derived sibling file.
-   */
-  private static Path deriveOut(Path in, String suffix) {
-    String name = in.getFileName().toString();
-    int dot = name.lastIndexOf('.');
-    String base = (dot > 0) ? name.substring(0, dot) : name;
-
-    return in.resolveSibling(base + suffix);
   }
 }
