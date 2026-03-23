@@ -19,6 +19,7 @@ import info.henrycaldwell.aggregator.publish.Publisher;
  * This class coordinates concurrent publishing and cleaning of media.
  */
 public final class PublisherWorkerPool {
+
   private static final Logger LOG = LoggerFactory.getLogger(PublisherWorkerPool.class);
   private static final MediaRef SENTINEL = new MediaRef("SENTINEL", null, null, null, null, null, null);
 

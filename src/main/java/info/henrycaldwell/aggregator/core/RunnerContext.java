@@ -18,6 +18,7 @@ import info.henrycaldwell.aggregator.transform.Pipeline;
 record RunnerContext(
     String name,
     int posts,
+    int preparationThreads,
     int publisherThreads,
     Map<String, Retriever> retrievers,
     History history,

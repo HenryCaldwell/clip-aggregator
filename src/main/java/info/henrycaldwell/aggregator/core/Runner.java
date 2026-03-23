@@ -1,13 +1,11 @@
 package info.henrycaldwell.aggregator.core;
 
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,9 +76,10 @@ public final class Runner {
     RunnerContext context = buildContext(config);
 
     LOG.info(
-        "Built runner context (runner={}, posts={}, publisherThreads={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
+        "Built runner context (runner={}, posts={}, preparationThreads={}, publisherThreads={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
         context.name(),
         context.posts(),
+        context.preparationThreads(),
         context.publisherThreads(),
         context.retrievers().keySet(),
         context.history() != null ? context.history().getName() : null,
@@ -154,6 +153,12 @@ public final class Runner {
           Map.of("key", "posts", "value", posts));
     }
 
+    int preparationThreads = root.hasPath("preparationThreads") ? root.getInt("preparationThreads") : 1;
+    if (preparationThreads <= 0) {
+      throw new SpecException(name, "Invalid key value (expected preparationThreads to be greater than 0)",
+          Map.of("key", "preparationThreads", "value", preparationThreads));
+    }
+
     int publisherThreads = root.hasPath("publisherThreads") ? root.getInt("publisherThreads") : 1;
     if (publisherThreads <= 0) {
       throw new SpecException(name, "Invalid key value (expected publisherThreads to be greater than 0)",
@@ -192,6 +197,7 @@ public final class Runner {
     return new RunnerContext(
         name,
         posts,
+        preparationThreads,
         publisherThreads,
         retrievers,
         history,
@@ -210,95 +216,38 @@ public final class Runner {
    */
   private static int process(RunnerContext context) {
     PublisherWorkerPool publisherPool = new PublisherWorkerPool(context);
-    publisherPool.start();
+    PreparationWorkerPool preparationPool = new PreparationWorkerPool(context, publisherPool);
 
-    List<Candidate> candidates = new ArrayList<>();
+    Set<String> seen = new HashSet<>();
+
+    for (Retriever retriever : context.retrievers().values()) {
+      String retrieverName = retriever.getName();
+      String pipelineName = retriever.getPipeline();
+      Pipeline pipeline = (pipelineName != null) ? context.pipelines().get(pipelineName) : null;
+
+      List<ClipRef> clips;
+      try {
+        clips = retriever.fetch();
+      } catch (RuntimeException e) {
+        LOG.error("Failed to fetch clips (runner={}, retriever={})", context.name(), retrieverName, e);
+        continue;
+      }
+
+      LOG.info("Fetched retriever clips (runner={}, retriever={}, pipeline={}, clips={})",
+          context.name(), retrieverName, pipelineName, clips.size());
+
+      for (ClipRef clip : clips) {
+        if (seen.add(clip.id())) {
+          preparationPool.submit(new Candidate(retriever, pipeline, clip));
+        }
+      }
+    }
 
     try {
-      for (Retriever retriever : context.retrievers().values()) {
-        String retrieverName = retriever.getName();
-        String pipelineName = retriever.getPipeline();
-        Pipeline pipeline = (pipelineName != null) ? context.pipelines().get(pipelineName) : null;
-
-        List<ClipRef> clips;
-        try {
-          clips = retriever.fetch();
-        } catch (RuntimeException e) {
-          LOG.error("Failed to fetch clips (runner={}, retriever={})", context.name(), retrieverName, e);
-          continue;
-        }
-
-        LOG.info("Fetched retriever clips (runner={}, retriever={}, pipeline={}, clips={})",
-            context.name(), retrieverName, pipelineName, clips.size());
-
-        for (ClipRef clip : clips) {
-          candidates.add(new Candidate(retriever, pipeline, clip));
-        }
-      }
-
-      candidates.sort(Comparator.comparingInt((Candidate candidate) -> candidate.clip().views()).reversed());
-
-      for (Candidate candidate : candidates) {
-        if (publisherPool.getPublished() >= context.posts()) {
-          break;
-        }
-
-        Retriever retriever = candidate.retriever();
-        Pipeline pipeline = candidate.pipeline();
-        ClipRef clip = candidate.clip();
-
-        String retrieverName = retriever.getName();
-        String pipelineName = retriever.getPipeline();
-        String clipId = clip.id();
-
-        if (context.history() != null) {
-          boolean claimed = context.history().claim(clipId, context.name());
-
-          if (!claimed) {
-            LOG.info("Skipping published clip (runner={}, retriever={}, clipId={})",
-                context.name(), retrieverName, clipId);
-            continue;
-          }
-        }
-
-        MediaRef media;
-        try {
-          Path target = Paths.get("work", clipId + ".mp4");
-          media = context.downloader().download(clip, target);
-
-          if (pipeline != null) {
-            media = pipeline.run(media);
-          }
-
-          if (context.stager() != null) {
-            media = context.stager().stage(media);
-          }
-        } catch (RuntimeException e) {
-          LOG.error("Failed to prepare clip (runner={}, retriever={}, clipId={})",
-              context.name(), retrieverName, clipId, e);
-
-          if (context.history() != null) {
-            context.history().fail(clipId, context.name(), e.getMessage());
-          }
-          continue;
-        }
-
-        if (context.history() != null) {
-          context.history().prepare(clipId, context.name());
-        }
-
-        LOG.info(
-            "Prepared clip (runner={}, retriever={}, pipeline={}, stager={}, clipId={}, views={})",
-            context.name(),
-            retrieverName,
-            pipelineName,
-            context.stager() != null ? context.stager().getName() : null,
-            clipId,
-            clip.views());
-
-        publisherPool.submit(media);
-      }
+      publisherPool.start();
+      preparationPool.start();
     } finally {
+      preparationPool.stop();
       publisherPool.stop();
     }
 
@@ -477,11 +426,5 @@ public final class Runner {
     }
 
     return publishers;
-  }
-
-  private static record Candidate(
-      Retriever retriever,
-      Pipeline pipeline,
-      ClipRef clip) {
   }
 }
