@@ -134,7 +134,7 @@ public final class PreparationWorkerPool {
         media = context.downloader().download(clip, target);
 
         if (pipeline != null) {
-          media = pipeline.run(media);
+          media = pipeline.run(media, () -> publisherPool.getPublished() >= context.posts());
         }
 
         if (context.stager() != null) {

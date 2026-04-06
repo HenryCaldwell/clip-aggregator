@@ -1,6 +1,7 @@
 package info.henrycaldwell.aggregator.transform;
 
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 import info.henrycaldwell.aggregator.core.MediaRef;
 
@@ -38,13 +39,20 @@ public final class Pipeline {
   /**
    * Applies the configured transformers to the input media.
    *
-   * @param media A {@link MediaRef} representing the media to transform.
+   * @param media    A {@link MediaRef} representing the media to transform.
+   * @param canceled A {@link BooleanSupplier} representing the cancelation
+   *                 signal.
    * @return A {@link MediaRef} representing the transformed media.
    */
-  public MediaRef run(MediaRef media) {
+  public MediaRef run(MediaRef media, BooleanSupplier canceled) {
     MediaRef curr = media;
 
     for (Transformer transformer : transformers) {
+      if (canceled.getAsBoolean()) {
+        System.out.println("EARLY EXIT");
+        return curr;
+      }
+
       curr = transformer.transform(curr);
     }
 
