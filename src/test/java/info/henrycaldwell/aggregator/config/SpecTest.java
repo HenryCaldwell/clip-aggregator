@@ -2,6 +2,7 @@ package info.henrycaldwell.aggregator.config;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("name = test, unknown = value");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Unknown configuration key"));
+        assertTrue(exception.getMessage().contains("key=unknown"));
       }
 
       @Test
@@ -53,7 +57,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Missing required key"));
+        assertTrue(exception.getMessage().contains("key=name"));
       }
 
       @Test
@@ -64,18 +71,24 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Missing required key"));
+        assertTrue(exception.getMessage().contains("key=count"));
       }
 
       @Test
       void throwsOnMissingRequiredBoolean() {
         Spec spec = Spec.builder()
-            .requiredNumber("enabled")
+            .requiredBoolean("enabled")
             .build();
 
         Config config = ConfigFactory.parseString("");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Missing required key"));
+        assertTrue(exception.getMessage().contains("key=enabled"));
       }
 
       @Test
@@ -86,7 +99,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Missing required key"));
+        assertTrue(exception.getMessage().contains("key=tags"));
       }
 
       @Test
@@ -97,7 +113,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Missing required key"));
+        assertTrue(exception.getMessage().contains("key=counts"));
       }
 
       @Test
@@ -108,7 +127,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Missing required key"));
+        assertTrue(exception.getMessage().contains("key=flags"));
       }
 
       @Test
@@ -119,29 +141,38 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("name = [1, 2, 3]");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected string)"));
+        assertTrue(exception.getMessage().contains("key=name"));
       }
 
       @Test
       void throwsOnWrongTypeForRequiredNumber() {
         Spec spec = Spec.builder()
-            .requiredString("count")
+            .requiredNumber("count")
             .build();
 
         Config config = ConfigFactory.parseString("count = [1, 2, 3]");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected number)"));
+        assertTrue(exception.getMessage().contains("key=count"));
       }
 
       @Test
       void throwsOnWrongTypeForRequiredBoolean() {
         Spec spec = Spec.builder()
-            .requiredString("enabled")
+            .requiredBoolean("enabled")
             .build();
 
         Config config = ConfigFactory.parseString("enabled = [1, 2, 3]");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected boolean)"));
+        assertTrue(exception.getMessage().contains("key=enabled"));
       }
 
       @Test
@@ -152,7 +183,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("tags = 123");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected list<string>)"));
+        assertTrue(exception.getMessage().contains("key=tags"));
       }
 
       @Test
@@ -163,7 +197,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("counts = 123");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected list<number>)"));
+        assertTrue(exception.getMessage().contains("key=counts"));
       }
 
       @Test
@@ -174,7 +211,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("flags = 123");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected list<boolean>)"));
+        assertTrue(exception.getMessage().contains("key=flags"));
       }
 
       @Test
@@ -272,7 +312,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("name = [1, 2, 3]");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected string)"));
+        assertTrue(exception.getMessage().contains("key=name"));
       }
 
       @Test
@@ -283,7 +326,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("count = [1, 2, 3]");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected number)"));
+        assertTrue(exception.getMessage().contains("key=count"));
       }
 
       @Test
@@ -294,7 +340,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("enabled = [1, 2, 3]");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected boolean)"));
+        assertTrue(exception.getMessage().contains("key=enabled"));
       }
 
       @Test
@@ -305,7 +354,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("tags = 123");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected list<string>)"));
+        assertTrue(exception.getMessage().contains("key=tags"));
       }
 
       @Test
@@ -316,7 +368,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("counts = 123");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected list<number>)"));
+        assertTrue(exception.getMessage().contains("key=counts"));
       }
 
       @Test
@@ -327,7 +382,10 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("flags = 123");
 
-        assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, "test"));
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected list<boolean>)"));
+        assertTrue(exception.getMessage().contains("key=flags"));
       }
 
       @Test
@@ -368,8 +426,13 @@ public class SpecTest {
       Config specBConfig = ConfigFactory.parseString("count = 1");
       Config combinedConfig = ConfigFactory.parseString("name = test, count = 1");
 
-      assertThrows(SpecException.class, () -> union.validate(specAConfig, "test"));
-      assertThrows(SpecException.class, () -> union.validate(specBConfig, "test"));
+      SpecException missingCount = assertThrows(SpecException.class, () -> union.validate(specAConfig, "test"));
+      SpecException missingName = assertThrows(SpecException.class, () -> union.validate(specBConfig, "test"));
+
+      assertTrue(missingCount.getMessage().contains("Missing required key"));
+      assertTrue(missingCount.getMessage().contains("key=count"));
+      assertTrue(missingName.getMessage().contains("Missing required key"));
+      assertTrue(missingName.getMessage().contains("key=name"));
       assertDoesNotThrow(() -> union.validate(combinedConfig, "test"));
     }
 
@@ -404,7 +467,10 @@ public class SpecTest {
 
       Config config = ConfigFactory.parseString("name = test, count = 1, unknown = value");
 
-      assertThrows(SpecException.class, () -> union.validate(config, "test"));
+      SpecException exception = assertThrows(SpecException.class, () -> union.validate(config, "test"));
+
+      assertTrue(exception.getMessage().contains("Unknown configuration key"));
+      assertTrue(exception.getMessage().contains("key=unknown"));
     }
 
     @Test
