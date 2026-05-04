@@ -3,13 +3,13 @@ package info.henrycaldwell.aggregator.stage;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
+import info.henrycaldwell.aggregator.util.MapUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -113,7 +113,7 @@ public final class CloudflareR2Stager extends AbstractStager {
     Path src = media.file();
 
     if (src == null || !Files.isRegularFile(src)) {
-      throw new ComponentException(name, "Input file missing or not a regular file", Map.of("sourcePath", src));
+      throw new ComponentException(name, "Input file missing or not a regular file", MapUtils.ofNullable("sourcePath", src));
     }
 
     String key = src.getFileName().toString();
@@ -128,7 +128,7 @@ public final class CloudflareR2Stager extends AbstractStager {
       s3.putObject(request, RequestBody.fromFile(src));
     } catch (Exception e) {
       throw new ComponentException(name, "Failed to upload object to R2",
-          Map.of("bucket", bucket, "objectKey", key, "sourcePath", src), e);
+          MapUtils.ofNullable("bucket", bucket, "objectKey", key, "sourcePath", src), e);
     }
 
     URI base = URI.create(publicUrl.endsWith("/") ? publicUrl : publicUrl + "/");
@@ -173,7 +173,7 @@ public final class CloudflareR2Stager extends AbstractStager {
       s3.deleteObject(request);
     } catch (Exception e) {
       throw new ComponentException(name, "Failed to delete object from R2",
-          Map.of("bucket", bucket, "objectKey", key, "uri", uri.toString()), e);
+          MapUtils.ofNullable("bucket", bucket, "objectKey", key, "uri", uri.toString()), e);
     }
   }
 }

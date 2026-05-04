@@ -4,13 +4,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
+import info.henrycaldwell.aggregator.util.MapUtils;
 
 /**
  * Base class for stagers that parses common configuration.
@@ -85,7 +85,7 @@ public abstract class AbstractStager implements Stager {
 
     if (output == null
         || (!"http".equalsIgnoreCase(output.getScheme()) && !"https".equalsIgnoreCase(output.getScheme()))) {
-      throw new ComponentException(name, "Stager did not produce an HTTP(S) URI", Map.of("uri", output));
+      throw new ComponentException(name, "Stager did not produce an HTTP(S) URI", MapUtils.ofNullable("uri", output));
     }
 
     try {
@@ -93,7 +93,7 @@ public abstract class AbstractStager implements Stager {
         Files.delete(source);
       }
     } catch (IOException e) {
-      throw new ComponentException(name, "Failed to delete previous file", Map.of("sourcePath", source), e);
+      throw new ComponentException(name, "Failed to delete previous file", MapUtils.ofNullable("sourcePath", source), e);
     }
 
     return result;
