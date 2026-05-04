@@ -7,12 +7,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
-import java.util.Map;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.error.ComponentException;
+import info.henrycaldwell.aggregator.util.MapUtils;
 
 /**
  * Class for tracking clips via a SQLite database.
@@ -72,7 +72,8 @@ public final class SqliteHistory extends AbstractHistory {
         create.executeUpdate(createSql);
       }
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to open SQLite database", Map.of("databasePath", databasePath), e);
+      throw new ComponentException(name, "Failed to open SQLite database", MapUtils.ofNullable("databasePath", databasePath),
+          e);
     }
   }
 
@@ -88,7 +89,7 @@ public final class SqliteHistory extends AbstractHistory {
         connection.close();
       } catch (SQLException e) {
         throw new ComponentException(name, "Failed to close SQLite database connection",
-            Map.of("databasePath", databasePath), e);
+            MapUtils.ofNullable("databasePath", databasePath), e);
       } finally {
         connection = null;
       }
@@ -159,7 +160,7 @@ public final class SqliteHistory extends AbstractHistory {
       return true;
     } catch (SQLException e) {
       throw new ComponentException(name, "Failed to claim in SQLite database",
-          Map.of("databasePath", databasePath, "clipId", id, "runner", runner), e);
+          MapUtils.ofNullable("databasePath", databasePath, "clipId", id, "runner", runner), e);
     }
   }
 
@@ -191,7 +192,7 @@ public final class SqliteHistory extends AbstractHistory {
       update.executeUpdate();
     } catch (SQLException e) {
       throw new ComponentException(name, "Failed to prepare in SQLite database",
-          Map.of("databasePath", databasePath, "clipId", id, "runner", runner), e);
+          MapUtils.ofNullable("databasePath", databasePath, "clipId", id, "runner", runner), e);
     }
   }
 
@@ -224,7 +225,7 @@ public final class SqliteHistory extends AbstractHistory {
       update.executeUpdate();
     } catch (SQLException e) {
       throw new ComponentException(name, "Failed to publish in SQLite database",
-          Map.of("databasePath", databasePath, "clipId", id, "runner", runner), e);
+          MapUtils.ofNullable("databasePath", databasePath, "clipId", id, "runner", runner), e);
     }
   }
 
@@ -259,7 +260,7 @@ public final class SqliteHistory extends AbstractHistory {
       update.executeUpdate();
     } catch (SQLException e) {
       throw new ComponentException(name, "Failed to fail in SQLite database",
-          Map.of("databasePath", databasePath, "clipId", id, "runner", runner), e);
+          MapUtils.ofNullable("databasePath", databasePath, "clipId", id, "runner", runner), e);
     }
   }
 }
