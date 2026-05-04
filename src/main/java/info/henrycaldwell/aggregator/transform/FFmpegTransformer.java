@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
@@ -13,6 +12,7 @@ import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
+import info.henrycaldwell.aggregator.util.MapUtils;
 
 /**
  * Base class for transformers that invoke FFmpeg.
@@ -45,7 +45,7 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
     long timeout = config.hasPath("timeout") ? config.getNumber("timeout").longValue() : 180L;
     if (timeout <= 0) {
       throw new SpecException(name, "Invalid key value (expected timeout to be greater than 0)",
-          Map.of("key", "timeout", "value", timeout));
+          MapUtils.ofNullable("key", "timeout", "value", timeout));
     }
     this.timeout = timeout;
   }
@@ -61,11 +61,12 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
   protected final void preflight(MediaRef media, Path source, Path target) {
     if (source == null || !Files.isRegularFile(source)) {
       throw new ComponentException(name, "Input file missing or not a regular file",
-          Map.of("clipId", media.id(), "sourcePath", source));
+          MapUtils.ofNullable("clipId", media.id(), "sourcePath", source));
     }
 
     if (target == null) {
-      throw new ComponentException(name, "Target path is null", Map.of("clipId", media.id(), "targetPath", target));
+      throw new ComponentException(name, "Target path is null",
+          MapUtils.ofNullable("clipId", media.id(), "targetPath", target));
     }
 
     Path parent = target.getParent();
@@ -74,13 +75,14 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
         Files.createDirectories(parent);
       } catch (IOException e) {
         throw new ComponentException(name, "Failed to create parent directories",
-            Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target, "parentPath", parent), e);
+            MapUtils.ofNullable("clipId", media.id(), "sourcePath", source, "targetPath", target, "parentPath", parent),
+            e);
       }
     }
 
     if (Files.exists(target)) {
       throw new ComponentException(name, "Target file already exists",
-          Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target));
+          MapUtils.ofNullable("clipId", media.id(), "sourcePath", source, "targetPath", target));
     }
   }
 
@@ -100,8 +102,8 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
       pb.redirectOutput(Redirect.DISCARD);
       process = pb.start();
     } catch (IOException e) {
-      throw new ComponentException(name, "Failed to start ffmpeg process",
-          Map.of("ffmpegPath", ffmpegPath, "clipId", media.id(), "sourcePath", source, "targetPath", target), e);
+      throw new ComponentException(name, "Failed to start ffmpeg process", MapUtils.ofNullable("ffmpegPath", ffmpegPath,
+          "clipId", media.id(), "sourcePath", source, "targetPath", target), e);
     }
 
     boolean complete;
@@ -110,22 +112,20 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       process.destroyForcibly();
-      throw new ComponentException(name, "Interrupted while waiting for ffmpeg process",
-          Map.of("ffmpegPath", ffmpegPath, "clipId", media.id(), "sourcePath", source, "targetPath", target), e);
+      throw new ComponentException(name, "Interrupted while waiting for ffmpeg process", MapUtils
+          .ofNullable("ffmpegPath", ffmpegPath, "clipId", media.id(), "sourcePath", source, "targetPath", target), e);
     }
 
     if (!complete) {
       process.destroyForcibly();
-      throw new ComponentException(name, "Timed out while waiting for ffmpeg process",
-          Map.of("ffmpegPath", ffmpegPath, "clipId", media.id(), "sourcePath", source, "targetPath", target, "timeout",
-              timeout));
+      throw new ComponentException(name, "Timed out while waiting for ffmpeg process", MapUtils.ofNullable("ffmpegPath",
+          ffmpegPath, "clipId", media.id(), "sourcePath", source, "targetPath", target, "timeout", timeout));
     }
 
     int code = process.exitValue();
     if (code != 0) {
-      throw new ComponentException(name, "ffmpeg process exited with non-zero code",
-          Map.of("ffmpegPath", ffmpegPath, "clipId", media.id(), "sourcePath", source, "targetPath", target, "exitCode",
-              code));
+      throw new ComponentException(name, "ffmpeg process exited with non-zero code", MapUtils.ofNullable("ffmpegPath",
+          ffmpegPath, "clipId", media.id(), "sourcePath", source, "targetPath", target, "exitCode", code));
     }
   }
 
@@ -140,7 +140,7 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
   protected final void postflight(MediaRef media, Path source, Path target) {
     if (!Files.exists(target)) {
       throw new ComponentException(name, "Output file missing after transform",
-          Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target));
+          MapUtils.ofNullable("clipId", media.id(), "sourcePath", source, "targetPath", target));
     }
 
     try {
@@ -148,11 +148,11 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
 
       if (size <= 0) {
         throw new ComponentException(name, "Output file empty after transform",
-            Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target, "sizeBytes", size));
+            MapUtils.ofNullable("clipId", media.id(), "sourcePath", source, "targetPath", target, "sizeBytes", size));
       }
     } catch (IOException e) {
       throw new ComponentException(name, "Failed to stat output file",
-          Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target), e);
+          MapUtils.ofNullable("clipId", media.id(), "sourcePath", source, "targetPath", target), e);
     }
   }
 }

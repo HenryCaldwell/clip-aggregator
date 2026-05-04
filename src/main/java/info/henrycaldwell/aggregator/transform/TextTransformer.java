@@ -14,6 +14,7 @@ import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
 import info.henrycaldwell.aggregator.util.FFmpegUtils;
+import info.henrycaldwell.aggregator.util.MapUtils;
 import info.henrycaldwell.aggregator.util.PathUtils;
 import info.henrycaldwell.aggregator.util.TextUtils;
 import info.henrycaldwell.aggregator.util.TextUtils.FontSpec;
@@ -82,7 +83,7 @@ public final class TextTransformer extends FFmpegTransformer {
     String text = config.getString("text");
     if (text.isBlank()) {
       throw new SpecException(name, "Invalid key value (expected text to be a non-blank string)",
-          Map.of("key", "text", "value", text));
+          MapUtils.ofNullable("key", "text", "value", text));
     }
     this.text = text;
 
@@ -90,7 +91,7 @@ public final class TextTransformer extends FFmpegTransformer {
     if (!POS.containsKey(position)) {
       throw new SpecException(name,
           "Invalid key value (expected position to be one of top_left, top_right, bottom_left, bottom_right, top_center, bottom_center, center)",
-          Map.of("key", "position", "value", position));
+          MapUtils.ofNullable("key", "position", "value", position));
     }
     this.position = position;
 
@@ -108,7 +109,7 @@ public final class TextTransformer extends FFmpegTransformer {
         break;
       default:
         throw new SpecException(name, "Invalid key value (expected textAlign to be one of left, center, right)",
-            Map.of("key", "textAlign", "value", rawAlign));
+            MapUtils.ofNullable("key", "textAlign", "value", rawAlign));
     }
     this.textAlign = textAlign;
 
@@ -119,28 +120,28 @@ public final class TextTransformer extends FFmpegTransformer {
     int targetWidth = config.getNumber("targetWidth").intValue();
     if (targetWidth <= 0) {
       throw new SpecException(name, "Invalid key value (expected targetWidth to be greater than 0)",
-          Map.of("key", "targetWidth", "value", targetWidth));
+          MapUtils.ofNullable("key", "targetWidth", "value", targetWidth));
     }
     this.targetWidth = targetWidth;
 
     int fontSize = config.hasPath("fontSize") ? config.getNumber("fontSize").intValue() : 70;
     if (fontSize <= 0) {
       throw new SpecException(name, "Invalid key value (expected fontSize to be greater than 0)",
-          Map.of("key", "fontSize", "value", fontSize));
+          MapUtils.ofNullable("key", "fontSize", "value", fontSize));
     }
     this.fontSize = fontSize;
 
     double textOpacity = config.hasPath("textOpacity") ? config.getNumber("textOpacity").doubleValue() : 0.75;
     if (textOpacity < 0.0 || textOpacity > 1.0) {
       throw new SpecException(name, "Invalid key value (expected textOpacity to be between 0.0 and 1.0)",
-          Map.of("key", "textOpacity", "value", textOpacity));
+          MapUtils.ofNullable("key", "textOpacity", "value", textOpacity));
     }
     this.textOpacity = textOpacity;
 
     int textBorderWidth = config.hasPath("textBorderWidth") ? config.getNumber("textBorderWidth").intValue() : 3;
     if (textBorderWidth < 0) {
       throw new SpecException(name, "Invalid key value (expected textBorderWidth to be greater than or equal to 0)",
-          Map.of("key", "textBorderWidth", "value", textBorderWidth));
+          MapUtils.ofNullable("key", "textBorderWidth", "value", textBorderWidth));
     }
     this.textBorderWidth = textBorderWidth;
 
@@ -151,21 +152,21 @@ public final class TextTransformer extends FFmpegTransformer {
     int maxLines = config.hasPath("maxLines") ? config.getNumber("maxLines").intValue() : 4;
     if (maxLines <= 0) {
       throw new SpecException(name, "Invalid key value (expected maxLines to be greater than 0)",
-          Map.of("key", "maxLines", "value", maxLines));
+          MapUtils.ofNullable("key", "maxLines", "value", maxLines));
     }
     this.maxLines = maxLines;
 
     double boxOpacity = config.hasPath("boxOpacity") ? config.getNumber("boxOpacity").doubleValue() : 0.0;
     if (boxOpacity < 0.0 || boxOpacity > 1.0) {
       throw new SpecException(name, "Invalid key value (expected boxOpacity to be between 0.0 and 1.0)",
-          Map.of("key", "boxOpacity", "value", boxOpacity));
+          MapUtils.ofNullable("key", "boxOpacity", "value", boxOpacity));
     }
     this.boxOpacity = boxOpacity;
 
     int boxBorderWidth = config.hasPath("boxBorderWidth") ? config.getNumber("boxBorderWidth").intValue() : 0;
     if (boxBorderWidth < 0) {
       throw new SpecException(name, "Invalid key value (expected boxBorderWidth to be greater than or equal to 0)",
-          Map.of("key", "boxBorderWidth", "value", boxBorderWidth));
+          MapUtils.ofNullable("key", "boxBorderWidth", "value", boxBorderWidth));
     }
     this.boxBorderWidth = boxBorderWidth;
   }
@@ -190,7 +191,7 @@ public final class TextTransformer extends FFmpegTransformer {
         maxLines);
     if (caption.isBlank()) {
       throw new ComponentException(name, "Text empty after formatting",
-          Map.of("clipId", media.id(), "text", text, "formattedText", caption));
+          MapUtils.ofNullable("clipId", media.id(), "text", text, "formattedText", caption));
     }
 
     Path captionFile = null;
@@ -198,7 +199,7 @@ public final class TextTransformer extends FFmpegTransformer {
       Path directory = target.toAbsolutePath().getParent();
       if (directory == null) {
         throw new ComponentException(name, "Failed to determine caption temporary directory",
-            Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target));
+            MapUtils.ofNullable("clipId", media.id(), "sourcePath", source, "targetPath", target));
       }
 
       captionFile = Files.createTempFile(directory, "caption-", ".txt");
@@ -224,7 +225,7 @@ public final class TextTransformer extends FFmpegTransformer {
       return media.withFile(target);
     } catch (IOException e) {
       throw new ComponentException(name, "Failed to write caption temp file",
-          Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target), e);
+          MapUtils.ofNullable("clipId", media.id(), "sourcePath", source, "targetPath", target), e);
     } finally {
       if (captionFile != null) {
         try {

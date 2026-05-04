@@ -4,13 +4,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Map;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
+import info.henrycaldwell.aggregator.util.MapUtils;
 
 /**
  * Base class for transformers that parses common configuration.
@@ -68,12 +68,12 @@ public abstract class AbstractTransformer implements Transformer {
 
     if (source == null || output == null || source.equals(output)) {
       throw new ComponentException(name, "Transformer did not produce a new output file",
-          Map.of("sourcePath", source, "outputPath", output));
+          MapUtils.ofNullable("sourcePath", source, "outputPath", output));
     }
 
     if (!Files.isRegularFile(output)) {
       throw new ComponentException(name, "Transformer produced a non-regular output file",
-          Map.of("outputPath", output));
+          MapUtils.ofNullable("outputPath", output));
     }
 
     try {
@@ -84,7 +84,7 @@ public abstract class AbstractTransformer implements Transformer {
       }
     } catch (IOException e) {
       throw new ComponentException(name, "Failed to replace original file",
-          Map.of("sourcePath", source, "outputPath", output), e);
+          MapUtils.ofNullable("sourcePath", source, "outputPath", output), e);
     }
 
     return result.withFile(source);

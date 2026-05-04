@@ -1,13 +1,13 @@
 package info.henrycaldwell.aggregator.transform;
 
 import java.nio.file.Path;
-import java.util.Map;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.SpecException;
+import info.henrycaldwell.aggregator.util.MapUtils;
 import info.henrycaldwell.aggregator.util.PathUtils;
 
 /**
@@ -37,7 +37,7 @@ public final class FpsTransformer extends FFmpegTransformer {
     int targetFps = config.hasPath("targetFps") ? config.getNumber("targetFps").intValue() : 30;
     if (targetFps <= 0) {
       throw new SpecException(name, "Invalid key value (expected targetFps to be greater than 0)",
-          Map.of("key", "targetFps", "value", targetFps));
+          MapUtils.ofNullable("key", "targetFps", "value", targetFps));
     }
 
     this.targetFps = targetFps;

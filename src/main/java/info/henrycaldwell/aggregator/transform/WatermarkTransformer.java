@@ -13,6 +13,7 @@ import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
 import info.henrycaldwell.aggregator.util.FFmpegUtils;
+import info.henrycaldwell.aggregator.util.MapUtils;
 import info.henrycaldwell.aggregator.util.PathUtils;
 import info.henrycaldwell.aggregator.util.TextUtils;
 
@@ -78,7 +79,7 @@ public final class WatermarkTransformer extends FFmpegTransformer {
     if (!TEXT_POS.containsKey(position)) {
       throw new SpecException(name,
           "Invalid key value (expected position to be one of upper_center, lower_center, center)",
-          Map.of("key", "position", "value", position));
+          MapUtils.ofNullable("key", "position", "value", position));
     }
     this.position = position;
 
@@ -88,21 +89,21 @@ public final class WatermarkTransformer extends FFmpegTransformer {
     int fontSize = config.hasPath("fontSize") ? config.getNumber("fontSize").intValue() : 70;
     if (fontSize <= 0) {
       throw new SpecException(name, "Invalid key value (expected fontSize to be greater than 0)",
-          Map.of("key", "fontSize", "value", fontSize));
+          MapUtils.ofNullable("key", "fontSize", "value", fontSize));
     }
     this.fontSize = fontSize;
 
     double textOpacity = config.hasPath("textOpacity") ? config.getNumber("textOpacity").doubleValue() : 0.75;
     if (textOpacity < 0.0 || textOpacity > 1.0) {
       throw new SpecException(name, "Invalid key value (expected textOpacity to be between 0.0 and 1.0)",
-          Map.of("key", "textOpacity", "value", textOpacity));
+          MapUtils.ofNullable("key", "textOpacity", "value", textOpacity));
     }
     this.textOpacity = textOpacity;
 
     int textBorderWidth = config.hasPath("textBorderWidth") ? config.getNumber("textBorderWidth").intValue() : 3;
     if (textBorderWidth < 0) {
       throw new SpecException(name, "Invalid key value (expected textBorderWidth to be greater than or equal to 0)",
-          Map.of("key", "textBorderWidth", "value", textBorderWidth));
+          MapUtils.ofNullable("key", "textBorderWidth", "value", textBorderWidth));
     }
     this.textBorderWidth = textBorderWidth;
 
@@ -112,14 +113,14 @@ public final class WatermarkTransformer extends FFmpegTransformer {
     int logoHeight = config.hasPath("logoHeight") ? config.getNumber("logoHeight").intValue() : 200;
     if (logoHeight <= 0) {
       throw new SpecException(name, "Invalid key value (expected logoHeight to be greater than 0)",
-          Map.of("key", "logoHeight", "value", logoHeight));
+          MapUtils.ofNullable("key", "logoHeight", "value", logoHeight));
     }
     this.logoHeight = logoHeight;
 
     double logoOpacity = config.hasPath("logoOpacity") ? config.getNumber("logoOpacity").doubleValue() : 0.3;
     if (logoOpacity < 0.0 || logoOpacity > 1.0) {
       throw new SpecException(name, "Invalid key value (expected logoOpacity to be between 0.0 and 1.0)",
-          Map.of("key", "logoOpacity", "value", logoOpacity));
+          MapUtils.ofNullable("key", "logoOpacity", "value", logoOpacity));
     }
     this.logoOpacity = logoOpacity;
 
@@ -144,18 +145,18 @@ public final class WatermarkTransformer extends FFmpegTransformer {
     String rawBroadcaster = media.broadcaster();
     if (rawBroadcaster == null || rawBroadcaster.isBlank()) {
       throw new ComponentException(name, "Broadcaster name missing",
-          Map.of("clipId", media.id(), "broadcaster", rawBroadcaster));
+          MapUtils.ofNullable("clipId", media.id(), "broadcaster", rawBroadcaster));
     }
 
     String broadcaster = TextUtils.filterCharacters(rawBroadcaster);
     if (broadcaster.isBlank()) {
       throw new ComponentException(name, "Broadcaster name empty after filtering",
-          Map.of("clipId", media.id(), "broadcaster", rawBroadcaster));
+          MapUtils.ofNullable("clipId", media.id(), "broadcaster", rawBroadcaster));
     }
 
     if (logoPath != null && !Files.isRegularFile(Path.of(logoPath))) {
       throw new ComponentException(name, "Logo file missing or not a regular file",
-          Map.of("clipId", media.id(), "logoPath", logoPath));
+          MapUtils.ofNullable("clipId", media.id(), "logoPath", logoPath));
     }
 
     Path broadcasterFile = null;
@@ -163,7 +164,7 @@ public final class WatermarkTransformer extends FFmpegTransformer {
       Path directory = target.toAbsolutePath().getParent();
       if (directory == null) {
         throw new ComponentException(name, "Failed to determine broadcaster label temporary directory",
-            Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target));
+            MapUtils.ofNullable("clipId", media.id(), "sourcePath", source, "targetPath", target));
       }
 
       broadcasterFile = Files.createTempFile(directory, "broadcaster-", ".txt");
@@ -201,7 +202,7 @@ public final class WatermarkTransformer extends FFmpegTransformer {
       return media.withFile(target);
     } catch (IOException e) {
       throw new ComponentException(name, "Failed to write broadcaster label temp file",
-          Map.of("clipId", media.id(), "sourcePath", source, "targetPath", target), e);
+          MapUtils.ofNullable("clipId", media.id(), "sourcePath", source, "targetPath", target), e);
     } finally {
       if (broadcasterFile != null) {
         try {

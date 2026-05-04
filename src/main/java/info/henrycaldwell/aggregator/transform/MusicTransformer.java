@@ -2,7 +2,6 @@ package info.henrycaldwell.aggregator.transform;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 
 import com.typesafe.config.Config;
 
@@ -10,6 +9,7 @@ import info.henrycaldwell.aggregator.config.Spec;
 import info.henrycaldwell.aggregator.core.MediaRef;
 import info.henrycaldwell.aggregator.error.ComponentException;
 import info.henrycaldwell.aggregator.error.SpecException;
+import info.henrycaldwell.aggregator.util.MapUtils;
 import info.henrycaldwell.aggregator.util.PathUtils;
 
 /**
@@ -49,14 +49,14 @@ public final class MusicTransformer extends FFmpegTransformer {
     String mode = config.hasPath("mode") ? config.getString("mode") : "mix";
     if (!"mix".equals(mode) && !"replace".equals(mode)) {
       throw new SpecException(name, "Invalid key value (expected mode to be one of mix, replace)",
-          Map.of("key", "mode", "value", mode));
+          MapUtils.ofNullable("key", "mode", "value", mode));
     }
     this.mode = mode;
 
     double volume = config.hasPath("volume") ? config.getNumber("volume").doubleValue() : 0.3;
     if (volume < 0.0) {
       throw new SpecException(name, "Invalid key value (expected volume to be greater than or equal to 0.0)",
-          Map.of("key", "volume", "value", volume));
+          MapUtils.ofNullable("key", "volume", "value", volume));
     }
     this.volume = volume;
 
@@ -77,7 +77,8 @@ public final class MusicTransformer extends FFmpegTransformer {
     preflight(media, source, target);
 
     if (!Files.isRegularFile(Path.of(musicPath))) {
-      throw new ComponentException(name, "Music file missing or not a regular file", Map.of("musicPath", musicPath));
+      throw new ComponentException(name, "Music file missing or not a regular file",
+          MapUtils.ofNullable("musicPath", musicPath));
     }
 
     String filterComplex = buildFilter();
