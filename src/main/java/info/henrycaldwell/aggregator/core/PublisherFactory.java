@@ -1,9 +1,8 @@
 package info.henrycaldwell.aggregator.core;
 
-import java.util.Map;
-
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.aggregator.util.MapUtils;
 import info.henrycaldwell.aggregator.error.SpecException;
 import info.henrycaldwell.aggregator.publish.InstagramPublisher;
 import info.henrycaldwell.aggregator.publish.NoOpPublisher;
@@ -30,13 +29,13 @@ public final class PublisherFactory {
    */
   public static Publisher fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {
-      throw new SpecException("UNNAMED_PUBLISHER", "Missing required key", Map.of("key", "name"));
+      throw new SpecException("UNNAMED_PUBLISHER", "Missing required key", MapUtils.ofNullable("key", "name"));
     }
 
     String name = config.getString("name");
 
     if (!config.hasPath("type") || config.getString("type").isBlank()) {
-      throw new SpecException(name, "Missing required key", Map.of("key", "type"));
+      throw new SpecException(name, "Missing required key", MapUtils.ofNullable("key", "type"));
     }
 
     String type = config.getString("type");
@@ -48,7 +47,7 @@ public final class PublisherFactory {
       case "no_op" -> {
         return new NoOpPublisher(config);
       }
-      default -> throw new SpecException(name, "Unknown publisher type", Map.of("type", type));
+      default -> throw new SpecException(name, "Unknown publisher type", MapUtils.ofNullable("type", type));
     }
   }
 }

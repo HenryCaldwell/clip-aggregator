@@ -1,11 +1,10 @@
 package info.henrycaldwell.aggregator.core;
 
-import java.util.Map;
-
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.aggregator.download.Downloader;
 import info.henrycaldwell.aggregator.download.YtDlpDownloader;
+import info.henrycaldwell.aggregator.util.MapUtils;
 import info.henrycaldwell.aggregator.error.SpecException;
 
 /**
@@ -29,13 +28,13 @@ public final class DownloaderFactory {
    */
   public static Downloader fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {
-      throw new SpecException("UNNAMED_DOWNLOADER", "Missing required key", Map.of("key", "name"));
+      throw new SpecException("UNNAMED_DOWNLOADER", "Missing required key", MapUtils.ofNullable("key", "name"));
     }
 
     String name = config.getString("name");
 
     if (!config.hasPath("type") || config.getString("type").isBlank()) {
-      throw new SpecException(name, "Missing required key", Map.of("key", "type"));
+      throw new SpecException(name, "Missing required key", MapUtils.ofNullable("key", "type"));
     }
 
     String type = config.getString("type");
@@ -44,7 +43,7 @@ public final class DownloaderFactory {
       case "yt-dlp" -> {
         return new YtDlpDownloader(config);
       }
-      default -> throw new SpecException(name, "Unknown downloader type", Map.of("type", type));
+      default -> throw new SpecException(name, "Unknown downloader type", MapUtils.ofNullable("type", type));
     }
   }
 }
