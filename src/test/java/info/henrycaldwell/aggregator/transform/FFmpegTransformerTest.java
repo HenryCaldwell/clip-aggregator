@@ -33,19 +33,6 @@ public class FFmpegTransformerTest {
   class Constructor {
 
     @Test
-    void throwsOnMissingFFmpegPath() {
-      Config config = ConfigFactory.parseString("""
-          name = transformer
-          type = test
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> new TestFFmpegTransformer(config));
-
-      assertTrue(exception.getMessage().contains("Missing required key"));
-      assertTrue(exception.getMessage().contains("key=ffmpegPath"));
-    }
-
-    @Test
     void usesDefaultTimeout() {
       Config config = ConfigFactory.parseString("""
           name = transformer
@@ -70,6 +57,48 @@ public class FFmpegTransformerTest {
       TestFFmpegTransformer transformer = new TestFFmpegTransformer(config);
 
       assertEquals(30L, transformer.timeout());
+    }
+
+    @Test
+    void throwsOnMissingFFmpegPath() {
+      Config config = ConfigFactory.parseString("""
+          name = transformer
+          type = test
+          """);
+
+      SpecException exception = assertThrows(SpecException.class, () -> new TestFFmpegTransformer(config));
+
+      assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("key=ffmpegPath"));
+    }
+
+    @Test
+    void throwsOnWrongTypeForFFmpegPath() {
+      Config config = ConfigFactory.parseString("""
+          name = transformer
+          type = test
+          ffmpegPath = [ffmpeg]
+          """);
+
+      SpecException exception = assertThrows(SpecException.class, () -> new TestFFmpegTransformer(config));
+
+      assertTrue(exception.getMessage().contains("Incorrect key type (expected string)"));
+      assertTrue(exception.getMessage().contains("key=ffmpegPath"));
+    }
+
+    @Test
+    void throwsOnWrongTypeForTimeout() {
+      Config config = ConfigFactory.parseString("""
+          name = transformer
+          type = test
+          ffmpegPath = ffmpeg
+          timeout = invalid
+          """);
+
+      SpecException exception = assertThrows(SpecException.class, () -> new TestFFmpegTransformer(config));
+
+      assertTrue(exception.getMessage().contains("Incorrect key type (expected number)"));
+      assertTrue(exception.getMessage().contains("key=timeout"));
     }
 
     @Test
@@ -215,6 +244,26 @@ public class FFmpegTransformerTest {
     }
 
     @Test
+    void throwsWhenProcessExitsWithNonZeroCode() {
+      Path source = tempDir.resolve("source.mp4");
+      Path target = tempDir.resolve("target.mp4");
+
+      MediaRef media = new MediaRef("clip-1", source, null, "Title", "Broadcaster", "en", null);
+      Config config = ConfigFactory.parseString("""
+          name = transformer
+          type = test
+          ffmpegPath = ffmpeg
+          """);
+      TestFFmpegTransformer transformer = new TestFFmpegTransformer(config);
+
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.callRunProcess(javaCommand("--definitely-not-a-real-java-option"), media, source, target));
+
+      assertTrue(exception.getMessage().contains("ffmpeg process exited with non-zero code"));
+      assertTrue(exception.getMessage().contains("exitCode="));
+    }
+
+    @Test
     void throwsWhenProcessTimesOut() {
       Path source = tempDir.resolve("source.mp4");
       Path target = tempDir.resolve("target.mp4");
@@ -237,26 +286,6 @@ public class FFmpegTransformerTest {
 
       assertTrue(exception.getMessage().contains("Timed out while waiting for ffmpeg process"));
       assertTrue(exception.getMessage().contains("timeout=1"));
-    }
-
-    @Test
-    void throwsWhenProcessExitsWithNonZeroCode() {
-      Path source = tempDir.resolve("source.mp4");
-      Path target = tempDir.resolve("target.mp4");
-
-      MediaRef media = new MediaRef("clip-1", source, null, "Title", "Broadcaster", "en", null);
-      Config config = ConfigFactory.parseString("""
-          name = transformer
-          type = test
-          ffmpegPath = ffmpeg
-          """);
-      TestFFmpegTransformer transformer = new TestFFmpegTransformer(config);
-
-      ComponentException exception = assertThrows(ComponentException.class,
-          () -> transformer.callRunProcess(javaCommand("--definitely-not-a-real-java-option"), media, source, target));
-
-      assertTrue(exception.getMessage().contains("ffmpeg process exited with non-zero code"));
-      assertTrue(exception.getMessage().contains("exitCode="));
     }
   }
 
