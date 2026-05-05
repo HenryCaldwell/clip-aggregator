@@ -49,7 +49,6 @@ public final class Pipeline {
 
     for (Transformer transformer : transformers) {
       if (canceled.getAsBoolean()) {
-        System.out.println("EARLY EXIT");
         return curr;
       }
 
