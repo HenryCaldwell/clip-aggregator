@@ -30,8 +30,7 @@ public class HistoryFactoryTest {
     @Test
     void throwsOnMissingName() {
       Config config = ConfigFactory.parseString("""
-          type = sqlite
-          databasePath = clip-history.db
+          type = no_op
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> HistoryFactory.fromConfig(config));
@@ -44,8 +43,7 @@ public class HistoryFactoryTest {
     void throwsOnBlankName() {
       Config config = ConfigFactory.parseString("""
           name = ""
-          type = sqlite
-          databasePath = clip-history.db
+          type = no_op
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> HistoryFactory.fromConfig(config));
@@ -57,8 +55,7 @@ public class HistoryFactoryTest {
     @Test
     void throwsOnMissingType() {
       Config config = ConfigFactory.parseString("""
-          name = sqlite_history
-          databasePath = clip-history.db
+          name = no_op_history
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> HistoryFactory.fromConfig(config));
@@ -70,9 +67,8 @@ public class HistoryFactoryTest {
     @Test
     void throwsOnBlankType() {
       Config config = ConfigFactory.parseString("""
-          name = sqlite_history
+          name = no_op_history
           type = ""
-          databasePath = clip-history.db
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> HistoryFactory.fromConfig(config));
