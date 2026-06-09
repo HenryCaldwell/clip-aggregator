@@ -30,8 +30,7 @@ public class DownloaderFactoryTest {
     @Test
     void throwsOnMissingName() {
       Config config = ConfigFactory.parseString("""
-          type = yt-dlp
-          ytDlpPath = yt-dlp
+          type = no_op
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> DownloaderFactory.fromConfig(config));
@@ -44,8 +43,7 @@ public class DownloaderFactoryTest {
     void throwsOnBlankName() {
       Config config = ConfigFactory.parseString("""
           name = ""
-          type = yt-dlp
-          ytDlpPath = yt-dlp
+          type = no_op
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> DownloaderFactory.fromConfig(config));
@@ -57,8 +55,7 @@ public class DownloaderFactoryTest {
     @Test
     void throwsOnMissingType() {
       Config config = ConfigFactory.parseString("""
-          name = yt_dlp_downloader
-          ytDlpPath = yt-dlp
+          name = no_op_downloader
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> DownloaderFactory.fromConfig(config));
@@ -70,9 +67,8 @@ public class DownloaderFactoryTest {
     @Test
     void throwsOnBlankType() {
       Config config = ConfigFactory.parseString("""
-          name = yt_dlp_downloader
+          name = no_op_downloader
           type = ""
-          ytDlpPath = yt-dlp
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> DownloaderFactory.fromConfig(config));
