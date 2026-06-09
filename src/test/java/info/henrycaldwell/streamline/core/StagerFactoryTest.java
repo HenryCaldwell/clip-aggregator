@@ -30,12 +30,7 @@ public class StagerFactoryTest {
     @Test
     void throwsOnMissingName() {
       Config config = ConfigFactory.parseString("""
-          type = cloudflare-r2
-          accountId = account
-          accessKey = access
-          secretKey = secret
-          bucket = bucket
-          publicUrl = "https://cdn.example.com"
+          type = no_op
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> StagerFactory.fromConfig(config));
@@ -48,12 +43,7 @@ public class StagerFactoryTest {
     void throwsOnBlankName() {
       Config config = ConfigFactory.parseString("""
           name = ""
-          type = cloudflare-r2
-          accountId = account
-          accessKey = access
-          secretKey = secret
-          bucket = bucket
-          publicUrl = "https://cdn.example.com"
+          type = no_op
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> StagerFactory.fromConfig(config));
@@ -65,12 +55,7 @@ public class StagerFactoryTest {
     @Test
     void throwsOnMissingType() {
       Config config = ConfigFactory.parseString("""
-          name = r2_stager
-          accountId = account
-          accessKey = access
-          secretKey = secret
-          bucket = bucket
-          publicUrl = "https://cdn.example.com"
+          name = no_op_stager
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> StagerFactory.fromConfig(config));
@@ -82,13 +67,8 @@ public class StagerFactoryTest {
     @Test
     void throwsOnBlankType() {
       Config config = ConfigFactory.parseString("""
-          name = r2_stager
+          name = no_op_stager
           type = ""
-          accountId = account
-          accessKey = access
-          secretKey = secret
-          bucket = bucket
-          publicUrl = "https://cdn.example.com"
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> StagerFactory.fromConfig(config));
