@@ -30,9 +30,7 @@ public class RetrieverFactoryTest {
     @Test
     void throwsOnMissingName() {
       Config config = ConfigFactory.parseString("""
-          type = twitch
-          token = token
-          gameId = game
+          type = no_op
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config));
@@ -45,9 +43,7 @@ public class RetrieverFactoryTest {
     void throwsOnBlankName() {
       Config config = ConfigFactory.parseString("""
           name = ""
-          type = twitch
-          token = token
-          gameId = game
+          type = no_op
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config));
@@ -59,9 +55,7 @@ public class RetrieverFactoryTest {
     @Test
     void throwsOnMissingType() {
       Config config = ConfigFactory.parseString("""
-          name = twitch_retriever
-          token = token
-          gameId = game
+          name = no_op_retriever
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config));
@@ -73,10 +67,8 @@ public class RetrieverFactoryTest {
     @Test
     void throwsOnBlankType() {
       Config config = ConfigFactory.parseString("""
-          name = twitch_retriever
+          name = no_op_retriever
           type = ""
-          token = token
-          gameId = game
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config));
