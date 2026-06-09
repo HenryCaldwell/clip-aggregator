@@ -88,8 +88,7 @@ public class PipelineFactoryTest {
           name = test_pipeline
           transformers = [
             {
-              type = fps
-              ffmpegPath = ffmpeg
+              type = no_op
             }
           ]
           """);
@@ -107,8 +106,7 @@ public class PipelineFactoryTest {
           transformers = [
             {
               name = ""
-              type = fps
-              ffmpegPath = ffmpeg
+              type = no_op
             }
           ]
           """);
@@ -125,8 +123,7 @@ public class PipelineFactoryTest {
           name = test_pipeline
           transformers = [
             {
-              name = fps_step
-              ffmpegPath = ffmpeg
+              name = no_op_step
             }
           ]
           """);
@@ -143,9 +140,8 @@ public class PipelineFactoryTest {
           name = test_pipeline
           transformers = [
             {
-              name = fps_step
+              name = no_op_step
               type = ""
-              ffmpegPath = ffmpeg
             }
           ]
           """);
