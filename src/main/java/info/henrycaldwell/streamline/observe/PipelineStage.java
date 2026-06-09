@@ -8,7 +8,7 @@ package info.henrycaldwell.streamline.observe;
 public enum PipelineStage {
 
   CLAIM,
-  DOWNLOADER,
+  DOWNLOAD,
   TRANSFORM,
   STAGE,
   PUBLISH,
