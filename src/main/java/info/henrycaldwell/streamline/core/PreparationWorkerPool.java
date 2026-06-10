@@ -184,7 +184,7 @@ public final class PreparationWorkerPool {
         }
 
         if (pipeline != null) {
-          media = pipeline.run(media, () -> publisherPool.getPublished() >= context.posts());
+          media = pipeline.run(media, observer, runId, worker, () -> publisherPool.getPublished() >= context.posts());
         }
 
         if (context.stager() != null) {

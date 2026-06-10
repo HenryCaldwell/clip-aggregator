@@ -3,7 +3,11 @@ package info.henrycaldwell.streamline.transform;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
+import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
+import info.henrycaldwell.streamline.observe.AttemptStatus;
+import info.henrycaldwell.streamline.observe.Observer;
+import info.henrycaldwell.streamline.observe.PipelineStage;
 
 /**
  * Class for running media transformers in sequence.
@@ -40,11 +44,16 @@ public final class Pipeline {
    * Applies the configured transformers to the input media.
    *
    * @param media    A {@link MediaRef} representing the media to transform.
+   * @param observer An {@link Observer} representing the observer, or
+   *                 {@code null}.
+   * @param runId    A long representing the run identifier.
+   * @param worker   A string representing the worker name.
    * @param canceled A {@link BooleanSupplier} representing the cancelation
    *                 signal.
    * @return A {@link MediaRef} representing the transformed media.
    */
-  public MediaRef run(MediaRef media, BooleanSupplier canceled) {
+  public MediaRef run(MediaRef media, Observer observer, long runId, String worker, BooleanSupplier canceled) {
+    ClipRef clip = media.clip();
     MediaRef curr = media;
 
     for (Transformer transformer : transformers) {
@@ -52,7 +61,24 @@ public final class Pipeline {
         return curr;
       }
 
-      curr = transformer.transform(curr);
+      long transformAttemptId = -1;
+      if (observer != null) {
+        transformAttemptId = observer.attemptStart(runId, worker, clip, PipelineStage.TRANSFORM, transformer.getName());
+      }
+
+      try {
+        curr = transformer.transform(curr);
+
+        if (observer != null) {
+          observer.attemptEnd(transformAttemptId, AttemptStatus.SUCCESS, null);
+        }
+      } catch (RuntimeException e) {
+        if (observer != null) {
+          observer.attemptEnd(transformAttemptId, AttemptStatus.FAILURE, e);
+        }
+
+        throw e;
+      }
     }
 
     return curr;
