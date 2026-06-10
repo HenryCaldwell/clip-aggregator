@@ -3,12 +3,14 @@ package info.henrycaldwell.streamline.core;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,9 +22,14 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.download.Downloader;
 import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.history.History;
+import info.henrycaldwell.streamline.observe.AbstractObserver;
+import info.henrycaldwell.streamline.observe.AttemptStatus;
+import info.henrycaldwell.streamline.observe.PipelineStage;
+import info.henrycaldwell.streamline.observe.RunStatus;
 import info.henrycaldwell.streamline.publish.Publisher;
 import info.henrycaldwell.streamline.retrieve.Retriever;
 import info.henrycaldwell.streamline.stage.Stager;
@@ -490,6 +497,21 @@ public class RunnerTest {
     }
 
     @Test
+    void completesWithObserver() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          observer = { name = o, type = no_op }
+          retrievers = [ { name = r, type = no_op } ]
+          downloader = { name = d, type = no_op }
+          publishers = [ { name = p, type = no_op } ]
+          """);
+
+      assertDoesNotThrow(() -> Runner.run(config));
+    }
+
+    @Test
     void completesWithHistory() {
       Config config = ConfigFactory.parseString("""
           name = test_runner
@@ -723,6 +745,97 @@ public class RunnerTest {
       assertEquals(1, history.published.get());
       assertEquals(0, history.failed.get());
       assertEquals(1, tracker.published.get());
+    }
+
+    @Test
+    void recordsRunLifecycle() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      TrackingHistory history = new TrackingHistory();
+      NoOpDownloader downloader = new NoOpDownloader();
+      NoOpStager stager = new NoOpStager();
+      TrackingPublisher publisher = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3,
+          observer,
+          Map.of("r", retriever),
+          history,
+          downloader,
+          Map.of(),
+          stager,
+          Map.of("p", publisher));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.startedRuns.size());
+      assertEquals("test", observer.startedRuns.get(0).runner());
+      assertEquals(1, observer.endedRuns.size());
+      assertEquals(RunStatus.COMPLETED, observer.endedRuns.get(0).status());
+      assertEquals(1, observer.endedRuns.get(0).published());
+
+      assertEquals(4, observer.startedAttempts.size());
+      assertEquals(PipelineStage.CLAIM, observer.startedAttempts.get(0).stage());
+      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(1).stage());
+      assertEquals(PipelineStage.STAGE, observer.startedAttempts.get(2).stage());
+      assertEquals(PipelineStage.PUBLISH, observer.startedAttempts.get(3).stage());
+
+      assertEquals(4, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(1).status());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(2).status());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(3).status());
+    }
+
+    @Test
+    void recordsSkippedAttemptForPublishedClip() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      RejectingHistory history = new RejectingHistory();
+      NoOpDownloader downloader = new NoOpDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3,
+          observer,
+          Map.of("r", retriever),
+          history,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.startedAttempts.size());
+      assertEquals(PipelineStage.CLAIM, observer.startedAttempts.get(0).stage());
+      assertEquals(1, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.SKIPPED, observer.endedAttempts.get(0).status());
+      assertEquals(0, tracker.published.get());
+    }
+
+    @Test
+    void recordsFailureAttemptForFailedDownload() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      ThrowingDownloader downloader = new ThrowingDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.startedAttempts.size());
+      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(0).stage());
+      assertEquals(1, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.FAILURE, observer.endedAttempts.get(0).status());
+      assertNotNull(observer.endedAttempts.get(0).error());
+      assertEquals(0, tracker.published.get());
     }
 
     // Retrieval failure
@@ -1257,6 +1370,56 @@ public class RunnerTest {
     @Override
     public PublishRef publish(MediaRef media) {
       return new PublishRef(media.clip(), null);
+    }
+  }
+
+  private static final class RecordingObserver extends AbstractObserver {
+
+    record StartedRun(String runner, String config) {
+    }
+
+    record EndedRun(long runId, RunStatus status, int published) {
+    }
+
+    record StartedAttempt(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
+    }
+
+    record EndedAttempt(long attemptId, AttemptStatus status, Throwable error) {
+    }
+
+    private final List<StartedRun> startedRuns = new ArrayList<>();
+    private final List<EndedRun> endedRuns = new ArrayList<>();
+    private final List<StartedAttempt> startedAttempts = new ArrayList<>();
+    private final List<EndedAttempt> endedAttempts = new ArrayList<>();
+    private long nextId = 1;
+
+    private RecordingObserver() {
+      super(ConfigFactory.parseString("""
+          name = recording
+          type = recording
+          """), Spec.builder().build());
+    }
+
+    @Override
+    public long runStart(String runner, String config) {
+      startedRuns.add(new StartedRun(runner, config));
+      return nextId++;
+    }
+
+    @Override
+    public void runEnd(long runId, RunStatus status, int published) {
+      endedRuns.add(new EndedRun(runId, status, published));
+    }
+
+    @Override
+    public long attemptStart(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
+      startedAttempts.add(new StartedAttempt(runId, worker, clip, stage, component));
+      return nextId++;
+    }
+
+    @Override
+    public void attemptEnd(long attemptId, AttemptStatus status, Throwable error) {
+      endedAttempts.add(new EndedAttempt(attemptId, status, error));
     }
   }
 }
