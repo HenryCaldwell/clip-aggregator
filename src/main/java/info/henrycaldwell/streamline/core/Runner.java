@@ -22,6 +22,8 @@ import com.typesafe.config.ConfigFactory;
 import info.henrycaldwell.streamline.download.Downloader;
 import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.history.History;
+import info.henrycaldwell.streamline.observe.Observer;
+import info.henrycaldwell.streamline.observe.RunStatus;
 import info.henrycaldwell.streamline.publish.Publisher;
 import info.henrycaldwell.streamline.retrieve.Retriever;
 import info.henrycaldwell.streamline.stage.Stager;
@@ -90,13 +92,14 @@ public final class Runner {
    */
   public static void run(RunnerContext context) {
     LOG.info(
-        "Built runner context (runner={}, posts={}, workDir={}, preparationThreads={}, publisherThreads={}, failureLimit={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
+        "Built runner context (runner={}, posts={}, workDir={}, preparationThreads={}, publisherThreads={}, failureLimit={}, observer={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
         context.name(),
         context.posts(),
         context.workDir(),
         context.preparationThreads(),
         context.publisherThreads(),
         context.failureLimit(),
+        context.observer() != null ? context.observer().getName() : null,
         context.retrievers().keySet(),
         context.history() != null ? context.history().getName() : null,
         context.downloader().getName(),
@@ -104,7 +107,15 @@ public final class Runner {
         context.stager() != null ? context.stager().getName() : null,
         context.publishers().keySet());
 
+    long runId = -1;
+    int published = 0;
+
     try {
+      if (context.observer() != null) {
+        context.observer().start();
+        LOG.info("Started observer (runner={}, observer={})", context.name(), context.observer().getName());
+      }
+
       if (context.history() != null) {
         context.history().start();
         LOG.info("Started history (runner={}, history={})",
@@ -135,13 +146,34 @@ public final class Runner {
         LOG.info("Purged work directory (runner={}, workDir={})", context.name(), context.workDir());
       }
 
+      if (context.observer() != null) {
+        runId = context.observer().runStart(context.name(), null);
+      }
+
       LOG.info("Starting run (runner={}, posts={})", context.name(), context.posts());
 
-      int published = process(context);
+      try {
+        published = process(context);
+      } catch (RuntimeException e) {
+        if (context.observer() != null) {
+          context.observer().runEnd(runId, RunStatus.FAILED, published);
+        }
+
+        throw e;
+      }
+
+      if (context.observer() != null) {
+        context.observer().runEnd(runId, RunStatus.COMPLETED, published);
+      }
 
       LOG.info("Run completed (runner={}, posts={}, published={}, publishers={})",
           context.name(), context.posts(), published, context.publishers().size());
     } finally {
+      if (context.observer() != null) {
+        context.observer().stop();
+        LOG.info("Stopped observer (runner={}, observer={})", context.name(), context.observer().getName());
+      }
+
       if (context.history() != null) {
         context.history().stop();
         LOG.info("Stopped history (runner={}, history={})",
@@ -211,6 +243,7 @@ public final class Runner {
           MapUtils.ofNullable("key", "failureLimit", "value", failureLimit));
     }
 
+    Observer observer = buildObserver(root);
     Map<String, Retriever> retrievers = buildRetrievers(root);
     History history = buildHistory(root);
     Downloader downloader = buildDownloader(root);
@@ -249,6 +282,7 @@ public final class Runner {
         preparationThreads,
         publisherThreads,
         failureLimit,
+        observer,
         retrievers,
         history,
         downloader,
@@ -302,6 +336,29 @@ public final class Runner {
     }
 
     return publisherPool.getPublished();
+  }
+
+  /**
+   * Builds the observer from the observer configuration block.
+   * 
+   * @param config A {@link Config} representing the root configuration.
+   * @return An {@link Observer} representing the observer, or {@code null}.
+   * @throws IllegalArgumentException if the config type is invalid.
+   */
+  private static Observer buildObserver(Config root) {
+    if (!root.hasPath("observer")) {
+      return null;
+    }
+
+    Config config;
+    try {
+      config = root.getConfig("observer");
+    } catch (ConfigException.WrongType e) {
+      throw new SpecException("ROOT", "Incorrect key type (expected object)", MapUtils.ofNullable("key", "observer"),
+          e);
+    }
+
+    return ObserverFactory.fromConfig(config);
   }
 
   /**

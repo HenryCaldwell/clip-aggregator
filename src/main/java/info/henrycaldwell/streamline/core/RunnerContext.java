@@ -5,6 +5,7 @@ import java.util.Map;
 
 import info.henrycaldwell.streamline.download.Downloader;
 import info.henrycaldwell.streamline.history.History;
+import info.henrycaldwell.streamline.observe.Observer;
 import info.henrycaldwell.streamline.publish.Publisher;
 import info.henrycaldwell.streamline.retrieve.Retriever;
 import info.henrycaldwell.streamline.stage.Stager;
@@ -23,6 +24,7 @@ record RunnerContext(
     int preparationThreads,
     int publisherThreads,
     int failureLimit,
+    Observer observer,
     Map<String, Retriever> retrievers,
     History history,
     Downloader downloader,
