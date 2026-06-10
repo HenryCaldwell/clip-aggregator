@@ -153,7 +153,7 @@ public final class Runner {
       LOG.info("Starting run (runner={}, posts={})", context.name(), context.posts());
 
       try {
-        published = process(context);
+        published = process(context, runId);
       } catch (RuntimeException e) {
         if (context.observer() != null) {
           context.observer().runEnd(runId, RunStatus.FAILED, published);
@@ -296,11 +296,12 @@ public final class Runner {
    *
    * @param context A {@link RunnerContext} representing the configured
    *                components.
+   * @param runId   A long representing the run identifier.
    * @return An integer representing the number of clips published.
    */
-  private static int process(RunnerContext context) {
+  private static int process(RunnerContext context, long runId) {
     PublisherWorkerPool publisherPool = new PublisherWorkerPool(context);
-    PreparationWorkerPool preparationPool = new PreparationWorkerPool(context, publisherPool);
+    PreparationWorkerPool preparationPool = new PreparationWorkerPool(context, runId, publisherPool);
 
     Set<String> seen = new HashSet<>();
 

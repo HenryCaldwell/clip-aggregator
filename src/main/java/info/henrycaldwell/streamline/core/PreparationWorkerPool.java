@@ -9,6 +9,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import info.henrycaldwell.streamline.observe.AttemptStatus;
+import info.henrycaldwell.streamline.observe.Observer;
+import info.henrycaldwell.streamline.observe.PipelineStage;
 import info.henrycaldwell.streamline.retrieve.Retriever;
 import info.henrycaldwell.streamline.transform.Pipeline;
 
@@ -25,6 +28,7 @@ public final class PreparationWorkerPool {
       new ClipRef("SENTINEL", null, null, null, null, Integer.MIN_VALUE, null));
 
   private final RunnerContext context;
+  private final long runId;
   private final PublisherWorkerPool publisherPool;
   private final PriorityBlockingQueue<Candidate> queue;
   private final AtomicInteger failures;
@@ -35,11 +39,13 @@ public final class PreparationWorkerPool {
    *
    * @param context       A {@link RunnerContext} representing the configured
    *                      components.
+   * @param runId         A long representing the run identifier.
    * @param publisherPool A {@link PublisherWorkerPool} representing the publisher
    *                      worker pool.
    */
-  public PreparationWorkerPool(RunnerContext context, PublisherWorkerPool publisherPool) {
+  public PreparationWorkerPool(RunnerContext context, long runId, PublisherWorkerPool publisherPool) {
     this.context = context;
+    this.runId = runId;
     this.publisherPool = publisherPool;
     this.queue = new PriorityBlockingQueue<>();
     this.failures = new AtomicInteger();
@@ -91,20 +97,21 @@ public final class PreparationWorkerPool {
    * Prepares clips from the candidate queue.
    */
   private void run() {
+    String worker = Thread.currentThread().getName();
+    Observer observer = context.observer();
+
     while (true) {
       Candidate candidate;
       try {
         candidate = queue.take();
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        LOG.error("Failed to poll from candidate queue (runner={}, thread={})",
-            context.name(), Thread.currentThread().getName(), e);
+        LOG.error("Failed to poll from candidate queue (runner={}, thread={})", context.name(), worker, e);
         break;
       }
 
       if (candidate == SENTINEL) {
-        LOG.info("Stopped preparation thread (runner={}, thread={})",
-            context.name(), Thread.currentThread().getName());
+        LOG.info("Stopped preparation thread (runner={}, thread={})", context.name(), worker);
         break;
       }
 
@@ -121,30 +128,89 @@ public final class PreparationWorkerPool {
       String clipId = clip.id();
 
       if (context.history() != null) {
-        boolean claimed = context.history().claim(clip, context.name());
+        long claimAttemptId = -1;
+        if (observer != null) {
+          claimAttemptId = observer.attemptStart(runId, worker, clip, PipelineStage.CLAIM, context.history().getName());
+        }
+
+        boolean claimed;
+        try {
+          claimed = context.history().claim(clip, context.name());
+        } catch (RuntimeException e) {
+          if (observer != null) {
+            observer.attemptEnd(claimAttemptId, AttemptStatus.FAILURE, e);
+          }
+
+          throw e;
+        }
 
         if (!claimed) {
+          if (observer != null) {
+            observer.attemptEnd(claimAttemptId, AttemptStatus.SKIPPED, null);
+          }
+
           LOG.info("Skipping published clip (runner={}, retriever={}, clipId={}, thread={})",
-              context.name(), retrieverName, clipId, Thread.currentThread().getName());
+              context.name(), retrieverName, clipId, worker);
           continue;
+        }
+
+        if (observer != null) {
+          observer.attemptEnd(claimAttemptId, AttemptStatus.SUCCESS, null);
         }
       }
 
       MediaRef media;
       try {
         Path target = context.workDir().resolve(clipId + ".mp4");
-        media = context.downloader().download(clip, target);
+
+        long downloadAttemptId = -1;
+        if (observer != null) {
+          downloadAttemptId = observer.attemptStart(runId, worker, clip, PipelineStage.DOWNLOAD,
+              context.downloader().getName());
+        }
+
+        try {
+          media = context.downloader().download(clip, target);
+
+          if (observer != null) {
+            observer.attemptEnd(downloadAttemptId, AttemptStatus.SUCCESS, null);
+          }
+        } catch (RuntimeException e) {
+          if (observer != null) {
+            observer.attemptEnd(downloadAttemptId, AttemptStatus.FAILURE, e);
+          }
+
+          throw e;
+        }
 
         if (pipeline != null) {
           media = pipeline.run(media, () -> publisherPool.getPublished() >= context.posts());
         }
 
         if (context.stager() != null) {
-          media = context.stager().stage(media);
+          long stageAttemptId = -1;
+          if (observer != null) {
+            stageAttemptId = observer.attemptStart(runId, worker, clip, PipelineStage.STAGE,
+                context.stager().getName());
+          }
+
+          try {
+            media = context.stager().stage(media);
+
+            if (observer != null) {
+              observer.attemptEnd(stageAttemptId, AttemptStatus.SUCCESS, null);
+            }
+          } catch (RuntimeException e) {
+            if (observer != null) {
+              observer.attemptEnd(stageAttemptId, AttemptStatus.FAILURE, e);
+            }
+
+            throw e;
+          }
         }
       } catch (RuntimeException e) {
-        LOG.error("Failed to prepare clip (runner={}, retriever={}, clipId={}, thread={})",
-            context.name(), retrieverName, clipId, Thread.currentThread().getName(), e);
+        LOG.error("Failed to prepare clip (runner={}, retriever={}, clipId={}, thread={})", context.name(),
+            retrieverName, clipId, worker, e);
 
         if (context.history() != null) {
           context.history().fail(clip, context.name(), e.getMessage());
@@ -152,8 +218,8 @@ public final class PreparationWorkerPool {
 
         int count = failures.incrementAndGet();
         if (count >= context.failureLimit()) {
-          LOG.error("Reached preparation failure limit (runner={}, limit={}, thread={})",
-              context.name(), context.failureLimit(), Thread.currentThread().getName());
+          LOG.error("Reached preparation failure limit (runner={}, limit={}, thread={})", context.name(),
+              context.failureLimit(), worker);
         }
 
         continue;
@@ -173,7 +239,7 @@ public final class PreparationWorkerPool {
           context.stager() != null ? context.stager().getName() : null,
           clipId,
           clip.views(),
-          Thread.currentThread().getName());
+          worker);
 
       publisherPool.submit(media);
     }
