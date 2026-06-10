@@ -11,6 +11,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import info.henrycaldwell.streamline.observe.AttemptStatus;
+import info.henrycaldwell.streamline.observe.Observer;
+import info.henrycaldwell.streamline.observe.PipelineStage;
 import info.henrycaldwell.streamline.publish.Publisher;
 
 /**
@@ -24,6 +27,7 @@ public final class PublisherWorkerPool {
   private static final MediaRef SENTINEL = new MediaRef(null, null, null);
 
   private final RunnerContext context;
+  private final long runId;
   private final LinkedBlockingQueue<MediaRef> queue;
   private final AtomicInteger reserved;
   private final AtomicInteger pending;
@@ -36,9 +40,11 @@ public final class PublisherWorkerPool {
    *
    * @param context A {@link RunnerContext} representing the configured
    *                components.
+   * @param runId   A long representing the run identifier.
    */
-  public PublisherWorkerPool(RunnerContext context) {
+  public PublisherWorkerPool(RunnerContext context, long runId) {
     this.context = context;
+    this.runId = runId;
     this.queue = new LinkedBlockingQueue<>(context.publisherThreads() * 2);
     this.reserved = new AtomicInteger(0);
     this.pending = new AtomicInteger(0);
@@ -102,20 +108,21 @@ public final class PublisherWorkerPool {
    * Publishes clips from the publish queue.
    */
   private void run() {
+    String worker = Thread.currentThread().getName();
+    Observer observer = context.observer();
+
     while (true) {
       MediaRef media;
       try {
         media = queue.take();
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        LOG.error("Failed to poll from publish queue (runner={}, thread={})",
-            context.name(), Thread.currentThread().getName(), e);
+        LOG.error("Failed to poll from publish queue (runner={}, thread={})", context.name(), worker, e);
         break;
       }
 
       if (media == SENTINEL) {
-        LOG.info("Stopped publisher thread (runner={}, thread={})",
-            context.name(), Thread.currentThread().getName());
+        LOG.info("Stopped publisher thread (runner={}, thread={})", context.name(), worker);
         break;
       }
 
@@ -143,28 +150,42 @@ public final class PublisherWorkerPool {
 
       pending.incrementAndGet();
 
-      String clipId = media.clip().id();
+      ClipRef clip = media.clip();
+      String clipId = clip.id();
       boolean success = false;
 
       for (Publisher publisher : context.publishers().values()) {
         String publisherName = publisher.getName();
 
+        long publishAttemptId = -1;
+        if (observer != null) {
+          publishAttemptId = observer.attemptStart(runId, worker, clip, PipelineStage.PUBLISH, publisherName);
+        }
+
         try {
           PublishRef ref = publisher.publish(media);
-          LOG.info("Published clip (runner={}, publisher={}, clipId={}, URI={}, thread={})",
-              context.name(), publisherName, clipId, ref.uri(), Thread.currentThread().getName());
+          LOG.info("Published clip (runner={}, publisher={}, clipId={}, URI={}, thread={})", context.name(),
+              publisherName, clipId, ref.uri(), worker);
 
           if (context.history() != null) {
             context.history().publish(ref, context.name(), publisherName);
           }
 
           success = true;
+
+          if (observer != null) {
+            observer.attemptEnd(publishAttemptId, AttemptStatus.SUCCESS, null);
+          }
         } catch (RuntimeException e) {
-          LOG.error("Failed to publish clip (runner={}, publisher={}, clipId={}, thread={})",
-              context.name(), publisherName, clipId, Thread.currentThread().getName(), e);
+          LOG.error("Failed to publish clip (runner={}, publisher={}, clipId={}, thread={})", context.name(),
+              publisherName, clipId, worker, e);
 
           if (context.history() != null) {
-            context.history().fail(media.clip(), context.name(), e.getMessage());
+            context.history().fail(clip, context.name(), e.getMessage());
+          }
+
+          if (observer != null) {
+            observer.attemptEnd(publishAttemptId, AttemptStatus.FAILURE, e);
           }
         }
       }
@@ -178,7 +199,7 @@ public final class PublisherWorkerPool {
         int count = failures.incrementAndGet();
         if (count >= context.failureLimit()) {
           LOG.error("Reached publisher failure limit (runner={}, limit={}, thread={})", context.name(),
-              context.failureLimit(), Thread.currentThread().getName());
+              context.failureLimit(), worker);
         }
       }
 
