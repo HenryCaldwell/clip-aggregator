@@ -2,6 +2,7 @@ package info.henrycaldwell.streamline.transform;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -11,7 +12,15 @@ import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.typesafe.config.ConfigFactory;
+
+import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
+import info.henrycaldwell.streamline.observe.AbstractObserver;
+import info.henrycaldwell.streamline.observe.AttemptStatus;
+import info.henrycaldwell.streamline.observe.PipelineStage;
+import info.henrycaldwell.streamline.observe.RunStatus;
 
 public class PipelineTest {
 
@@ -112,6 +121,65 @@ public class PipelineTest {
       assertSame(firstOutput, result);
       assertEquals(List.of("first:input.mp4"), calls);
     }
+
+    @Test
+    void recordsSuccessOnTransformerSuccess() {
+      RecordingObserver observer = new RecordingObserver();
+      Pipeline pipeline = new Pipeline("pipeline", List.of(
+          new RecordingTransformer("transformer", MEDIA.withFile(Path.of("out.mp4")), new ArrayList<>())));
+
+      pipeline.run(MEDIA, observer, 42L, "test-worker", () -> false);
+
+      assertEquals(1, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
+    }
+
+    @Test
+    void recordsFailureOnTransformerFailure() {
+      RecordingObserver observer = new RecordingObserver();
+      RuntimeException error = new RuntimeException("transformer failed");
+      ThrowingTransformer first = new ThrowingTransformer("first", error);
+      RecordingTransformer second = new RecordingTransformer("second", MEDIA.withFile(Path.of("second.mp4")),
+          new ArrayList<>());
+      Pipeline pipeline = new Pipeline("pipeline", List.of(first, second));
+
+      RuntimeException thrown = assertThrows(RuntimeException.class,
+          () -> pipeline.run(MEDIA, observer, 42L, "test-worker", () -> false));
+
+      assertSame(error, thrown);
+      assertEquals(1, observer.startedAttempts.size());
+      assertEquals("first", observer.startedAttempts.get(0).component());
+      assertEquals(1, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.FAILURE, observer.endedAttempts.get(0).status());
+      assertSame(error, observer.endedAttempts.get(0).error());
+    }
+
+    @Test
+    void skipsAttemptForCanceledTransformer() {
+      RecordingObserver observer = new RecordingObserver();
+      List<String> calls = new ArrayList<>();
+      MediaRef firstOutput = MEDIA.withFile(Path.of("first.mp4"));
+
+      BooleanSupplier canceled = new BooleanSupplier() {
+        private int checks;
+
+        @Override
+        public boolean getAsBoolean() {
+          checks++;
+          return checks > 1;
+        }
+      };
+
+      Pipeline pipeline = new Pipeline("pipeline", List.of(
+          new RecordingTransformer("first", firstOutput, calls),
+          new RecordingTransformer("second", MEDIA.withFile(Path.of("second.mp4")), calls)));
+
+      pipeline.run(MEDIA, observer, 42L, "test-worker", canceled);
+
+      assertEquals(1, observer.startedAttempts.size());
+      assertEquals("first", observer.startedAttempts.get(0).component());
+      assertEquals(1, observer.endedAttempts.size());
+    }
   }
 
   private static final class RecordingTransformer implements Transformer {
@@ -162,6 +230,67 @@ public class PipelineTest {
 
     private MediaRef input() {
       return input;
+    }
+  }
+
+  private static final class ThrowingTransformer implements Transformer {
+
+    private final String name;
+    private final RuntimeException error;
+
+    private ThrowingTransformer(String name, RuntimeException error) {
+      this.name = name;
+      this.error = error;
+    }
+
+    @Override
+    public String getName() {
+      return name;
+    }
+
+    @Override
+    public MediaRef transform(MediaRef media) {
+      throw error;
+    }
+  }
+
+  private static final class RecordingObserver extends AbstractObserver {
+
+    record StartedAttempt(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
+    }
+
+    record EndedAttempt(long attemptId, AttemptStatus status, Throwable error) {
+    }
+
+    private final List<StartedAttempt> startedAttempts = new ArrayList<>();
+    private final List<EndedAttempt> endedAttempts = new ArrayList<>();
+    private long nextId = 1;
+
+    private RecordingObserver() {
+      super(ConfigFactory.parseString("""
+          name = recording
+          type = recording
+          """), Spec.builder().build());
+    }
+
+    @Override
+    public long runStart(String runner, String config) {
+      return nextId++;
+    }
+
+    @Override
+    public void runEnd(long runId, RunStatus status, int published) {
+    }
+
+    @Override
+    public long attemptStart(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
+      startedAttempts.add(new StartedAttempt(runId, worker, clip, stage, component));
+      return nextId++;
+    }
+
+    @Override
+    public void attemptEnd(long attemptId, AttemptStatus status, Throwable error) {
+      endedAttempts.add(new EndedAttempt(attemptId, status, error));
     }
   }
 }
