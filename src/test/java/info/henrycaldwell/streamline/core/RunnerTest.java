@@ -756,7 +756,7 @@ public class RunnerTest {
       NoOpStager stager = new NoOpStager();
       TrackingPublisher publisher = new TrackingPublisher();
       RecordingObserver observer = new RecordingObserver();
-      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, "{\"name\":\"test\"}",
           observer,
           Map.of("r", retriever),
           history,
@@ -769,6 +769,7 @@ public class RunnerTest {
 
       assertEquals(1, observer.startedRuns.size());
       assertEquals("test", observer.startedRuns.get(0).runner());
+      assertEquals("{\"name\":\"test\"}", observer.startedRuns.get(0).config());
       assertEquals(1, observer.endedRuns.size());
       assertEquals(RunStatus.COMPLETED, observer.endedRuns.get(0).status());
       assertEquals(1, observer.endedRuns.get(0).published());
