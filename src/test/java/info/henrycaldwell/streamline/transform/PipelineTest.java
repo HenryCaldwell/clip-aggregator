@@ -46,7 +46,7 @@ public class PipelineTest {
     void returnsOriginalMediaWhenPipelineIsEmpty() {
       Pipeline pipeline = new Pipeline("pipeline", List.of());
 
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "test-worker", () -> false);
+      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", () -> false);
 
       assertSame(MEDIA, result);
     }
@@ -62,7 +62,7 @@ public class PipelineTest {
 
       Pipeline pipeline = new Pipeline("pipeline", List.of(first, second));
 
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "test-worker", () -> false);
+      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", () -> false);
 
       assertEquals(secondOutput, result);
       assertEquals(List.of("first:input.mp4", "second:first.mp4"), calls);
@@ -78,7 +78,7 @@ public class PipelineTest {
 
       Pipeline pipeline = new Pipeline("pipeline", List.of(first, second));
 
-      pipeline.run(MEDIA, null, 0L, "test-worker", () -> false);
+      pipeline.run(MEDIA, null, 0L, "worker", () -> false);
 
       assertSame(MEDIA, first.input());
       assertSame(firstOutput, second.input());
@@ -91,7 +91,7 @@ public class PipelineTest {
       Pipeline pipeline = new Pipeline("pipeline", List.of(
           new RecordingTransformer("first", MEDIA.withFile(Path.of("first.mp4")), calls)));
 
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "test-worker", () -> true);
+      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", () -> true);
 
       assertSame(MEDIA, result);
       assertEquals(List.of(), calls);
@@ -116,7 +116,7 @@ public class PipelineTest {
           new RecordingTransformer("first", firstOutput, calls),
           new RecordingTransformer("second", MEDIA.withFile(Path.of("second.mp4")), calls)));
 
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "test-worker", canceled);
+      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", canceled);
 
       assertSame(firstOutput, result);
       assertEquals(List.of("first:input.mp4"), calls);
@@ -128,7 +128,7 @@ public class PipelineTest {
       Pipeline pipeline = new Pipeline("pipeline", List.of(
           new RecordingTransformer("transformer", MEDIA.withFile(Path.of("out.mp4")), new ArrayList<>())));
 
-      pipeline.run(MEDIA, observer, 42L, "test-worker", () -> false);
+      pipeline.run(MEDIA, observer, 42L, "worker", () -> false);
 
       assertEquals(1, observer.endedAttempts.size());
       assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
@@ -144,7 +144,7 @@ public class PipelineTest {
       Pipeline pipeline = new Pipeline("pipeline", List.of(first, second));
 
       RuntimeException thrown = assertThrows(RuntimeException.class,
-          () -> pipeline.run(MEDIA, observer, 42L, "test-worker", () -> false));
+          () -> pipeline.run(MEDIA, observer, 42L, "worker", () -> false));
 
       assertSame(error, thrown);
       assertEquals(1, observer.startedAttempts.size());
@@ -174,7 +174,7 @@ public class PipelineTest {
           new RecordingTransformer("first", firstOutput, calls),
           new RecordingTransformer("second", MEDIA.withFile(Path.of("second.mp4")), calls)));
 
-      pipeline.run(MEDIA, observer, 42L, "test-worker", canceled);
+      pipeline.run(MEDIA, observer, 42L, "worker", canceled);
 
       assertEquals(1, observer.startedAttempts.size());
       assertEquals("first", observer.startedAttempts.get(0).component());
