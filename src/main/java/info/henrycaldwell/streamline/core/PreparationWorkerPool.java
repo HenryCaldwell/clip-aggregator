@@ -115,7 +115,9 @@ public final class PreparationWorkerPool {
         break;
       }
 
-      if (failures.get() >= context.failureLimit() || publisherPool.getPublished() >= context.posts()) {
+      if (failures.get() >= context.failureLimit()
+          || publisherPool.getPublished() >= context.posts()
+          || publisherPool.getFailures() >= context.failureLimit()) {
         continue;
       }
 
@@ -184,7 +186,9 @@ public final class PreparationWorkerPool {
         }
 
         if (pipeline != null) {
-          media = pipeline.run(media, observer, runId, worker, () -> publisherPool.getPublished() >= context.posts());
+          media = pipeline.run(media, observer, runId, worker,
+              () -> publisherPool.getPublished() >= context.posts()
+                  || publisherPool.getFailures() >= context.failureLimit());
         }
 
         if (context.stager() != null) {
