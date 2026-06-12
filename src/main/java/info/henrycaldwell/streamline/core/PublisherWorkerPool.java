@@ -28,6 +28,7 @@ public final class PublisherWorkerPool {
 
   private final RunnerContext context;
   private final long runId;
+  private final CancellationToken token;
   private final LinkedBlockingQueue<MediaRef> queue;
   private final AtomicInteger reserved;
   private final AtomicInteger pending;
@@ -41,10 +42,13 @@ public final class PublisherWorkerPool {
    * @param context A {@link RunnerContext} representing the configured
    *                components.
    * @param runId   A long representing the run identifier.
+   * @param token   A {@link CancellationToken} representing the cancellation
+   *                signal.
    */
-  public PublisherWorkerPool(RunnerContext context, long runId) {
+  public PublisherWorkerPool(RunnerContext context, long runId, CancellationToken token) {
     this.context = context;
     this.runId = runId;
+    this.token = token;
     this.queue = new LinkedBlockingQueue<>(context.publisherThreads() * 2);
     this.reserved = new AtomicInteger(0);
     this.pending = new AtomicInteger(0);
@@ -192,14 +196,17 @@ public final class PublisherWorkerPool {
 
       if (success) {
         failures.set(0);
-        published.incrementAndGet();
+
+        if (published.incrementAndGet() >= context.posts()) {
+          token.cancel(CancellationReason.POSTS_REACHED);
+        }
       } else {
         reserved.decrementAndGet();
 
-        int count = failures.incrementAndGet();
-        if (count >= context.failureLimit()) {
+        if (failures.incrementAndGet() >= context.failureLimit()) {
           LOG.error("Reached publisher failure limit (runner={}, limit={}, thread={})", context.name(),
               context.failureLimit(), worker);
+          token.cancel(CancellationReason.PUBLISHER_FAILURE_LIMIT);
         }
       }
 
