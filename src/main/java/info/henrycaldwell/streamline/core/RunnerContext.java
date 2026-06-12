@@ -24,6 +24,7 @@ record RunnerContext(
     int preparationThreads,
     int publisherThreads,
     int failureLimit,
+    String configJson,
     Observer observer,
     Map<String, Retriever> retrievers,
     History history,

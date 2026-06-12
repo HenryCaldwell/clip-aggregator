@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigRenderOptions;
 
 import info.henrycaldwell.streamline.download.Downloader;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -147,7 +148,7 @@ public final class Runner {
       }
 
       if (context.observer() != null) {
-        runId = context.observer().runStart(context.name(), null);
+        runId = context.observer().runStart(context.name(), context.configJson());
       }
 
       LOG.info("Starting run (runner={}, posts={})", context.name(), context.posts());
@@ -243,6 +244,8 @@ public final class Runner {
           MapUtils.ofNullable("key", "failureLimit", "value", failureLimit));
     }
 
+    String configJson = root.root().render(ConfigRenderOptions.concise());
+
     Observer observer = buildObserver(root);
     Map<String, Retriever> retrievers = buildRetrievers(root);
     History history = buildHistory(root);
@@ -282,6 +285,7 @@ public final class Runner {
         preparationThreads,
         publisherThreads,
         failureLimit,
+        configJson,
         observer,
         retrievers,
         history,
