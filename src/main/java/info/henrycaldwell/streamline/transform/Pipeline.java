@@ -1,8 +1,8 @@
 package info.henrycaldwell.streamline.transform;
 
 import java.util.List;
-import java.util.function.BooleanSupplier;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.observe.AttemptStatus;
@@ -48,16 +48,16 @@ public final class Pipeline {
    *                 {@code null}.
    * @param runId    A long representing the run identifier.
    * @param worker   A string representing the worker name.
-   * @param canceled A {@link BooleanSupplier} representing the cancelation
+   * @param token    A {@link CancellationToken} representing the cancellation
    *                 signal.
    * @return A {@link MediaRef} representing the transformed media.
    */
-  public MediaRef run(MediaRef media, Observer observer, long runId, String worker, BooleanSupplier canceled) {
+  public MediaRef run(MediaRef media, Observer observer, long runId, String worker, CancellationToken token) {
     ClipRef clip = media.clip();
     MediaRef curr = media;
 
     for (Transformer transformer : transformers) {
-      if (canceled.getAsBoolean()) {
+      if (token.getReason() != null) {
         return curr;
       }
 

@@ -189,7 +189,7 @@ public final class PreparationWorkerPool {
         }
 
         if (pipeline != null) {
-          media = pipeline.run(media, observer, runId, worker, () -> token.getReason() != null);
+          media = pipeline.run(media, observer, runId, worker, token);
         }
 
         if (context.stager() != null) {

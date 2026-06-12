@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BooleanSupplier;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import com.typesafe.config.ConfigFactory;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationReason;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.observe.AbstractObserver;
@@ -46,7 +47,7 @@ public class PipelineTest {
     void returnsOriginalMediaWhenPipelineIsEmpty() {
       Pipeline pipeline = new Pipeline("pipeline", List.of());
 
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", () -> false);
+      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", new CancellationToken());
 
       assertSame(MEDIA, result);
     }
@@ -62,7 +63,7 @@ public class PipelineTest {
 
       Pipeline pipeline = new Pipeline("pipeline", List.of(first, second));
 
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", () -> false);
+      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", new CancellationToken());
 
       assertEquals(secondOutput, result);
       assertEquals(List.of("first:input.mp4", "second:first.mp4"), calls);
@@ -78,7 +79,7 @@ public class PipelineTest {
 
       Pipeline pipeline = new Pipeline("pipeline", List.of(first, second));
 
-      pipeline.run(MEDIA, null, 0L, "worker", () -> false);
+      pipeline.run(MEDIA, null, 0L, "worker", new CancellationToken());
 
       assertSame(MEDIA, first.input());
       assertSame(firstOutput, second.input());
@@ -91,7 +92,9 @@ public class PipelineTest {
       Pipeline pipeline = new Pipeline("pipeline", List.of(
           new RecordingTransformer("first", MEDIA.withFile(Path.of("first.mp4")), calls)));
 
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", () -> true);
+      CancellationToken token = new CancellationToken();
+      token.cancel(CancellationReason.USER_CANCELED);
+      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", token);
 
       assertSame(MEDIA, result);
       assertEquals(List.of(), calls);
@@ -102,21 +105,13 @@ public class PipelineTest {
       List<String> calls = new ArrayList<>();
       MediaRef firstOutput = MEDIA.withFile(Path.of("first.mp4"));
 
-      BooleanSupplier canceled = new BooleanSupplier() {
-        private int checks;
-
-        @Override
-        public boolean getAsBoolean() {
-          checks++;
-          return checks > 1;
-        }
-      };
+      CancellationToken token = new CancellationToken();
 
       Pipeline pipeline = new Pipeline("pipeline", List.of(
-          new RecordingTransformer("first", firstOutput, calls),
+          new CancelingTransformer("first", firstOutput, token, calls),
           new RecordingTransformer("second", MEDIA.withFile(Path.of("second.mp4")), calls)));
 
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", canceled);
+      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", token);
 
       assertSame(firstOutput, result);
       assertEquals(List.of("first:input.mp4"), calls);
@@ -128,7 +123,7 @@ public class PipelineTest {
       Pipeline pipeline = new Pipeline("pipeline", List.of(
           new RecordingTransformer("transformer", MEDIA.withFile(Path.of("out.mp4")), new ArrayList<>())));
 
-      pipeline.run(MEDIA, observer, 42L, "worker", () -> false);
+      pipeline.run(MEDIA, observer, 42L, "worker", new CancellationToken());
 
       assertEquals(1, observer.endedAttempts.size());
       assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
@@ -144,7 +139,7 @@ public class PipelineTest {
       Pipeline pipeline = new Pipeline("pipeline", List.of(first, second));
 
       RuntimeException thrown = assertThrows(RuntimeException.class,
-          () -> pipeline.run(MEDIA, observer, 42L, "worker", () -> false));
+          () -> pipeline.run(MEDIA, observer, 42L, "worker", new CancellationToken()));
 
       assertSame(error, thrown);
       assertEquals(1, observer.startedAttempts.size());
@@ -160,21 +155,13 @@ public class PipelineTest {
       List<String> calls = new ArrayList<>();
       MediaRef firstOutput = MEDIA.withFile(Path.of("first.mp4"));
 
-      BooleanSupplier canceled = new BooleanSupplier() {
-        private int checks;
-
-        @Override
-        public boolean getAsBoolean() {
-          checks++;
-          return checks > 1;
-        }
-      };
+      CancellationToken token = new CancellationToken();
 
       Pipeline pipeline = new Pipeline("pipeline", List.of(
-          new RecordingTransformer("first", firstOutput, calls),
+          new CancelingTransformer("first", firstOutput, token, calls),
           new RecordingTransformer("second", MEDIA.withFile(Path.of("second.mp4")), calls)));
 
-      pipeline.run(MEDIA, observer, 42L, "worker", canceled);
+      pipeline.run(MEDIA, observer, 42L, "worker", token);
 
       assertEquals(1, observer.startedAttempts.size());
       assertEquals("first", observer.startedAttempts.get(0).component());
@@ -251,6 +238,33 @@ public class PipelineTest {
     @Override
     public MediaRef transform(MediaRef media) {
       throw error;
+    }
+  }
+
+  private static final class CancelingTransformer implements Transformer {
+
+    private final String name;
+    private final MediaRef output;
+    private final CancellationToken token;
+    private final List<String> calls;
+
+    private CancelingTransformer(String name, MediaRef output, CancellationToken token, List<String> calls) {
+      this.name = name;
+      this.output = output;
+      this.token = token;
+      this.calls = calls;
+    }
+
+    @Override
+    public String getName() {
+      return name;
+    }
+
+    @Override
+    public MediaRef transform(MediaRef media) {
+      calls.add(name + ":" + media.file().getFileName());
+      token.cancel(CancellationReason.USER_CANCELED);
+      return output;
     }
   }
 
