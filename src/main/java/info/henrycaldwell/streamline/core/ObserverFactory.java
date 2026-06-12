@@ -5,6 +5,7 @@ import com.typesafe.config.Config;
 import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.observe.NoOpObserver;
 import info.henrycaldwell.streamline.observe.Observer;
+import info.henrycaldwell.streamline.observe.SqliteObserver;
 import info.henrycaldwell.streamline.util.MapUtils;
 
 /**
@@ -40,6 +41,9 @@ public final class ObserverFactory {
     String type = config.getString("type");
 
     switch (type) {
+      case "sqlite" -> {
+        return new SqliteObserver(config);
+      }
       case "no_op" -> {
         return new NoOpObserver(config);
       }
