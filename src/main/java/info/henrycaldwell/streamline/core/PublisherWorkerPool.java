@@ -258,13 +258,4 @@ public final class PublisherWorkerPool {
   public int getPublished() {
     return published.get();
   }
-
-  /**
-   * Returns the number of consecutive failures.
-   *
-   * @return An integer representing the number of consecutive failures.
-   */
-  public int getFailures() {
-    return failures.get();
-  }
 }

@@ -29,6 +29,7 @@ public final class PreparationWorkerPool {
 
   private final RunnerContext context;
   private final long runId;
+  private final CancellationToken token;
   private final PublisherWorkerPool publisherPool;
   private final PriorityBlockingQueue<Candidate> queue;
   private final AtomicInteger failures;
@@ -40,12 +41,16 @@ public final class PreparationWorkerPool {
    * @param context       A {@link RunnerContext} representing the configured
    *                      components.
    * @param runId         A long representing the run identifier.
+   * @param token         A {@link CancellationToken} representing the
+   *                      cancellation signal.
    * @param publisherPool A {@link PublisherWorkerPool} representing the publisher
    *                      worker pool.
    */
-  public PreparationWorkerPool(RunnerContext context, long runId, PublisherWorkerPool publisherPool) {
+  public PreparationWorkerPool(RunnerContext context, long runId, CancellationToken token,
+      PublisherWorkerPool publisherPool) {
     this.context = context;
     this.runId = runId;
+    this.token = token;
     this.publisherPool = publisherPool;
     this.queue = new PriorityBlockingQueue<>();
     this.failures = new AtomicInteger();
@@ -115,9 +120,7 @@ public final class PreparationWorkerPool {
         break;
       }
 
-      if (failures.get() >= context.failureLimit()
-          || publisherPool.getPublished() >= context.posts()
-          || publisherPool.getFailures() >= context.failureLimit()) {
+      if (token.getReason() != null) {
         continue;
       }
 
@@ -186,9 +189,7 @@ public final class PreparationWorkerPool {
         }
 
         if (pipeline != null) {
-          media = pipeline.run(media, observer, runId, worker,
-              () -> publisherPool.getPublished() >= context.posts()
-                  || publisherPool.getFailures() >= context.failureLimit());
+          media = pipeline.run(media, observer, runId, worker, () -> token.getReason() != null);
         }
 
         if (context.stager() != null) {
@@ -220,10 +221,10 @@ public final class PreparationWorkerPool {
           context.history().fail(clip, context.name(), e.getMessage());
         }
 
-        int count = failures.incrementAndGet();
-        if (count >= context.failureLimit()) {
+        if (failures.incrementAndGet() >= context.failureLimit()) {
           LOG.error("Reached preparation failure limit (runner={}, limit={}, thread={})", context.name(),
               context.failureLimit(), worker);
+          token.cancel(CancellationReason.PREPARATION_FAILURE_LIMIT);
         }
 
         continue;

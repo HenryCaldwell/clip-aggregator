@@ -306,7 +306,7 @@ public final class Runner {
   private static int process(RunnerContext context, long runId) {
     CancellationToken token = new CancellationToken();
     PublisherWorkerPool publisherPool = new PublisherWorkerPool(context, runId, token);
-    PreparationWorkerPool preparationPool = new PreparationWorkerPool(context, runId, publisherPool);
+    PreparationWorkerPool preparationPool = new PreparationWorkerPool(context, runId, token, publisherPool);
 
     Set<String> seen = new HashSet<>();
 
