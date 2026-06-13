@@ -28,8 +28,7 @@ public final class PreparationWorkerPool {
       new ClipRef("SENTINEL", null, null, null, null, Integer.MIN_VALUE, null));
 
   private final RunnerContext context;
-  private final long runId;
-  private final CancellationToken token;
+  private final RunSession session;
   private final PublisherWorkerPool publisherPool;
   private final PriorityBlockingQueue<Candidate> queue;
   private final AtomicInteger failures;
@@ -40,17 +39,13 @@ public final class PreparationWorkerPool {
    *
    * @param context       A {@link RunnerContext} representing the configured
    *                      components.
-   * @param runId         A long representing the run identifier.
-   * @param token         A {@link CancellationToken} representing the
-   *                      cancellation signal.
+   * @param session       A {@link RunSession} representing the state of the run.
    * @param publisherPool A {@link PublisherWorkerPool} representing the publisher
    *                      worker pool.
    */
-  public PreparationWorkerPool(RunnerContext context, long runId, CancellationToken token,
-      PublisherWorkerPool publisherPool) {
+  public PreparationWorkerPool(RunnerContext context, RunSession session, PublisherWorkerPool publisherPool) {
     this.context = context;
-    this.runId = runId;
-    this.token = token;
+    this.session = session;
     this.publisherPool = publisherPool;
     this.queue = new PriorityBlockingQueue<>();
     this.failures = new AtomicInteger();
@@ -104,6 +99,8 @@ public final class PreparationWorkerPool {
   private void run() {
     String worker = Thread.currentThread().getName();
     Observer observer = context.observer();
+    long runId = session.runId();
+    CancellationToken token = session.token();
 
     while (true) {
       Candidate candidate;

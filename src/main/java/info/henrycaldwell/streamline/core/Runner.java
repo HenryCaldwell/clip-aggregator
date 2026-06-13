@@ -317,8 +317,7 @@ public final class Runner {
    */
   private static int process(RunnerContext context, RunSession session) {
     PublisherWorkerPool publisherPool = new PublisherWorkerPool(context, session);
-    PreparationWorkerPool preparationPool = new PreparationWorkerPool(context, session.runId(), session.token(),
-        publisherPool);
+    PreparationWorkerPool preparationPool = new PreparationWorkerPool(context, session, publisherPool);
 
     Set<String> seen = new HashSet<>();
 
