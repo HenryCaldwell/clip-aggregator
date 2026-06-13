@@ -109,8 +109,8 @@ public final class Runner {
         context.publishers().keySet());
 
     long runId = -1;
-    int published = 0;
     CancellationToken token = new CancellationToken();
+    int published = 0;
 
     try {
       if (context.observer() != null) {
@@ -152,7 +152,9 @@ public final class Runner {
         runId = context.observer().runStart(context.name(), context.configJson());
       }
 
-      published = process(context, runId, token);
+      RunSession session = new RunSession(runId, token);
+
+      published = process(context, session);
 
       CancellationReason reason = token.getReason();
       RunStatus status = (reason == null) ? RunStatus.COMPLETED : reason.status();
@@ -310,14 +312,13 @@ public final class Runner {
    *
    * @param context A {@link RunnerContext} representing the configured
    *                components.
-   * @param runId   A long representing the run identifier.
-   * @param token   A {@link CancellationToken} representing the cancellation
-   *                signal.
+   * @param session A {@link RunSession} representing the state of the run.
    * @return An integer representing the number of clips published.
    */
-  private static int process(RunnerContext context, long runId, CancellationToken token) {
-    PublisherWorkerPool publisherPool = new PublisherWorkerPool(context, runId, token);
-    PreparationWorkerPool preparationPool = new PreparationWorkerPool(context, runId, token, publisherPool);
+  private static int process(RunnerContext context, RunSession session) {
+    PublisherWorkerPool publisherPool = new PublisherWorkerPool(context, session);
+    PreparationWorkerPool preparationPool = new PreparationWorkerPool(context, session.runId(), session.token(),
+        publisherPool);
 
     Set<String> seen = new HashSet<>();
 

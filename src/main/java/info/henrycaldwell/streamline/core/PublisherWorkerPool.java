@@ -27,8 +27,7 @@ public final class PublisherWorkerPool {
   private static final MediaRef SENTINEL = new MediaRef(null, null, null);
 
   private final RunnerContext context;
-  private final long runId;
-  private final CancellationToken token;
+  private final RunSession session;
   private final LinkedBlockingQueue<MediaRef> queue;
   private final AtomicInteger reserved;
   private final AtomicInteger pending;
@@ -41,14 +40,11 @@ public final class PublisherWorkerPool {
    *
    * @param context A {@link RunnerContext} representing the configured
    *                components.
-   * @param runId   A long representing the run identifier.
-   * @param token   A {@link CancellationToken} representing the cancellation
-   *                signal.
+   * @param session A {@link RunSession} representing the state of the run.
    */
-  public PublisherWorkerPool(RunnerContext context, long runId, CancellationToken token) {
+  public PublisherWorkerPool(RunnerContext context, RunSession session) {
     this.context = context;
-    this.runId = runId;
-    this.token = token;
+    this.session = session;
     this.queue = new LinkedBlockingQueue<>(context.publisherThreads() * 2);
     this.reserved = new AtomicInteger(0);
     this.pending = new AtomicInteger(0);
@@ -114,6 +110,8 @@ public final class PublisherWorkerPool {
   private void run() {
     String worker = Thread.currentThread().getName();
     Observer observer = context.observer();
+    long runId = session.runId();
+    CancellationToken token = session.token();
 
     while (true) {
       MediaRef media;
