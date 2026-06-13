@@ -747,98 +747,6 @@ public class RunnerTest {
       assertEquals(1, tracker.published.get());
     }
 
-    @Test
-    void recordsRunLifecycle() {
-      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
-      TestRetriever retriever = new TestRetriever(List.of(clip));
-      TrackingHistory history = new TrackingHistory();
-      NoOpDownloader downloader = new NoOpDownloader();
-      NoOpStager stager = new NoOpStager();
-      TrackingPublisher publisher = new TrackingPublisher();
-      RecordingObserver observer = new RecordingObserver();
-      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, "{\"name\":\"test\"}",
-          observer,
-          Map.of("r", retriever),
-          history,
-          downloader,
-          Map.of(),
-          stager,
-          Map.of("p", publisher));
-
-      Runner.run(context);
-
-      assertEquals(1, observer.startedRuns.size());
-      assertEquals("test", observer.startedRuns.get(0).runner());
-      assertEquals("{\"name\":\"test\"}", observer.startedRuns.get(0).config());
-      assertEquals(1, observer.endedRuns.size());
-      assertEquals(RunStatus.COMPLETED, observer.endedRuns.get(0).status());
-      assertEquals(1, observer.endedRuns.get(0).published());
-
-      assertEquals(4, observer.startedAttempts.size());
-      assertEquals(PipelineStage.CLAIM, observer.startedAttempts.get(0).stage());
-      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(1).stage());
-      assertEquals(PipelineStage.STAGE, observer.startedAttempts.get(2).stage());
-      assertEquals(PipelineStage.PUBLISH, observer.startedAttempts.get(3).stage());
-
-      assertEquals(4, observer.endedAttempts.size());
-      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
-      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(1).status());
-      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(2).status());
-      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(3).status());
-    }
-
-    @Test
-    void recordsSkippedAttemptForPublishedClip() {
-      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
-      TestRetriever retriever = new TestRetriever(List.of(clip));
-      RejectingHistory history = new RejectingHistory();
-      NoOpDownloader downloader = new NoOpDownloader();
-      TrackingPublisher tracker = new TrackingPublisher();
-      RecordingObserver observer = new RecordingObserver();
-      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
-          observer,
-          Map.of("r", retriever),
-          history,
-          downloader,
-          Map.of(),
-          null,
-          Map.of("p", tracker));
-
-      Runner.run(context);
-
-      assertEquals(1, observer.startedAttempts.size());
-      assertEquals(PipelineStage.CLAIM, observer.startedAttempts.get(0).stage());
-      assertEquals(1, observer.endedAttempts.size());
-      assertEquals(AttemptStatus.SKIPPED, observer.endedAttempts.get(0).status());
-      assertEquals(0, tracker.published.get());
-    }
-
-    @Test
-    void recordsFailureAttemptForFailedDownload() {
-      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
-      TestRetriever retriever = new TestRetriever(List.of(clip));
-      ThrowingDownloader downloader = new ThrowingDownloader();
-      TrackingPublisher tracker = new TrackingPublisher();
-      RecordingObserver observer = new RecordingObserver();
-      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
-          observer,
-          Map.of("r", retriever),
-          null,
-          downloader,
-          Map.of(),
-          null,
-          Map.of("p", tracker));
-
-      Runner.run(context);
-
-      assertEquals(1, observer.startedAttempts.size());
-      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(0).stage());
-      assertEquals(1, observer.endedAttempts.size());
-      assertEquals(AttemptStatus.FAILURE, observer.endedAttempts.get(0).status());
-      assertNotNull(observer.endedAttempts.get(0).error());
-      assertEquals(0, tracker.published.get());
-    }
-
     // Retrieval failure
 
     @Test
@@ -1045,6 +953,246 @@ public class RunnerTest {
       assertEquals(1, history.prepared.get());
       assertEquals(1, history.failed.get());
       assertEquals(0, history.published.get());
+    }
+  }
+
+  @Nested
+  class Lifecycle {
+
+    @TempDir
+    Path workDir;
+
+    @Test
+    void recordsRunLifecycle() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      TrackingHistory history = new TrackingHistory();
+      NoOpDownloader downloader = new NoOpDownloader();
+      NoOpStager stager = new NoOpStager();
+      TrackingPublisher publisher = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, "{\"name\":\"test\"}",
+          observer,
+          Map.of("r", retriever),
+          history,
+          downloader,
+          Map.of(),
+          stager,
+          Map.of("p", publisher));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.startedRuns.size());
+      assertEquals("test", observer.startedRuns.get(0).runner());
+      assertEquals("{\"name\":\"test\"}", observer.startedRuns.get(0).config());
+      assertEquals(1, observer.endedRuns.size());
+      assertEquals(RunStatus.COMPLETED, observer.endedRuns.get(0).status());
+      assertEquals(1, observer.endedRuns.get(0).published());
+
+      assertEquals(4, observer.startedAttempts.size());
+      assertEquals(PipelineStage.CLAIM, observer.startedAttempts.get(0).stage());
+      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(1).stage());
+      assertEquals(PipelineStage.STAGE, observer.startedAttempts.get(2).stage());
+      assertEquals(PipelineStage.PUBLISH, observer.startedAttempts.get(3).stage());
+
+      assertEquals(4, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(1).status());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(2).status());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(3).status());
+    }
+
+    @Test
+    void recordsSkippedAttemptForPublishedClip() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      RejectingHistory history = new RejectingHistory();
+      NoOpDownloader downloader = new NoOpDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          history,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.startedAttempts.size());
+      assertEquals(PipelineStage.CLAIM, observer.startedAttempts.get(0).stage());
+      assertEquals(1, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.SKIPPED, observer.endedAttempts.get(0).status());
+      assertEquals(0, tracker.published.get());
+    }
+
+    @Test
+    void recordsFailureAttemptForFailedDownload() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      ThrowingDownloader downloader = new ThrowingDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.startedAttempts.size());
+      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(0).stage());
+      assertEquals(1, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.FAILURE, observer.endedAttempts.get(0).status());
+      assertNotNull(observer.endedAttempts.get(0).error());
+      assertEquals(0, tracker.published.get());
+    }
+
+    @Test
+    void recordsFailureAttemptForFailedTransform() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip), "test-pipeline");
+      NoOpDownloader downloader = new NoOpDownloader();
+      Pipeline pipeline = new Pipeline("test-pipeline", List.of(new ThrowingTransformer()));
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of("test-pipeline", pipeline),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(2, observer.startedAttempts.size());
+      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(0).stage());
+      assertEquals(PipelineStage.TRANSFORM, observer.startedAttempts.get(1).stage());
+      assertEquals(2, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
+      assertEquals(AttemptStatus.FAILURE, observer.endedAttempts.get(1).status());
+      assertNotNull(observer.endedAttempts.get(1).error());
+      assertEquals(0, tracker.published.get());
+    }
+
+    @Test
+    void recordsFailureAttemptForFailedStage() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      NoOpDownloader downloader = new NoOpDownloader();
+      ThrowingStager stager = new ThrowingStager();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          stager,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(2, observer.startedAttempts.size());
+      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(0).stage());
+      assertEquals(PipelineStage.STAGE, observer.startedAttempts.get(1).stage());
+      assertEquals(2, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
+      assertEquals(AttemptStatus.FAILURE, observer.endedAttempts.get(1).status());
+      assertNotNull(observer.endedAttempts.get(1).error());
+      assertEquals(0, tracker.published.get());
+    }
+
+    @Test
+    void recordsFailureAttemptForFailedPublish() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      NoOpDownloader downloader = new NoOpDownloader();
+      ThrowingPublisher publisher = new ThrowingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", publisher));
+
+      Runner.run(context);
+
+      assertEquals(2, observer.startedAttempts.size());
+      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(0).stage());
+      assertEquals(PipelineStage.PUBLISH, observer.startedAttempts.get(1).stage());
+      assertEquals(2, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
+      assertEquals(AttemptStatus.FAILURE, observer.endedAttempts.get(1).status());
+      assertNotNull(observer.endedAttempts.get(1).error());
+    }
+
+    @Test
+    void recordsFailedRunOnPreparationFailureLimit() {
+      List<ClipRef> clips = List.of(
+          new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null),
+          new ClipRef("clip-2", null, "Title", "Broadcaster", "en", 90, null),
+          new ClipRef("clip-3", null, "Title", "Broadcaster", "en", 80, null),
+          new ClipRef("clip-4", null, "Title", "Broadcaster", "en", 70, null),
+          new ClipRef("clip-5", null, "Title", "Broadcaster", "en", 60, null));
+      TestRetriever retriever = new TestRetriever(clips);
+      TrackingThrowingDownloader downloader = new TrackingThrowingDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.endedRuns.size());
+      assertEquals(RunStatus.FAILED, observer.endedRuns.get(0).status());
+      assertEquals(0, observer.endedRuns.get(0).published());
+    }
+
+    @Test
+    void recordsFailedRunOnPublisherFailureLimit() {
+      List<ClipRef> clips = List.of(
+          new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null),
+          new ClipRef("clip-2", null, "Title", "Broadcaster", "en", 90, null),
+          new ClipRef("clip-3", null, "Title", "Broadcaster", "en", 80, null),
+          new ClipRef("clip-4", null, "Title", "Broadcaster", "en", 70, null),
+          new ClipRef("clip-5", null, "Title", "Broadcaster", "en", 60, null));
+      TestRetriever retriever = new TestRetriever(clips);
+      NoOpDownloader downloader = new NoOpDownloader();
+      TrackingThrowingPublisher publisher = new TrackingThrowingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", publisher));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.endedRuns.size());
+      assertEquals(RunStatus.FAILED, observer.endedRuns.get(0).status());
+      assertEquals(0, observer.endedRuns.get(0).published());
     }
   }
 
