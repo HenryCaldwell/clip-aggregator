@@ -93,7 +93,7 @@ public final class Runner {
    */
   public static void run(RunnerContext context) {
     LOG.info(
-        "Built runner context (runner={}, posts={}, workDir={}, preparationThreads={}, publisherThreads={}, failureLimit={}, observer={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
+        "Run started (runner={}, posts={}, workDir={}, preparationThreads={}, publisherThreads={}, failureLimit={}, observer={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
         context.name(),
         context.posts(),
         context.workDir(),
@@ -152,8 +152,6 @@ public final class Runner {
         runId = context.observer().runStart(context.name(), context.configJson());
       }
 
-      LOG.info("Starting run (runner={}, posts={})", context.name(), context.posts());
-
       published = process(context, runId, token);
 
       CancellationReason reason = token.getReason();
@@ -163,8 +161,8 @@ public final class Runner {
         context.observer().runEnd(runId, status, published);
       }
 
-      LOG.info("Run completed (runner={}, posts={}, published={}, publishers={}, status={})",
-          context.name(), context.posts(), published, context.publishers().size(), status);
+      LOG.info("Run completed (runner={}, posts={}, published={}, status={})",
+          context.name(), context.posts(), published, status);
     } finally {
       if (context.observer() != null) {
         context.observer().stop();
@@ -273,6 +271,22 @@ public final class Runner {
             MapUtils.ofNullable("retriever", retriever.getName(), "pipeline", pipeline));
       }
     }
+
+    LOG.info(
+        "Built runner context (runner={}, posts={}, workDir={}, preparationThreads={}, publisherThreads={}, failureLimit={}, observer={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
+        name,
+        posts,
+        workDir,
+        preparationThreads,
+        publisherThreads,
+        failureLimit,
+        observer != null ? observer.getName() : null,
+        retrievers.keySet(),
+        history != null ? history.getName() : null,
+        downloader.getName(),
+        pipelines.keySet(),
+        stager != null ? stager.getName() : null,
+        publishers.keySet());
 
     return new RunnerContext(
         name,
