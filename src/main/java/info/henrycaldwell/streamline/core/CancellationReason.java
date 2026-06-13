@@ -1,5 +1,7 @@
 package info.henrycaldwell.streamline.core;
 
+import info.henrycaldwell.streamline.observe.RunStatus;
+
 /**
  * Enumeration of cancellation reasons.
  *
@@ -7,9 +9,28 @@ package info.henrycaldwell.streamline.core;
  */
 public enum CancellationReason {
 
-  POSTS_REACHED,
-  PREPARATION_FAILURE_LIMIT,
-  PUBLISHER_FAILURE_LIMIT,
-  USER_CANCELED,
+  POSTS_REACHED(RunStatus.COMPLETED),
+  PREPARATION_FAILURE_LIMIT(RunStatus.FAILED),
+  PUBLISHER_FAILURE_LIMIT(RunStatus.FAILED),
+  USER_CANCELED(RunStatus.CANCELED);
 
+  private final RunStatus status;
+
+  /**
+   * Constructs a CancellationReason.
+   *
+   * @param status A {@link RunStatus} representing the terminal run status.
+   */
+  private CancellationReason(RunStatus status) {
+    this.status = status;
+  }
+
+  /**
+   * Returns the terminal run status.
+   *
+   * @return A {@link RunStatus} representing the terminal run status.
+   */
+  public RunStatus status() {
+    return status;
+  }
 }

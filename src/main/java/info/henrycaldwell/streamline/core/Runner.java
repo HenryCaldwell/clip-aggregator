@@ -110,6 +110,7 @@ public final class Runner {
 
     long runId = -1;
     int published = 0;
+    CancellationToken token = new CancellationToken();
 
     try {
       if (context.observer() != null) {
@@ -153,22 +154,17 @@ public final class Runner {
 
       LOG.info("Starting run (runner={}, posts={})", context.name(), context.posts());
 
-      try {
-        published = process(context, runId);
-      } catch (RuntimeException e) {
-        if (context.observer() != null) {
-          context.observer().runEnd(runId, RunStatus.FAILED, published);
-        }
+      published = process(context, runId, token);
 
-        throw e;
-      }
+      CancellationReason reason = token.getReason();
+      RunStatus status = (reason == null) ? RunStatus.COMPLETED : reason.status();
 
       if (context.observer() != null) {
-        context.observer().runEnd(runId, RunStatus.COMPLETED, published);
+        context.observer().runEnd(runId, status, published);
       }
 
-      LOG.info("Run completed (runner={}, posts={}, published={}, publishers={})",
-          context.name(), context.posts(), published, context.publishers().size());
+      LOG.info("Run completed (runner={}, posts={}, published={}, publishers={}, status={})",
+          context.name(), context.posts(), published, context.publishers().size(), status);
     } finally {
       if (context.observer() != null) {
         context.observer().stop();
@@ -301,10 +297,11 @@ public final class Runner {
    * @param context A {@link RunnerContext} representing the configured
    *                components.
    * @param runId   A long representing the run identifier.
+   * @param token   A {@link CancellationToken} representing the cancellation
+   *                signal.
    * @return An integer representing the number of clips published.
    */
-  private static int process(RunnerContext context, long runId) {
-    CancellationToken token = new CancellationToken();
+  private static int process(RunnerContext context, long runId, CancellationToken token) {
     PublisherWorkerPool publisherPool = new PublisherWorkerPool(context, runId, token);
     PreparationWorkerPool preparationPool = new PreparationWorkerPool(context, runId, token, publisherPool);
 
