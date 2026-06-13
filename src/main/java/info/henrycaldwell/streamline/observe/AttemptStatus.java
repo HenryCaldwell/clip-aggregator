@@ -10,5 +10,6 @@ public enum AttemptStatus {
   SUCCESS,
   FAILURE,
   SKIPPED,
+  CANCELED,
 
 }
