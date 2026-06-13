@@ -42,6 +42,12 @@ name    = "example"
 posts   = 3
 workDir = "/path/to/work"
 
+# [optional] Exactly one. Records run and attempt events.
+observer = {
+  type = "sqlite",
+  ...
+}
+
 # [required] One or more. Fetches candidate clips from a platform.
 retrievers = [
 
@@ -125,6 +131,7 @@ All errors follow the format `[CATEGORY:Component] Message (details)`, where `SP
 
 **Runtime (COMPONENT) errors:**
 
+- **Observer errors** - Verify the database exists and is writable.
 - **Retriever errors** - Verify your API credentials are valid and have the necessary permissions.
 - **History errors** - Verify the database exists and is writable.
 - **Downloader errors** - Verify the executable path is correct and the clip URL is accessible.
