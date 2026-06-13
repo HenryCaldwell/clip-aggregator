@@ -18,6 +18,7 @@ import info.henrycaldwell.streamline.core.CancellationReason;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
+import info.henrycaldwell.streamline.core.RunSession;
 import info.henrycaldwell.streamline.observe.AbstractObserver;
 import info.henrycaldwell.streamline.observe.AttemptStatus;
 import info.henrycaldwell.streamline.observe.PipelineStage;
@@ -47,7 +48,7 @@ public class PipelineTest {
     void returnsOriginalMediaWhenPipelineIsEmpty() {
       Pipeline pipeline = new Pipeline("pipeline", List.of());
 
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", new CancellationToken());
+      MediaRef result = pipeline.run(MEDIA, null, new RunSession(0L, new CancellationToken()), "worker");
 
       assertSame(MEDIA, result);
     }
@@ -63,7 +64,7 @@ public class PipelineTest {
 
       Pipeline pipeline = new Pipeline("pipeline", List.of(first, second));
 
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", new CancellationToken());
+      MediaRef result = pipeline.run(MEDIA, null, new RunSession(0L, new CancellationToken()), "worker");
 
       assertEquals(secondOutput, result);
       assertEquals(List.of("first:input.mp4", "second:first.mp4"), calls);
@@ -79,7 +80,7 @@ public class PipelineTest {
 
       Pipeline pipeline = new Pipeline("pipeline", List.of(first, second));
 
-      pipeline.run(MEDIA, null, 0L, "worker", new CancellationToken());
+      pipeline.run(MEDIA, null, new RunSession(0L, new CancellationToken()), "worker");
 
       assertSame(MEDIA, first.input());
       assertSame(firstOutput, second.input());
@@ -94,7 +95,7 @@ public class PipelineTest {
 
       CancellationToken token = new CancellationToken();
       token.cancel(CancellationReason.USER_CANCELED);
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", token);
+      MediaRef result = pipeline.run(MEDIA, null, new RunSession(0L, token), "worker");
 
       assertSame(MEDIA, result);
       assertEquals(List.of(), calls);
@@ -111,7 +112,7 @@ public class PipelineTest {
           new CancelingTransformer("first", firstOutput, token, calls),
           new RecordingTransformer("second", MEDIA.withFile(Path.of("second.mp4")), calls)));
 
-      MediaRef result = pipeline.run(MEDIA, null, 0L, "worker", token);
+      MediaRef result = pipeline.run(MEDIA, null, new RunSession(0L, token), "worker");
 
       assertSame(firstOutput, result);
       assertEquals(List.of("first:input.mp4"), calls);
@@ -123,7 +124,7 @@ public class PipelineTest {
       Pipeline pipeline = new Pipeline("pipeline", List.of(
           new RecordingTransformer("transformer", MEDIA.withFile(Path.of("out.mp4")), new ArrayList<>())));
 
-      pipeline.run(MEDIA, observer, 42L, "worker", new CancellationToken());
+      pipeline.run(MEDIA, observer, new RunSession(42L, new CancellationToken()), "worker");
 
       assertEquals(1, observer.endedAttempts.size());
       assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
@@ -139,7 +140,7 @@ public class PipelineTest {
       Pipeline pipeline = new Pipeline("pipeline", List.of(first, second));
 
       RuntimeException thrown = assertThrows(RuntimeException.class,
-          () -> pipeline.run(MEDIA, observer, 42L, "worker", new CancellationToken()));
+          () -> pipeline.run(MEDIA, observer, new RunSession(42L, new CancellationToken()), "worker"));
 
       assertSame(error, thrown);
       assertEquals(1, observer.startedAttempts.size());
@@ -161,7 +162,7 @@ public class PipelineTest {
           new CancelingTransformer("first", firstOutput, token, calls),
           new RecordingTransformer("second", MEDIA.withFile(Path.of("second.mp4")), calls)));
 
-      pipeline.run(MEDIA, observer, 42L, "worker", token);
+      pipeline.run(MEDIA, observer, new RunSession(42L, token), "worker");
 
       assertEquals(1, observer.startedAttempts.size());
       assertEquals("first", observer.startedAttempts.get(0).component());

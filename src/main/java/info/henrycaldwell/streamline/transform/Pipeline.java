@@ -5,6 +5,7 @@ import java.util.List;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
+import info.henrycaldwell.streamline.core.RunSession;
 import info.henrycaldwell.streamline.observe.AttemptStatus;
 import info.henrycaldwell.streamline.observe.Observer;
 import info.henrycaldwell.streamline.observe.PipelineStage;
@@ -46,15 +47,15 @@ public final class Pipeline {
    * @param media    A {@link MediaRef} representing the media to transform.
    * @param observer An {@link Observer} representing the observer, or
    *                 {@code null}.
-   * @param runId    A long representing the run identifier.
+   * @param session  A {@link RunSession} representing the state of the run.
    * @param worker   A string representing the worker name.
-   * @param token    A {@link CancellationToken} representing the cancellation
-   *                 signal.
    * @return A {@link MediaRef} representing the transformed media.
    */
-  public MediaRef run(MediaRef media, Observer observer, long runId, String worker, CancellationToken token) {
+  public MediaRef run(MediaRef media, Observer observer, RunSession session, String worker) {
     ClipRef clip = media.clip();
     MediaRef curr = media;
+    long runId = session.runId();
+    CancellationToken token = session.token();
 
     for (Transformer transformer : transformers) {
       if (token.getReason() != null) {

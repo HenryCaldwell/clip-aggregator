@@ -186,7 +186,7 @@ public final class PreparationWorkerPool {
         }
 
         if (pipeline != null) {
-          media = pipeline.run(media, observer, runId, worker, token);
+          media = pipeline.run(media, observer, session, worker);
         }
 
         if (context.stager() != null) {
