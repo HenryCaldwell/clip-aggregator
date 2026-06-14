@@ -18,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationReason;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
@@ -230,6 +231,37 @@ public class YtDlpDownloaderTest {
 
       assertTrue(exception.getMessage().contains("yt-dlp process exited with non-zero code"));
       assertTrue(exception.getMessage().contains("exitCode="));
+    }
+
+    @Test
+    void throwsWhenCanceled() {
+      Path target = tempDir.resolve("output.mp4");
+
+      ClipRef clip = new ClipRef("clip-1", "https://example.com/clip", "Title", "Broadcaster", "en", 100, null);
+      Config config = ConfigFactory.parseString("""
+          name = downloader
+          type = yt-dlp
+          ytDlpPath = yt-dlp
+          """);
+      ProcessFactory factory = (c, t) -> javaCommand("-cp", System.getProperty("java.class.path"),
+          SleepProcess.class.getName());
+      YtDlpDownloader downloader = new YtDlpDownloader(config, factory);
+      CancellationToken token = new CancellationToken();
+      Thread canceler = new Thread(() -> {
+        try {
+          Thread.sleep(50);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+
+        token.cancel(CancellationReason.USER_CANCELED);
+      });
+      canceler.start();
+
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> downloader.download(clip, target, token));
+
+      assertTrue(exception.getMessage().contains("yt-dlp process exited with non-zero code"));
     }
 
     @Test
