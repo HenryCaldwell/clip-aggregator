@@ -33,7 +33,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           """);
 
@@ -46,7 +46,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           broadcasterId = broadcaster-1
           """);
 
@@ -59,7 +59,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           window = 48
           """);
@@ -73,7 +73,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           limit = 5
           """);
@@ -87,7 +87,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           languages = [en, fr]
           """);
@@ -101,7 +101,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           tags = [funny, highlights]
           """);
@@ -114,7 +114,7 @@ public class TwitchRetrieverTest {
       Config config = ConfigFactory.parseString("""
           name = retriever
           type = twitch
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           """);
 
@@ -130,7 +130,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = [client-1]
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           """);
 
@@ -152,7 +152,7 @@ public class TwitchRetrieverTest {
       SpecException exception = assertThrows(SpecException.class, () -> new TwitchRetriever(config));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
-      assertTrue(exception.getMessage().contains("key=token"));
+      assertTrue(exception.getMessage().contains("key=accessKey"));
     }
 
     @Test
@@ -161,14 +161,14 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = [token-1]
+          accessKey = [key-1]
           gameId = game-1
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> new TwitchRetriever(config));
 
       assertTrue(exception.getMessage().contains("Incorrect key type (expected string)"));
-      assertTrue(exception.getMessage().contains("key=token"));
+      assertTrue(exception.getMessage().contains("key=accessKey"));
     }
 
     @Test
@@ -177,7 +177,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = [game-1]
           """);
 
@@ -193,7 +193,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           broadcasterId = [broadcaster-1]
           """);
 
@@ -209,7 +209,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           window = invalid
           """);
@@ -226,7 +226,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           window = 0
           """);
@@ -244,7 +244,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           limit = invalid
           """);
@@ -261,7 +261,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           limit = 0
           """);
@@ -279,7 +279,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           languages = en
           """);
@@ -296,7 +296,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           languages = [""]
           """);
@@ -313,7 +313,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           tags = funny
           """);
@@ -330,7 +330,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           tags = [""]
           """);
@@ -347,7 +347,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> new TwitchRetriever(config));
@@ -363,7 +363,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           broadcasterId = broadcaster-1
           """);
@@ -381,7 +381,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           broadcasterId = broadcaster-1
           languages = [en]
           """);
@@ -398,7 +398,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           extra = value
           """);
@@ -419,7 +419,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           """);
       HttpSender sender = request -> """
@@ -470,7 +470,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           broadcasterId = broadcaster-1
           """);
       HttpSender sender = request -> """
@@ -507,7 +507,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           """);
       HttpSender sender = request -> "{\"data\": [], \"pagination\": {}}";
@@ -524,7 +524,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           """);
       int[] call = { 0 };
@@ -574,7 +574,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           window = 48
           """);
@@ -603,7 +603,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           limit = 1
           """);
@@ -643,7 +643,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           languages = [en]
           """);
@@ -684,7 +684,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           tags = [funny, highlights]
           """);
@@ -716,7 +716,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           """);
       HttpSender sender = request -> {
@@ -733,7 +733,7 @@ public class TwitchRetrieverTest {
           name = retriever
           type = twitch
           clientId = client-1
-          token = token-1
+          accessKey = key-1
           gameId = game-1
           """);
       HttpSender sender = request -> "not-valid-json";

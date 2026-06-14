@@ -352,7 +352,7 @@ public class RunnerTest {
               name = test_retriever
               type = twitch
               clientId = client-1
-              token = token-1
+              accessKey = key-1
               gameId = game-1
             }
           ]
@@ -375,7 +375,7 @@ public class RunnerTest {
               name = test_retriever
               type = twitch
               clientId = client-1
-              token = token-1
+              accessKey = key-1
               gameId = game-1
             }
           ]
@@ -399,8 +399,8 @@ public class RunnerTest {
           posts = 5
           workDir = work
           retrievers = [
-            { name = r, type = twitch, clientId = c, token = t, gameId = g }
-            { name = r, type = twitch, clientId = c, token = t, gameId = g }
+            { name = r, type = twitch, clientId = c, accessKey = t, gameId = g }
+            { name = r, type = twitch, clientId = c, accessKey = t, gameId = g }
           ]
           """);
 
@@ -457,7 +457,7 @@ public class RunnerTest {
               name = test_retriever
               type = twitch
               clientId = client-1
-              token = token-1
+              accessKey = key-1
               gameId = game-1
               pipeline = nonexistent
             }

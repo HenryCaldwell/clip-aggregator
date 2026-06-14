@@ -30,7 +30,7 @@ import info.henrycaldwell.streamline.util.MapUtils;
 public final class TwitchRetriever extends AbstractRetriever {
 
   public static final Spec SPEC = Spec.builder()
-      .requiredString("clientId", "token")
+      .requiredString("clientId", "accessKey")
       .optionalString("gameId", "broadcasterId")
       .optionalNumber("window", "limit")
       .optionalStringList("languages", "tags")
@@ -42,7 +42,7 @@ public final class TwitchRetriever extends AbstractRetriever {
   private final HttpSender sender;
 
   private final String clientId;
-  private final String token;
+  private final String accessKey;
 
   private final String gameId;
   private final String broadcasterId;
@@ -74,7 +74,7 @@ public final class TwitchRetriever extends AbstractRetriever {
     super(config, SPEC);
 
     this.clientId = config.getString("clientId");
-    this.token = config.getString("token");
+    this.accessKey = config.getString("accessKey");
     this.gameId = config.hasPath("gameId") ? config.getString("gameId") : null;
     this.broadcasterId = config.hasPath("broadcasterId") ? config.getString("broadcasterId") : null;
 
@@ -181,7 +181,7 @@ public final class TwitchRetriever extends AbstractRetriever {
 
       HttpRequest request = HttpRequest.newBuilder()
           .uri(URI.create(url.toString()))
-          .header("Authorization", "Bearer " + token)
+          .header("Authorization", "Bearer " + accessKey)
           .header("Client-Id", clientId)
           .GET()
           .build();
