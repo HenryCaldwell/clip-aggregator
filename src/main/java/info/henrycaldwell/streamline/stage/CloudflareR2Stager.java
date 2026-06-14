@@ -20,6 +20,7 @@ import info.henrycaldwell.streamline.util.MapUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Configuration;
@@ -116,6 +117,7 @@ public final class CloudflareR2Stager extends AbstractStager {
         .credentialsProvider(StaticCredentialsProvider.create(credentials))
         .region(Region.of(region))
         .serviceConfiguration(configuration)
+        .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
         .build();
 
     operations = new S3Operations() {
