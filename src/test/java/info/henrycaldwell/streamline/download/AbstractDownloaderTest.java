@@ -14,6 +14,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -96,7 +97,7 @@ public class AbstractDownloaderTest {
     }
 
     @Override
-    public MediaRef download(ClipRef clip, Path target) {
+    public MediaRef download(ClipRef clip, Path target, CancellationToken token) {
       return null;
     }
   }

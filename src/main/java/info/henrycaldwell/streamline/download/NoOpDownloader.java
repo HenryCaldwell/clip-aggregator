@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 
@@ -31,10 +32,12 @@ public final class NoOpDownloader extends AbstractDownloader {
    *
    * @param clip   A {@link ClipRef} representing the clip to download.
    * @param target A {@link Path} representing the media destination.
+   * @param token  A {@link CancellationToken} representing the cancellation
+   *               signal.
    * @return A {@link MediaRef} representing the downloaded media.
    */
   @Override
-  public MediaRef download(ClipRef clip, Path target) {
+  public MediaRef download(ClipRef clip, Path target, CancellationToken token) {
     return new MediaRef(clip, target, null);
   }
 }

@@ -8,6 +8,8 @@ import java.util.concurrent.TimeUnit;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.Cancellable;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
@@ -69,11 +71,13 @@ public final class YtDlpDownloader extends AbstractDownloader {
    *
    * @param clip   A {@link ClipRef} representing the clip to download.
    * @param target A {@link Path} representing the media destination.
+   * @param token  A {@link CancellationToken} representing the cancellation
+   *               signal.
    * @return A {@link MediaRef} representing the downloaded media.
    * @throws ComponentException if downloading fails at any step.
    */
   @Override
-  public MediaRef download(ClipRef clip, Path target) {
+  public MediaRef download(ClipRef clip, Path target, CancellationToken token) {
     Path parent = target.getParent();
     if (parent != null) {
       try {
@@ -104,26 +108,33 @@ public final class YtDlpDownloader extends AbstractDownloader {
           MapUtils.ofNullable("ytDlpPath", ytDlpPath, "clipId", clip.id(), "targetPath", target), e);
     }
 
-    boolean complete;
+    Cancellable kill = () -> process.destroy();
+    token.register(kill);
+
     try {
-      complete = process.waitFor(timeout, TimeUnit.SECONDS);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      process.destroyForcibly();
-      throw new ComponentException(name, "Interrupted while waiting for yt-dlp process",
-          MapUtils.ofNullable("clipId", clip.id()), e);
-    }
+      boolean complete;
+      try {
+        complete = process.waitFor(timeout, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        process.destroyForcibly();
+        throw new ComponentException(name, "Interrupted while waiting for yt-dlp process",
+            MapUtils.ofNullable("clipId", clip.id()), e);
+      }
 
-    if (!complete) {
-      process.destroyForcibly();
-      throw new ComponentException(name, "Timed out while waiting for yt-dlp process",
-          MapUtils.ofNullable("clipId", clip.id(), "timeout", timeout));
-    }
+      if (!complete) {
+        process.destroyForcibly();
+        throw new ComponentException(name, "Timed out while waiting for yt-dlp process",
+            MapUtils.ofNullable("clipId", clip.id(), "timeout", timeout));
+      }
 
-    int code = process.exitValue();
-    if (code != 0) {
-      throw new ComponentException(name, "yt-dlp process exited with non-zero code",
-          MapUtils.ofNullable("clipId", clip.id(), "exitCode", code));
+      int code = process.exitValue();
+      if (code != 0) {
+        throw new ComponentException(name, "yt-dlp process exited with non-zero code",
+            MapUtils.ofNullable("clipId", clip.id(), "exitCode", code));
+      }
+    } finally {
+      token.unregister(kill);
     }
 
     if (!Files.exists(target)) {

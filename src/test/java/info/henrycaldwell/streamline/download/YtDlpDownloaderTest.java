@@ -18,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
@@ -145,7 +146,7 @@ public class YtDlpDownloaderTest {
           WriteFileProcess.class.getName(), t.toString());
       YtDlpDownloader downloader = new YtDlpDownloader(config, factory);
 
-      MediaRef result = assertDoesNotThrow(() -> downloader.download(clip, target));
+      MediaRef result = assertDoesNotThrow(() -> downloader.download(clip, target, new CancellationToken()));
 
       assertEquals(clip, result.clip());
       assertEquals(target, result.file());
@@ -164,7 +165,8 @@ public class YtDlpDownloaderTest {
           """);
       YtDlpDownloader downloader = new YtDlpDownloader(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> downloader.download(clip, target));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> downloader.download(clip, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Target file already exists"));
       assertTrue(exception.getMessage().contains("targetPath=" + target));
@@ -182,7 +184,8 @@ public class YtDlpDownloaderTest {
           """);
       YtDlpDownloader downloader = new YtDlpDownloader(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> downloader.download(clip, target));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> downloader.download(clip, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to start yt-dlp process"));
     }
@@ -202,7 +205,8 @@ public class YtDlpDownloaderTest {
           SleepProcess.class.getName());
       YtDlpDownloader downloader = new YtDlpDownloader(config, factory);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> downloader.download(clip, target));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> downloader.download(clip, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Timed out while waiting for yt-dlp process"));
       assertTrue(exception.getMessage().contains("timeout=1"));
@@ -221,7 +225,8 @@ public class YtDlpDownloaderTest {
       ProcessFactory factory = (c, t) -> javaCommand("--definitely-not-a-real-java-option");
       YtDlpDownloader downloader = new YtDlpDownloader(config, factory);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> downloader.download(clip, target));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> downloader.download(clip, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("yt-dlp process exited with non-zero code"));
       assertTrue(exception.getMessage().contains("exitCode="));
@@ -240,7 +245,8 @@ public class YtDlpDownloaderTest {
       ProcessFactory factory = (c, t) -> javaCommand("-version");
       YtDlpDownloader downloader = new YtDlpDownloader(config, factory);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> downloader.download(clip, target));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> downloader.download(clip, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Output file missing after download"));
       assertTrue(exception.getMessage().contains("targetPath=" + target));
@@ -260,7 +266,8 @@ public class YtDlpDownloaderTest {
           WriteEmptyFileProcess.class.getName(), t.toString());
       YtDlpDownloader downloader = new YtDlpDownloader(config, factory);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> downloader.download(clip, target));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> downloader.download(clip, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Output file empty after download"));
       assertTrue(exception.getMessage().contains("sizeBytes=0"));

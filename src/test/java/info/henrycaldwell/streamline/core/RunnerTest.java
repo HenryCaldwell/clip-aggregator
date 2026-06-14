@@ -1327,7 +1327,7 @@ public class RunnerTest {
     }
 
     @Override
-    public MediaRef download(ClipRef clip, Path target) {
+    public MediaRef download(ClipRef clip, Path target, CancellationToken token) {
       throw new RuntimeException("download failed");
     }
   }
@@ -1342,7 +1342,7 @@ public class RunnerTest {
     }
 
     @Override
-    public MediaRef download(ClipRef clip, Path target) {
+    public MediaRef download(ClipRef clip, Path target, CancellationToken token) {
       attempts.incrementAndGet();
       throw new RuntimeException("download failed");
     }
@@ -1356,7 +1356,7 @@ public class RunnerTest {
     }
 
     @Override
-    public MediaRef download(ClipRef clip, Path target) {
+    public MediaRef download(ClipRef clip, Path target, CancellationToken token) {
       return new MediaRef(clip, target, null);
     }
   }
@@ -1369,7 +1369,7 @@ public class RunnerTest {
     }
 
     @Override
-    public MediaRef transform(MediaRef media) {
+    public MediaRef transform(MediaRef media, CancellationToken token) {
       throw new RuntimeException("transform failed");
     }
   }

@@ -172,7 +172,7 @@ public final class PreparationWorkerPool {
         }
 
         try {
-          media = context.downloader().download(clip, target);
+          media = context.downloader().download(clip, target, token);
 
           if (observer != null) {
             observer.attemptEnd(downloadAttemptId, AttemptStatus.SUCCESS, null);

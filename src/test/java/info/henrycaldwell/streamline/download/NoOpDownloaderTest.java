@@ -14,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -64,7 +65,7 @@ public class NoOpDownloaderTest {
           """);
       NoOpDownloader downloader = new NoOpDownloader(config);
 
-      MediaRef result = downloader.download(clip, target);
+      MediaRef result = downloader.download(clip, target, new CancellationToken());
 
       assertEquals(clip, result.clip());
       assertEquals(target, result.file());

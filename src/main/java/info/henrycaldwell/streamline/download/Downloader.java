@@ -2,6 +2,7 @@ package info.henrycaldwell.streamline.download;
 
 import java.nio.file.Path;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 
@@ -24,7 +25,9 @@ public interface Downloader {
    * 
    * @param clip   A {@link ClipRef} representing the clip to download.
    * @param target A {@link Path} representing the media destination.
+   * @param token  A {@link CancellationToken} representing the cancellation
+   *               signal.
    * @return A {@link MediaRef} representing the downloaded media.
    */
-  MediaRef download(ClipRef clip, Path target);
+  MediaRef download(ClipRef clip, Path target, CancellationToken token);
 }
