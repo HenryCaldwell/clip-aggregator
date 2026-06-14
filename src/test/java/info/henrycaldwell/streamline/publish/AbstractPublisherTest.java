@@ -12,6 +12,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.core.PublishRef;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -94,7 +95,7 @@ public class AbstractPublisherTest {
     }
 
     @Override
-    public PublishRef publish(MediaRef media) {
+    public PublishRef publish(MediaRef media, CancellationToken token) {
       return null;
     }
   }

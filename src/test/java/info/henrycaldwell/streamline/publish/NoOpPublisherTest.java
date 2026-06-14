@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.core.PublishRef;
@@ -58,7 +59,7 @@ public class NoOpPublisherTest {
           """);
       NoOpPublisher publisher = new NoOpPublisher(config);
 
-      PublishRef result = publisher.publish(media);
+      PublishRef result = publisher.publish(media, new CancellationToken());
 
       assertNull(result.uri());
     }

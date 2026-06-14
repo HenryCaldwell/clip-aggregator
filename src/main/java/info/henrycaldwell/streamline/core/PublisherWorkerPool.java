@@ -165,7 +165,7 @@ public final class PublisherWorkerPool {
         }
 
         try {
-          PublishRef ref = publisher.publish(media);
+          PublishRef ref = publisher.publish(media, token);
           LOG.info("Published clip (runner={}, publisher={}, clipId={}, URI={}, thread={})", context.name(),
               publisherName, clipId, ref.uri(), worker);
 

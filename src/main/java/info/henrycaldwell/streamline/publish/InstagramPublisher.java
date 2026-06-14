@@ -5,6 +5,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +15,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.Cancellable;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.core.PublishRef;
 import info.henrycaldwell.streamline.error.ComponentException;
@@ -91,11 +96,13 @@ public final class InstagramPublisher extends AbstractPublisher {
    * Publishes the input media as an Instagram Reel.
    *
    * @param media A {@link MediaRef} representing the media to publish.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link PublishRef} representing the published clip.
    * @throws ComponentException if publishing fails at any step.
    */
   @Override
-  public PublishRef publish(MediaRef media) {
+  public PublishRef publish(MediaRef media, CancellationToken token) {
     URI uri = media.uri();
 
     if (uri == null || uri.getScheme() == null
@@ -107,10 +114,10 @@ public final class InstagramPublisher extends AbstractPublisher {
     String url = uri.toString();
     String caption = buildCaption(media);
 
-    String containerId = createContainer(url, caption);
-    awaitContainer(containerId);
-    String mediaId = publishContainer(containerId);
-    String permalink = fetchPermalink(mediaId);
+    String containerId = createContainer(url, caption, token);
+    awaitContainer(containerId, token);
+    String mediaId = publishContainer(containerId, token);
+    String permalink = fetchPermalink(mediaId, token);
 
     return new PublishRef(media.clip(), URI.create(permalink));
   }
@@ -120,11 +127,13 @@ public final class InstagramPublisher extends AbstractPublisher {
    *
    * @param url     A string representing the public video URL.
    * @param caption A string representing the caption, or {@code null}.
+   * @param token   A {@link CancellationToken} representing the cancellation
+   *                signal.
    * @return A string representing the container identifier.
    * @throws ComponentException if the Instagram Graph API call fails or the
    *                            response is invalid.
    */
-  private String createContainer(String url, String caption) {
+  private String createContainer(String url, String caption, CancellationToken token) {
     ObjectNode root = MAPPER.createObjectNode();
 
     root.put("video_url", url);
@@ -142,7 +151,7 @@ public final class InstagramPublisher extends AbstractPublisher {
         .POST(HttpRequest.BodyPublishers.ofString(root.toString()))
         .build();
 
-    String json = sender.send(request);
+    String json = sender.send(request, token);
 
     String id;
     try {
@@ -164,10 +173,12 @@ public final class InstagramPublisher extends AbstractPublisher {
    * Waits for the Instagram Reels media container to become ready for publishing.
    *
    * @param containerId A string representing the container identifier.
+   * @param token       A {@link CancellationToken} representing the cancellation
+   *                    signal.
    * @throws ComponentException if the container does not become ready within the
    *                            timeout or enters an error state.
    */
-  private void awaitContainer(String containerId) {
+  private void awaitContainer(String containerId, CancellationToken token) {
     long start = System.nanoTime();
 
     while (System.nanoTime() - start < TimeUnit.SECONDS.toNanos(timeout)) {
@@ -180,7 +191,7 @@ public final class InstagramPublisher extends AbstractPublisher {
           .GET()
           .build();
 
-      String json = sender.send(request);
+      String json = sender.send(request, token);
 
       String status;
       String error;
@@ -207,12 +218,18 @@ public final class InstagramPublisher extends AbstractPublisher {
                 "error", String.valueOf(error)));
       }
 
+      boolean canceled;
       try {
-        Thread.sleep(TimeUnit.SECONDS.toMillis(interval));
+        canceled = token.awaitCancellation(interval);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new ComponentException(name, "Interrupted while waiting for Instagram media container",
             MapUtils.ofNullable("containerId", containerId), e);
+      }
+
+      if (canceled) {
+        throw new ComponentException(name, "Canceled while waiting for Instagram media container",
+            MapUtils.ofNullable("containerId", containerId));
       }
     }
 
@@ -224,11 +241,13 @@ public final class InstagramPublisher extends AbstractPublisher {
    * Publishes an Instagram Reels media container.
    *
    * @param containerId A string representing the container identifier.
+   * @param token       A {@link CancellationToken} representing the cancellation
+   *                    signal.
    * @return A string representing the media identifier.
    * @throws ComponentException if the Instagram Graph API call fails or the
    *                            response is invalid.
    */
-  private String publishContainer(String containerId) {
+  private String publishContainer(String containerId, CancellationToken token) {
     ObjectNode root = MAPPER.createObjectNode();
     root.put("creation_id", containerId);
 
@@ -241,7 +260,7 @@ public final class InstagramPublisher extends AbstractPublisher {
         .POST(HttpRequest.BodyPublishers.ofString(root.toString()))
         .build();
 
-    String json = sender.send(request);
+    String json = sender.send(request, token);
 
     String id;
     try {
@@ -263,11 +282,13 @@ public final class InstagramPublisher extends AbstractPublisher {
    * Fetches the permalink for a published Instagram media object.
    * 
    * @param mediaId A string representing the media identifier.
+   * @param token   A {@link CancellationToken} representing the cancellation
+   *                signal.
    * @return A string representing the permalink URL.
    * @throws ComponentException if the Instagram Graph API call fails or the
    *                            response is invalid.
    */
-  private String fetchPermalink(String mediaId) {
+  private String fetchPermalink(String mediaId, CancellationToken token) {
     URI endpoint = URI.create("https://graph.instagram.com/v23.0/" + mediaId + "?fields=permalink");
 
     HttpRequest request = HttpRequest.newBuilder()
@@ -276,7 +297,7 @@ public final class InstagramPublisher extends AbstractPublisher {
         .GET()
         .build();
 
-    String json = sender.send(request);
+    String json = sender.send(request, token);
 
     String permalink;
     try {
@@ -338,24 +359,36 @@ public final class InstagramPublisher extends AbstractPublisher {
    * Sends an HTTP request using the default Instagram HTTP client.
    *
    * @param request A {@link HttpRequest} representing the request to send.
+   * @param token   A {@link CancellationToken} representing the cancellation
+   *                signal.
    * @return A string representing the response body.
    * @throws ComponentException if the request fails or returns a non-2xx status
    *                            code.
    */
-  private String defaultSend(HttpRequest request) {
+  private String defaultSend(HttpRequest request, CancellationToken token) {
     URI uri = request.uri();
     String method = request.method();
 
+    CompletableFuture<HttpResponse<String>> future = http.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+    Cancellable abort = () -> future.cancel(true);
+    token.register(abort);
+
     HttpResponse<String> response;
     try {
-      response = http.send(request, HttpResponse.BodyHandlers.ofString());
-    } catch (IOException e) {
-      throw new ComponentException(name, "Failed to call Instagram Graph API",
+      response = future.get();
+    } catch (CancellationException e) {
+      throw new ComponentException(name, "Canceled while calling Instagram Graph API",
           MapUtils.ofNullable("method", method, "uri", uri.toString()), e);
+    } catch (ExecutionException e) {
+      throw new ComponentException(name, "Failed to call Instagram Graph API",
+          MapUtils.ofNullable("method", method, "uri", uri.toString()), e.getCause());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
+      future.cancel(true);
       throw new ComponentException(name, "Interrupted while calling Instagram Graph API",
           MapUtils.ofNullable("method", method, "uri", uri.toString()), e);
+    } finally {
+      token.unregister(abort);
     }
 
     int status = response.statusCode();

@@ -1474,7 +1474,7 @@ public class RunnerTest {
     }
 
     @Override
-    public PublishRef publish(MediaRef media) {
+    public PublishRef publish(MediaRef media, CancellationToken token) {
       published.incrementAndGet();
       return new PublishRef(media.clip(), null);
     }
@@ -1488,7 +1488,7 @@ public class RunnerTest {
     }
 
     @Override
-    public PublishRef publish(MediaRef media) {
+    public PublishRef publish(MediaRef media, CancellationToken token) {
       throw new RuntimeException("publish failed");
     }
   }
@@ -1503,7 +1503,7 @@ public class RunnerTest {
     }
 
     @Override
-    public PublishRef publish(MediaRef media) {
+    public PublishRef publish(MediaRef media, CancellationToken token) {
       attempts.incrementAndGet();
       throw new RuntimeException("publish failed");
     }
@@ -1517,7 +1517,7 @@ public class RunnerTest {
     }
 
     @Override
-    public PublishRef publish(MediaRef media) {
+    public PublishRef publish(MediaRef media, CancellationToken token) {
       return new PublishRef(media.clip(), null);
     }
   }

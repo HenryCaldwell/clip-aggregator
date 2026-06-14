@@ -3,6 +3,7 @@ package info.henrycaldwell.streamline.publish;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.core.PublishRef;
 
@@ -29,10 +30,12 @@ public final class NoOpPublisher extends AbstractPublisher {
    * Publishes the input media by performing no action.
    *
    * @param media A {@link MediaRef} representing the media to publish.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link PublishRef} representing the published media.
    */
   @Override
-  public PublishRef publish(MediaRef media) {
+  public PublishRef publish(MediaRef media, CancellationToken token) {
     return new PublishRef(media.clip(), null);
   }
 }

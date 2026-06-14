@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.core.PublishRef;
@@ -247,7 +248,7 @@ public class InstagramPublisherTest {
           accessKey = key-1
           """);
       int[] call = { 0 };
-      HttpSender sender = request -> switch (call[0]++) {
+      HttpSender sender = (request, token) -> switch (call[0]++) {
         case 0 -> "{\"id\": \"container-1\"}";
         case 1 -> "{\"status_code\": \"FINISHED\"}";
         case 2 -> "{\"id\": \"media-1\"}";
@@ -255,7 +256,7 @@ public class InstagramPublisherTest {
       };
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      PublishRef result = assertDoesNotThrow(() -> publisher.publish(media));
+      PublishRef result = assertDoesNotThrow(() -> publisher.publish(media, new CancellationToken()));
 
       assertEquals(CLIP, result.clip());
       assertEquals(URI.create("https://www.instagram.com/p/abc/"), result.uri());
@@ -270,10 +271,10 @@ public class InstagramPublisherTest {
           accountId = account-1
           accessKey = key-1
           """);
-      HttpSender sender = request -> "";
+      HttpSender sender = (request, token) -> "";
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Media URI missing or not HTTP(S)"));
       assertTrue(exception.getMessage().contains("mediaId=clip-1"));
@@ -288,10 +289,10 @@ public class InstagramPublisherTest {
           accountId = account-1
           accessKey = key-1
           """);
-      HttpSender sender = request -> "";
+      HttpSender sender = (request, token) -> "";
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Media URI missing or not HTTP(S)"));
       assertTrue(exception.getMessage().contains("mediaId=clip-1"));
@@ -306,12 +307,12 @@ public class InstagramPublisherTest {
           accountId = account-1
           accessKey = key-1
           """);
-      HttpSender sender = request -> {
+      HttpSender sender = (request, token) -> {
         throw new ComponentException("publisher", "HTTP call failed");
       };
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      assertThrows(ComponentException.class, () -> publisher.publish(media));
+      assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
     }
 
     @Test
@@ -323,10 +324,10 @@ public class InstagramPublisherTest {
           accountId = account-1
           accessKey = key-1
           """);
-      HttpSender sender = request -> "not-valid-json";
+      HttpSender sender = (request, token) -> "not-valid-json";
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to parse Instagram media container id"));
     }
@@ -340,10 +341,10 @@ public class InstagramPublisherTest {
           accountId = account-1
           accessKey = key-1
           """);
-      HttpSender sender = request -> "{\"id\": \"\"}";
+      HttpSender sender = (request, token) -> "{\"id\": \"\"}";
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Instagram media container creation did not return an id"));
     }
@@ -358,13 +359,13 @@ public class InstagramPublisherTest {
           accessKey = key-1
           """);
       int[] call = { 0 };
-      HttpSender sender = request -> switch (call[0]++) {
+      HttpSender sender = (request, token) -> switch (call[0]++) {
         case 0 -> "{\"id\": \"container-1\"}";
         default -> "not-valid-json";
       };
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to parse Instagram media container status"));
     }
@@ -379,13 +380,13 @@ public class InstagramPublisherTest {
           accessKey = key-1
           """);
       int[] call = { 0 };
-      HttpSender sender = request -> switch (call[0]++) {
+      HttpSender sender = (request, token) -> switch (call[0]++) {
         case 0 -> "{\"id\": \"container-1\"}";
         default -> "{}";
       };
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Instagram media container status missing status code"));
     }
@@ -400,13 +401,13 @@ public class InstagramPublisherTest {
           accessKey = key-1
           """);
       int[] call = { 0 };
-      HttpSender sender = request -> switch (call[0]++) {
+      HttpSender sender = (request, token) -> switch (call[0]++) {
         case 0 -> "{\"id\": \"container-1\"}";
         default -> "{\"status_code\": \"ERROR\", \"error_message\": \"Video processing failed\"}";
       };
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Instagram media container status entered error state"));
       assertTrue(exception.getMessage().contains("error=Video processing failed"));
@@ -424,13 +425,13 @@ public class InstagramPublisherTest {
           interval = 2
           """);
       int[] call = { 0 };
-      HttpSender sender = request -> switch (call[0]++) {
+      HttpSender sender = (request, token) -> switch (call[0]++) {
         case 0 -> "{\"id\": \"container-1\"}";
         default -> "{\"status_code\": \"IN_PROGRESS\"}";
       };
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Timed out while waiting for Instagram media container"));
       assertTrue(exception.getMessage().contains("containerId=container-1"));
@@ -446,14 +447,14 @@ public class InstagramPublisherTest {
           accessKey = key-1
           """);
       int[] call = { 0 };
-      HttpSender sender = request -> switch (call[0]++) {
+      HttpSender sender = (request, token) -> switch (call[0]++) {
         case 0 -> "{\"id\": \"container-1\"}";
         case 1 -> "{\"status_code\": \"FINISHED\"}";
         default -> "not-valid-json";
       };
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to parse Instagram media id"));
     }
@@ -468,14 +469,14 @@ public class InstagramPublisherTest {
           accessKey = key-1
           """);
       int[] call = { 0 };
-      HttpSender sender = request -> switch (call[0]++) {
+      HttpSender sender = (request, token) -> switch (call[0]++) {
         case 0 -> "{\"id\": \"container-1\"}";
         case 1 -> "{\"status_code\": \"FINISHED\"}";
         default -> "{\"id\": \"\"}";
       };
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Instagram media publish did not return an id"));
     }
@@ -490,7 +491,7 @@ public class InstagramPublisherTest {
           accessKey = key-1
           """);
       int[] call = { 0 };
-      HttpSender sender = request -> switch (call[0]++) {
+      HttpSender sender = (request, token) -> switch (call[0]++) {
         case 0 -> "{\"id\": \"container-1\"}";
         case 1 -> "{\"status_code\": \"FINISHED\"}";
         case 2 -> "{\"id\": \"media-1\"}";
@@ -498,7 +499,7 @@ public class InstagramPublisherTest {
       };
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to parse Instagram media permalink"));
     }
@@ -513,7 +514,7 @@ public class InstagramPublisherTest {
           accessKey = key-1
           """);
       int[] call = { 0 };
-      HttpSender sender = request -> switch (call[0]++) {
+      HttpSender sender = (request, token) -> switch (call[0]++) {
         case 0 -> "{\"id\": \"container-1\"}";
         case 1 -> "{\"status_code\": \"FINISHED\"}";
         case 2 -> "{\"id\": \"media-1\"}";
@@ -521,7 +522,7 @@ public class InstagramPublisherTest {
       };
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media));
+      ComponentException exception = assertThrows(ComponentException.class, () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Instagram media permalink did not return a permalink"));
     }
