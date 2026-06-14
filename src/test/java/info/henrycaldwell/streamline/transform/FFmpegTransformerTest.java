@@ -19,6 +19,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationReason;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
@@ -345,6 +346,41 @@ public class FFmpegTransformerTest {
       assertTrue(exception.getMessage().contains("ffmpeg process exited with non-zero code"));
       assertTrue(exception.getMessage().contains("exitCode="));
     }
+
+    @Test
+    void throwsWhenCanceled() {
+      Path source = tempDir.resolve("source.mp4");
+      Path target = tempDir.resolve("target.mp4");
+
+      MediaRef media = new MediaRef(CLIP, source, null);
+      Config config = ConfigFactory.parseString("""
+          name = transformer
+          type = test
+          ffmpegPath = ffmpeg
+          """);
+      TestFFmpegTransformer transformer = new TestFFmpegTransformer(config);
+      ProcessBuilder processBuilder = javaCommand(
+          "-cp",
+          System.getProperty("java.class.path"),
+          SleepProcess.class.getName());
+      CancellationToken token = new CancellationToken();
+      Thread canceler = new Thread(() -> {
+        try {
+          Thread.sleep(50);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+
+        token.cancel(CancellationReason.USER_CANCELED);
+      });
+      canceler.start();
+
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.callRunProcess(processBuilder, media, source, target, token));
+
+      assertTrue(exception.getMessage().contains("ffmpeg process exited with non-zero code"));
+    }
+
   }
 
   @Nested
