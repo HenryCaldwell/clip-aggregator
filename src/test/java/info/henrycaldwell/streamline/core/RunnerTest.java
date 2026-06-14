@@ -1029,6 +1029,33 @@ public class RunnerTest {
     }
 
     @Test
+    void recordsFailureAttemptForFailedClaim() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      ThrowingHistory history = new ThrowingHistory();
+      NoOpDownloader downloader = new NoOpDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          history,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.startedAttempts.size());
+      assertEquals(PipelineStage.CLAIM, observer.startedAttempts.get(0).stage());
+      assertEquals(1, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.FAILURE, observer.endedAttempts.get(0).status());
+      assertNotNull(observer.endedAttempts.get(0).error());
+      assertEquals(0, tracker.published.get());
+    }
+
+    @Test
     void recordsFailureAttemptForFailedDownload() {
       ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
       TestRetriever retriever = new TestRetriever(List.of(clip));
@@ -1140,6 +1167,117 @@ public class RunnerTest {
     }
 
     @Test
+    void recordsCanceledAttemptForCanceledDownload() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      CancelingDownloader downloader = new CancelingDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.startedAttempts.size());
+      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(0).stage());
+      assertEquals(1, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.CANCELED, observer.endedAttempts.get(0).status());
+      assertNotNull(observer.endedAttempts.get(0).error());
+      assertEquals(0, tracker.published.get());
+    }
+
+    @Test
+    void recordsCanceledAttemptForCanceledTransform() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip), "test-pipeline");
+      NoOpDownloader downloader = new NoOpDownloader();
+      Pipeline pipeline = new Pipeline("test-pipeline", List.of(new CancelingTransformer()));
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of("test-pipeline", pipeline),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(2, observer.startedAttempts.size());
+      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(0).stage());
+      assertEquals(PipelineStage.TRANSFORM, observer.startedAttempts.get(1).stage());
+      assertEquals(2, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
+      assertEquals(AttemptStatus.CANCELED, observer.endedAttempts.get(1).status());
+      assertNotNull(observer.endedAttempts.get(1).error());
+      assertEquals(0, tracker.published.get());
+    }
+
+    @Test
+    void recordsCanceledAttemptForCanceledStage() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      NoOpDownloader downloader = new NoOpDownloader();
+      CancelingStager stager = new CancelingStager();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          stager,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(2, observer.startedAttempts.size());
+      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(0).stage());
+      assertEquals(PipelineStage.STAGE, observer.startedAttempts.get(1).stage());
+      assertEquals(2, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
+      assertEquals(AttemptStatus.CANCELED, observer.endedAttempts.get(1).status());
+      assertNotNull(observer.endedAttempts.get(1).error());
+      assertEquals(0, tracker.published.get());
+    }
+
+    @Test
+    void recordsCanceledAttemptForCanceledPublish() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      NoOpDownloader downloader = new NoOpDownloader();
+      CancelingPublisher publisher = new CancelingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", publisher));
+
+      Runner.run(context);
+
+      assertEquals(2, observer.startedAttempts.size());
+      assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(0).stage());
+      assertEquals(PipelineStage.PUBLISH, observer.startedAttempts.get(1).stage());
+      assertEquals(2, observer.endedAttempts.size());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(0).status());
+      assertEquals(AttemptStatus.CANCELED, observer.endedAttempts.get(1).status());
+      assertNotNull(observer.endedAttempts.get(1).error());
+    }
+
+    @Test
     void recordsFailedRunOnPreparationFailureLimit() {
       List<ClipRef> clips = List.of(
           new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null),
@@ -1194,6 +1332,30 @@ public class RunnerTest {
       assertEquals(RunStatus.FAILED, observer.endedRuns.get(0).status());
       assertEquals(0, observer.endedRuns.get(0).published());
     }
+
+    @Test
+    void recordsCanceledRunOnUserCancel() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      CancelingDownloader downloader = new CancelingDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.endedRuns.size());
+      assertEquals(RunStatus.CANCELED, observer.endedRuns.get(0).status());
+      assertEquals(0, observer.endedRuns.get(0).published());
+    }
+
   }
 
   private static final class TestRetriever implements Retriever {
@@ -1319,6 +1481,39 @@ public class RunnerTest {
     }
   }
 
+  private static final class ThrowingHistory implements History {
+
+    @Override
+    public void start() {
+    }
+
+    @Override
+    public void stop() {
+    }
+
+    @Override
+    public String getName() {
+      return "throwing_history";
+    }
+
+    @Override
+    public boolean claim(ClipRef clip, String runner) {
+      throw new RuntimeException("claim failed");
+    }
+
+    @Override
+    public void prepare(MediaRef media, String runner) {
+    }
+
+    @Override
+    public void publish(PublishRef ref, String runner, String publisher) {
+    }
+
+    @Override
+    public void fail(ClipRef clip, String runner, String error) {
+    }
+  }
+
   private static final class ThrowingDownloader implements Downloader {
 
     @Override
@@ -1361,6 +1556,20 @@ public class RunnerTest {
     }
   }
 
+  private static final class CancelingDownloader implements Downloader {
+
+    @Override
+    public String getName() {
+      return "canceling_downloader";
+    }
+
+    @Override
+    public MediaRef download(ClipRef clip, Path target, CancellationToken token) {
+      token.cancel(CancellationReason.USER_CANCELED);
+      throw new RuntimeException("download canceled");
+    }
+  }
+
   private static final class ThrowingTransformer implements Transformer {
 
     @Override
@@ -1371,6 +1580,20 @@ public class RunnerTest {
     @Override
     public MediaRef transform(MediaRef media, CancellationToken token) {
       throw new RuntimeException("transform failed");
+    }
+  }
+
+  private static final class CancelingTransformer implements Transformer {
+
+    @Override
+    public String getName() {
+      return "canceling_transformer";
+    }
+
+    @Override
+    public MediaRef transform(MediaRef media, CancellationToken token) {
+      token.cancel(CancellationReason.USER_CANCELED);
+      throw new RuntimeException("transform canceled");
     }
   }
 
@@ -1464,6 +1687,36 @@ public class RunnerTest {
     }
   }
 
+  private static final class CancelingStager implements Stager {
+
+    @Override
+    public void start() {
+    }
+
+    @Override
+    public void stop() {
+    }
+
+    @Override
+    public String getName() {
+      return "canceling_stager";
+    }
+
+    @Override
+    public MediaRef stage(MediaRef media, CancellationToken token) {
+      token.cancel(CancellationReason.USER_CANCELED);
+      throw new RuntimeException("stage canceled");
+    }
+
+    @Override
+    public void clean(MediaRef media, CancellationToken token) {
+    }
+
+    @Override
+    public void purge(CancellationToken token) {
+    }
+  }
+
   private static final class TrackingPublisher implements Publisher {
 
     private final AtomicInteger published = new AtomicInteger();
@@ -1506,6 +1759,20 @@ public class RunnerTest {
     public PublishRef publish(MediaRef media, CancellationToken token) {
       attempts.incrementAndGet();
       throw new RuntimeException("publish failed");
+    }
+  }
+
+  private static final class CancelingPublisher implements Publisher {
+
+    @Override
+    public String getName() {
+      return "canceling_publisher";
+    }
+
+    @Override
+    public PublishRef publish(MediaRef media, CancellationToken token) {
+      token.cancel(CancellationReason.USER_CANCELED);
+      throw new RuntimeException("publish canceled");
     }
   }
 
