@@ -2,18 +2,21 @@ package info.henrycaldwell.streamline.core;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Class for signaling run cancellation across components.
- * 
- * This class carries a cancellation reason and cancels registered cancellables
- * on the cancel call.
+ *
+ * This class records the cancellation reason and frees all cancellable
+ * resources on the cancel call.
  */
 public final class CancellationToken {
 
   private final AtomicReference<CancellationReason> reason = new AtomicReference<>();
   private final Set<Cancellable> cancellables = ConcurrentHashMap.newKeySet();
+  private final CountDownLatch latch = new CountDownLatch(1);
 
   /**
    * Constructs a CancellationToken.
@@ -46,6 +49,19 @@ public final class CancellationToken {
   }
 
   /**
+   * Waits up to the input timeout for cancellation to occur.
+   *
+   * @param timeout A long representing the maximum time to wait in seconds.
+   * @return {@code true} if cancellation occurred during the wait, {@code false}
+   *         if the timeout elapsed.
+   * @throws InterruptedException if the current thread is interrupted while
+   *                              waiting.
+   */
+  public boolean awaitCancellation(long timeout) throws InterruptedException {
+    return latch.await(timeout, TimeUnit.SECONDS);
+  }
+
+  /**
    * Signals cancellation with the provided cancellation reason.
    *
    * @param reason A {@link CancellationReason} representing the cause.
@@ -55,6 +71,8 @@ public final class CancellationToken {
       for (Cancellable cancellable : cancellables) {
         cancellable.cancel();
       }
+
+      latch.countDown();
     }
   }
 
