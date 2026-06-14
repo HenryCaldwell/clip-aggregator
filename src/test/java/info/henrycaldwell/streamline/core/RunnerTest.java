@@ -1221,7 +1221,7 @@ public class RunnerTest {
     }
 
     @Override
-    public List<ClipRef> fetch() {
+    public List<ClipRef> fetch(CancellationToken token) {
       return clips;
     }
   }
@@ -1239,7 +1239,7 @@ public class RunnerTest {
     }
 
     @Override
-    public List<ClipRef> fetch() {
+    public List<ClipRef> fetch(CancellationToken token) {
       throw new RuntimeException("fetch failed");
     }
   }

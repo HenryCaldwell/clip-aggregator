@@ -316,6 +316,7 @@ public final class Runner {
    * @return An integer representing the number of clips published.
    */
   private static int process(RunnerContext context, RunSession session) {
+    CancellationToken token = session.token();
     PublisherWorkerPool publisherPool = new PublisherWorkerPool(context, session);
     PreparationWorkerPool preparationPool = new PreparationWorkerPool(context, session, publisherPool);
 
@@ -328,7 +329,7 @@ public final class Runner {
 
       List<ClipRef> clips;
       try {
-        clips = retriever.fetch();
+        clips = retriever.fetch(token);
       } catch (RuntimeException e) {
         LOG.error("Failed to fetch clips (runner={}, retriever={})", context.name(), retrieverName, e);
         continue;

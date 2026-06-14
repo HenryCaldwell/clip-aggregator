@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -422,7 +423,7 @@ public class TwitchRetrieverTest {
           accessKey = key-1
           gameId = game-1
           """);
-      HttpSender sender = request -> """
+      HttpSender sender = (request, token) -> """
           {
             "data": [
               {
@@ -447,7 +448,7 @@ public class TwitchRetrieverTest {
           """;
       TwitchRetriever retriever = new TwitchRetriever(config, sender);
 
-      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch());
+      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch(new CancellationToken()));
 
       assertEquals(2, result.size());
       assertEquals("clip-1", result.get(0).id());
@@ -473,7 +474,7 @@ public class TwitchRetrieverTest {
           accessKey = key-1
           broadcasterId = broadcaster-1
           """);
-      HttpSender sender = request -> """
+      HttpSender sender = (request, token) -> """
           {
             "data": [
               {
@@ -490,7 +491,7 @@ public class TwitchRetrieverTest {
           """;
       TwitchRetriever retriever = new TwitchRetriever(config, sender);
 
-      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch());
+      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch(new CancellationToken()));
 
       assertEquals(1, result.size());
       assertEquals("clip-1", result.get(0).id());
@@ -510,10 +511,10 @@ public class TwitchRetrieverTest {
           accessKey = key-1
           gameId = game-1
           """);
-      HttpSender sender = request -> "{\"data\": [], \"pagination\": {}}";
+      HttpSender sender = (request, token) -> "{\"data\": [], \"pagination\": {}}";
       TwitchRetriever retriever = new TwitchRetriever(config, sender);
 
-      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch());
+      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch(new CancellationToken()));
 
       assertTrue(result.isEmpty());
     }
@@ -528,7 +529,7 @@ public class TwitchRetrieverTest {
           gameId = game-1
           """);
       int[] call = { 0 };
-      HttpSender sender = request -> switch (call[0]++) {
+      HttpSender sender = (request, token) -> switch (call[0]++) {
         case 0 -> """
             {
               "data": [
@@ -562,7 +563,7 @@ public class TwitchRetrieverTest {
       };
       TwitchRetriever retriever = new TwitchRetriever(config, sender);
 
-      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch());
+      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch(new CancellationToken()));
 
       assertEquals(2, result.size());
       assertEquals(2, call[0]);
@@ -579,7 +580,7 @@ public class TwitchRetrieverTest {
           window = 48
           """);
       Duration[] capturedWindow = { null };
-      HttpSender sender = request -> {
+      HttpSender sender = (request, token) -> {
         String query = request.uri().getQuery();
         Map<String, String> params = Arrays.stream(query.split("&"))
             .map(p -> p.split("=", 2))
@@ -592,7 +593,7 @@ public class TwitchRetrieverTest {
       };
       TwitchRetriever retriever = new TwitchRetriever(config, sender);
 
-      assertDoesNotThrow(() -> retriever.fetch());
+      assertDoesNotThrow(() -> retriever.fetch(new CancellationToken()));
 
       assertEquals(Duration.ofHours(48), capturedWindow[0]);
     }
@@ -607,7 +608,7 @@ public class TwitchRetrieverTest {
           gameId = game-1
           limit = 1
           """);
-      HttpSender sender = request -> """
+      HttpSender sender = (request, token) -> """
           {
             "data": [
               {
@@ -632,7 +633,7 @@ public class TwitchRetrieverTest {
           """;
       TwitchRetriever retriever = new TwitchRetriever(config, sender);
 
-      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch());
+      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch(new CancellationToken()));
 
       assertEquals(1, result.size());
     }
@@ -647,7 +648,7 @@ public class TwitchRetrieverTest {
           gameId = game-1
           languages = [en]
           """);
-      HttpSender sender = request -> """
+      HttpSender sender = (request, token) -> """
           {
             "data": [
               {
@@ -672,7 +673,7 @@ public class TwitchRetrieverTest {
           """;
       TwitchRetriever retriever = new TwitchRetriever(config, sender);
 
-      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch());
+      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch(new CancellationToken()));
 
       assertEquals(1, result.size());
       assertEquals("clip-1", result.get(0).id());
@@ -688,7 +689,7 @@ public class TwitchRetrieverTest {
           gameId = game-1
           tags = [funny, highlights]
           """);
-      HttpSender sender = request -> """
+      HttpSender sender = (request, token) -> """
           {
             "data": [
               {
@@ -705,7 +706,7 @@ public class TwitchRetrieverTest {
           """;
       TwitchRetriever retriever = new TwitchRetriever(config, sender);
 
-      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch());
+      List<ClipRef> result = assertDoesNotThrow(() -> retriever.fetch(new CancellationToken()));
 
       assertEquals(List.of("funny", "highlights"), result.get(0).tags());
     }
@@ -719,12 +720,12 @@ public class TwitchRetrieverTest {
           accessKey = key-1
           gameId = game-1
           """);
-      HttpSender sender = request -> {
+      HttpSender sender = (request, token) -> {
         throw new ComponentException("retriever", "HTTP call failed");
       };
       TwitchRetriever retriever = new TwitchRetriever(config, sender);
 
-      assertThrows(ComponentException.class, () -> retriever.fetch());
+      assertThrows(ComponentException.class, () -> retriever.fetch(new CancellationToken()));
     }
 
     @Test
@@ -736,10 +737,10 @@ public class TwitchRetrieverTest {
           accessKey = key-1
           gameId = game-1
           """);
-      HttpSender sender = request -> "not-valid-json";
+      HttpSender sender = (request, token) -> "not-valid-json";
       TwitchRetriever retriever = new TwitchRetriever(config, sender);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> retriever.fetch());
+      ComponentException exception = assertThrows(ComponentException.class, () -> retriever.fetch(new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to parse Twitch clips"));
     }

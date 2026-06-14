@@ -5,6 +5,7 @@ import java.util.List;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 
 /**
@@ -29,10 +30,12 @@ public final class NoOpRetriever extends AbstractRetriever {
   /**
    * Retrieves clips by performing no action.
    *
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link List} of {@link ClipRef} representing the retrieved clips.
    */
   @Override
-  public List<ClipRef> fetch() {
+  public List<ClipRef> fetch(CancellationToken token) {
     return List.of();
   }
 }

@@ -10,12 +10,17 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.Cancellable;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -130,17 +135,19 @@ public final class TwitchRetriever extends AbstractRetriever {
   /**
    * Retrieves recent clips for a game or broadcaster.
    *
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link List} of {@link ClipRef} representing the retrieved clips.
    * @throws ComponentException if fetching fails at any step.
    */
   @Override
-  public List<ClipRef> fetch() {
+  public List<ClipRef> fetch(CancellationToken token) {
     Instant end = Instant.now();
     Instant start = end.minus(window);
 
     List<Clip> candidates = (gameId != null)
-        ? pageClips(gameId, null, start, end)
-        : pageClips(null, broadcasterId, start, end);
+        ? pageClips(gameId, null, start, end, token)
+        : pageClips(null, broadcasterId, start, end, token);
 
     return candidates.stream()
         .sorted(Comparator.comparingInt(Clip::viewCount).reversed())
@@ -158,10 +165,14 @@ public final class TwitchRetriever extends AbstractRetriever {
    * @param start         An {@link Instant} representing the inclusive start
    *                      time.
    * @param end           An {@link Instant} representing the exclusive end time.
+   * @param token         A {@link CancellationToken} representing the
+   *                      cancellation
+   *                      signal.
    * @return A {@link List} of {@link Clip} values gathered across pages.
    * @throws ComponentException if an API call fails or the response is invalid.
    */
-  private List<Clip> pageClips(String gameId, String broadcasterId, Instant start, Instant end) {
+  private List<Clip> pageClips(String gameId, String broadcasterId, Instant start, Instant end,
+      CancellationToken token) {
     List<Clip> matches = new ArrayList<>();
     String cursor = null;
 
@@ -186,7 +197,7 @@ public final class TwitchRetriever extends AbstractRetriever {
           .GET()
           .build();
 
-      String json = sender.send(request);
+      String json = sender.send(request, token);
 
       JsonNode root;
       try {
@@ -237,24 +248,36 @@ public final class TwitchRetriever extends AbstractRetriever {
    * Sends an HTTP request using the default Twitch HTTP client.
    *
    * @param request A {@link HttpRequest} representing the request to send.
+   * @param token   A {@link CancellationToken} representing the cancellation
+   *                signal.
    * @return A string representing the response body.
    * @throws ComponentException if the request fails or returns a non-2xx status
    *                            code.
    */
-  private String defaultSend(HttpRequest request) {
+  private String defaultSend(HttpRequest request, CancellationToken token) {
     URI uri = request.uri();
     String method = request.method();
 
+    CompletableFuture<HttpResponse<String>> future = http.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+    Cancellable abort = () -> future.cancel(true);
+    token.register(abort);
+
     HttpResponse<String> response;
     try {
-      response = http.send(request, HttpResponse.BodyHandlers.ofString());
-    } catch (IOException e) {
-      throw new ComponentException(name, "Failed to call Twitch Helix API",
+      response = future.get();
+    } catch (CancellationException e) {
+      throw new ComponentException(name, "Canceled while calling Twitch Helix API",
           MapUtils.ofNullable("method", method, "uri", uri.toString()), e);
+    } catch (ExecutionException e) {
+      throw new ComponentException(name, "Failed to call Twitch Helix API",
+          MapUtils.ofNullable("method", method, "uri", uri.toString()), e.getCause());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
+      future.cancel(true);
       throw new ComponentException(name, "Interrupted while calling Twitch Helix API",
           MapUtils.ofNullable("method", method, "uri", uri.toString()), e);
+    } finally {
+      token.unregister(abort);
     }
 
     int status = response.statusCode();

@@ -2,6 +2,7 @@ package info.henrycaldwell.streamline.retrieve;
 
 import java.util.List;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 
 /**
@@ -28,7 +29,9 @@ public interface Retriever {
   /**
    * Retrieves clips from the configured source.
    *
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link List} of {@link ClipRef} representing the retrieved clips.
    */
-  List<ClipRef> fetch();
+  List<ClipRef> fetch(CancellationToken token);
 }

@@ -15,6 +15,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.error.SpecException;
 
@@ -155,7 +156,7 @@ public class AbstractRetrieverTest {
     }
 
     @Override
-    public List<ClipRef> fetch() {
+    public List<ClipRef> fetch(CancellationToken token) {
       return List.of();
     }
   }

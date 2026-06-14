@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.error.SpecException;
 
@@ -57,7 +58,7 @@ public class NoOpRetrieverTest {
           """);
       NoOpRetriever retriever = new NoOpRetriever(config);
 
-      List<ClipRef> result = retriever.fetch();
+      List<ClipRef> result = retriever.fetch(new CancellationToken());
 
       assertEquals(List.of(), result);
     }
