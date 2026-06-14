@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,16 +22,20 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.error.SpecException;
-import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
 public class CloudflareR2StagerTest {
@@ -376,7 +381,8 @@ public class CloudflareR2StagerTest {
       stager.start();
 
       MediaRef media = new MediaRef(null, null, null);
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Input file missing or not a regular file"));
       stager.stop();
@@ -422,7 +428,8 @@ public class CloudflareR2StagerTest {
       stager.stop();
 
       MediaRef media = new MediaRef(null, null, null);
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Stager not started"));
     }
@@ -464,25 +471,28 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      MediaRef result = assertDoesNotThrow(() -> stager.apply(media));
+      MediaRef result = assertDoesNotThrow(() -> stager.apply(media, new CancellationToken()));
 
       assertEquals(URI.create("https://cdn.example.com/clip.mp4"), result.uri());
       assertNull(result.file());
@@ -506,25 +516,28 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      MediaRef result = assertDoesNotThrow(() -> stager.apply(media));
+      MediaRef result = assertDoesNotThrow(() -> stager.apply(media, new CancellationToken()));
 
       assertEquals(URI.create("https://cdn.example.com/clips/clip.mp4"), result.uri());
       assertNull(result.file());
@@ -544,7 +557,8 @@ public class CloudflareR2StagerTest {
           """);
       CloudflareR2Stager stager = new CloudflareR2Stager(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Stager not started"));
     }
@@ -563,25 +577,29 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Input file missing or not a regular file"));
     }
@@ -602,25 +620,29 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Input file missing or not a regular file"));
       assertTrue(exception.getMessage().contains("sourcePath="));
@@ -643,25 +665,29 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Input file missing or not a regular file"));
       assertTrue(exception.getMessage().contains("sourcePath=" + source));
@@ -684,26 +710,29 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
-          throw new RuntimeException("Upload failed");
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.failedFuture(new RuntimeException("Upload failed"));
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to upload object to R2"));
     }
@@ -728,26 +757,29 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
           deleted[0] = true;
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      assertDoesNotThrow(() -> stager.clean(media));
+      assertDoesNotThrow(() -> stager.clean(media, new CancellationToken()));
 
       assertTrue(deleted[0]);
     }
@@ -766,25 +798,29 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.clean(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.clean(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Staged media URI missing"));
     }
@@ -803,25 +839,29 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.clean(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.clean(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Staged media URI path missing"));
     }
@@ -840,25 +880,29 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.clean(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.clean(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Staged media URI object key empty"));
     }
@@ -877,7 +921,8 @@ public class CloudflareR2StagerTest {
           """);
       CloudflareR2Stager stager = new CloudflareR2Stager(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.clean(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.clean(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Stager not started"));
     }
@@ -896,26 +941,29 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
-          throw new RuntimeException("Delete failed");
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.failedFuture(new RuntimeException("Delete failed"));
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.clean(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.clean(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to delete object from R2"));
     }
@@ -938,31 +986,34 @@ public class CloudflareR2StagerTest {
       List<String> deletedKeys = new ArrayList<>();
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
           request.delete().objects().forEach(o -> deletedKeys.add(o.key()));
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder()
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder()
               .contents(
                   S3Object.builder().key("clip-1.mp4").build(),
                   S3Object.builder().key("clip-2.mp4").build())
               .isTruncated(false)
-              .build();
+              .build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      assertDoesNotThrow(() -> stager.purge());
+      assertDoesNotThrow(() -> stager.purge(new CancellationToken()));
 
       assertEquals(2, deletedKeys.size());
       assertTrue(deletedKeys.contains("clip-1.mp4"));
@@ -983,37 +1034,40 @@ public class CloudflareR2StagerTest {
       List<String> deletedKeys = new ArrayList<>();
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
           request.delete().objects().forEach(o -> deletedKeys.add(o.key()));
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
           if (request.continuationToken() == null) {
-            return ListObjectsV2Response.builder()
+            return CompletableFuture.completedFuture(ListObjectsV2Response.builder()
                 .contents(S3Object.builder().key("clip-1.mp4").build())
                 .isTruncated(true)
                 .nextContinuationToken("token-1")
-                .build();
+                .build());
           }
 
-          return ListObjectsV2Response.builder()
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder()
               .contents(S3Object.builder().key("clip-2.mp4").build())
               .isTruncated(false)
-              .build();
+              .build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      assertDoesNotThrow(() -> stager.purge());
+      assertDoesNotThrow(() -> stager.purge(new CancellationToken()));
 
       assertEquals(2, deletedKeys.size());
       assertTrue(deletedKeys.contains("clip-1.mp4"));
@@ -1034,26 +1088,29 @@ public class CloudflareR2StagerTest {
       boolean[] deleteObjectsCalled = { false };
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
           deleteObjectsCalled[0] = true;
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      assertDoesNotThrow(() -> stager.purge());
+      assertDoesNotThrow(() -> stager.purge(new CancellationToken()));
       assertFalse(deleteObjectsCalled[0]);
     }
 
@@ -1073,26 +1130,29 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
           capturedPrefix[0] = request.prefix();
-          return ListObjectsV2Response.builder().isTruncated(false).build();
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      assertDoesNotThrow(() -> stager.purge());
+      assertDoesNotThrow(() -> stager.purge(new CancellationToken()));
 
       assertEquals("clips/", capturedPrefix[0]);
     }
@@ -1110,7 +1170,8 @@ public class CloudflareR2StagerTest {
           """);
       CloudflareR2Stager stager = new CloudflareR2Stager(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.purge());
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.purge(new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Stager not started"));
     }
@@ -1128,25 +1189,29 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          throw new RuntimeException("List failed");
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.failedFuture(new RuntimeException("List failed"));
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.purge());
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.purge(new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to list objects in R2"));
     }
@@ -1164,29 +1229,32 @@ public class CloudflareR2StagerTest {
           """);
       S3Operations operations = new S3Operations() {
         @Override
-        public void putObject(PutObjectRequest request, RequestBody body) {
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObject(DeleteObjectRequest request) {
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
         }
 
         @Override
-        public void deleteObjects(DeleteObjectsRequest request) {
-          throw new RuntimeException("Delete failed");
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.failedFuture(new RuntimeException("Delete failed"));
         }
 
         @Override
-        public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
-          return ListObjectsV2Response.builder()
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder()
               .contents(S3Object.builder().key("clip-1.mp4").build())
               .isTruncated(false)
-              .build();
+              .build());
         }
       };
       CloudflareR2Stager stager = new CloudflareR2Stager(config, operations);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.purge());
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.purge(new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to delete objects from R2"));
     }

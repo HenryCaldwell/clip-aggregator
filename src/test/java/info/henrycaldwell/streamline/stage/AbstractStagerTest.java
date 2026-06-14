@@ -19,6 +19,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -143,7 +144,7 @@ public class AbstractStagerTest {
           """);
       TestStager stager = new TestStager(config, staged);
 
-      MediaRef result = stager.stage(media);
+      MediaRef result = stager.stage(media, new CancellationToken());
 
       assertEquals(staged, result);
       assertFalse(Files.exists(source));
@@ -159,7 +160,7 @@ public class AbstractStagerTest {
           """);
       TestStager stager = new TestStager(config, staged);
 
-      MediaRef result = stager.stage(media);
+      MediaRef result = stager.stage(media, new CancellationToken());
 
       assertEquals(staged, result);
     }
@@ -175,7 +176,8 @@ public class AbstractStagerTest {
           """);
       TestStager stager = new TestStager(config, media.withUri(null));
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.stage(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.stage(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Stager did not produce an HTTP(S) URI"));
       assertTrue(exception.getMessage().contains("uri=null"));
@@ -192,7 +194,8 @@ public class AbstractStagerTest {
           """);
       TestStager stager = new TestStager(config, media.withUri(URI.create("file:///tmp/source.mp4")));
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> stager.stage(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.stage(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Stager did not produce an HTTP(S) URI"));
       assertTrue(exception.getMessage().contains("uri=file:///tmp/source.mp4"));
@@ -211,7 +214,7 @@ public class AbstractStagerTest {
           """);
       TestStager stager = new TestStager(config, null);
 
-      assertDoesNotThrow(() -> stager.clean(media));
+      assertDoesNotThrow(() -> stager.clean(media, new CancellationToken()));
     }
   }
 
@@ -225,7 +228,7 @@ public class AbstractStagerTest {
     }
 
     @Override
-    protected MediaRef apply(MediaRef media) {
+    protected MediaRef apply(MediaRef media, CancellationToken token) {
       return output;
     }
   }

@@ -4,27 +4,35 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.Cancellable;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.util.MapUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
 /**
@@ -40,7 +48,7 @@ public final class CloudflareR2Stager extends AbstractStager {
       .optionalString("directory", "region", "endpoint")
       .build();
 
-  private S3Client s3;
+  private S3AsyncClient s3;
   private S3Operations operations;
 
   private final String accountId;
@@ -103,7 +111,7 @@ public final class CloudflareR2Stager extends AbstractStager {
         .chunkedEncodingEnabled(false)
         .build();
 
-    s3 = S3Client.builder()
+    s3 = S3AsyncClient.builder()
         .endpointOverride(URI.create(endpoint))
         .credentialsProvider(StaticCredentialsProvider.create(credentials))
         .region(Region.of(region))
@@ -112,22 +120,22 @@ public final class CloudflareR2Stager extends AbstractStager {
 
     operations = new S3Operations() {
       @Override
-      public void putObject(PutObjectRequest request, RequestBody body) {
-        s3.putObject(request, body);
+      public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+        return s3.putObject(request, body);
       }
 
       @Override
-      public void deleteObject(DeleteObjectRequest request) {
-        s3.deleteObject(request);
+      public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+        return s3.deleteObject(request);
       }
 
       @Override
-      public void deleteObjects(DeleteObjectsRequest request) {
-        s3.deleteObjects(request);
+      public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+        return s3.deleteObjects(request);
       }
 
       @Override
-      public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
+      public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
         return s3.listObjectsV2(request);
       }
     };
@@ -150,11 +158,13 @@ public final class CloudflareR2Stager extends AbstractStager {
    * Uploads the input media to Cloudflare R2 and updates its remote URI.
    *
    * @param media A {@link MediaRef} representing the media to stage.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the staged media.
    * @throws ComponentException if staging fails at any step.
    */
   @Override
-  public MediaRef apply(MediaRef media) {
+  public MediaRef apply(MediaRef media, CancellationToken token) {
     if (operations == null) {
       throw new ComponentException(name, "Stager not started");
     }
@@ -169,17 +179,31 @@ public final class CloudflareR2Stager extends AbstractStager {
     String filename = source.getFileName().toString();
     String key = directory != null ? directory + "/" + filename : filename;
 
-    try {
-      PutObjectRequest request = PutObjectRequest.builder()
-          .bucket(bucket)
-          .key(key)
-          .contentType("video/mp4")
-          .build();
+    PutObjectRequest request = PutObjectRequest.builder()
+        .bucket(bucket)
+        .key(key)
+        .contentType("video/mp4")
+        .build();
 
-      operations.putObject(request, RequestBody.fromFile(source));
-    } catch (Exception e) {
-      throw new ComponentException(name, "Failed to upload object to R2",
+    CompletableFuture<PutObjectResponse> future = operations.putObject(request, AsyncRequestBody.fromFile(source));
+    Cancellable abort = () -> future.cancel(true);
+    token.register(abort);
+
+    try {
+      future.get();
+    } catch (CancellationException e) {
+      throw new ComponentException(name, "Canceled while uploading object to R2",
           MapUtils.ofNullable("bucket", bucket, "objectKey", key, "sourcePath", source), e);
+    } catch (ExecutionException e) {
+      throw new ComponentException(name, "Failed to upload object to R2",
+          MapUtils.ofNullable("bucket", bucket, "objectKey", key, "sourcePath", source), e.getCause());
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      future.cancel(true);
+      throw new ComponentException(name, "Interrupted while uploading object to R2",
+          MapUtils.ofNullable("bucket", bucket, "objectKey", key, "sourcePath", source), e);
+    } finally {
+      token.unregister(abort);
     }
 
     URI base = URI.create(publicUrl.endsWith("/") ? publicUrl : publicUrl + "/");
@@ -191,10 +215,12 @@ public final class CloudflareR2Stager extends AbstractStager {
    * Deletes the staged media from Cloudflare R2.
    *
    * @param media A {@link MediaRef} representing the staged media.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @throws ComponentException if deletion fails at any step.
    */
   @Override
-  public void clean(MediaRef media) {
+  public void clean(MediaRef media, CancellationToken token) {
     if (operations == null) {
       throw new ComponentException(name, "Stager not started");
     }
@@ -219,26 +245,42 @@ public final class CloudflareR2Stager extends AbstractStager {
           MapUtils.ofNullable("clipId", media.clip().id(), "uri", uri.toString()));
     }
 
-    try {
-      DeleteObjectRequest request = DeleteObjectRequest.builder()
-          .bucket(bucket)
-          .key(key)
-          .build();
+    DeleteObjectRequest request = DeleteObjectRequest.builder()
+        .bucket(bucket)
+        .key(key)
+        .build();
 
-      operations.deleteObject(request);
-    } catch (Exception e) {
-      throw new ComponentException(name, "Failed to delete object from R2",
+    CompletableFuture<DeleteObjectResponse> future = operations.deleteObject(request);
+    Cancellable abort = () -> future.cancel(true);
+    token.register(abort);
+
+    try {
+      future.get();
+    } catch (CancellationException e) {
+      throw new ComponentException(name, "Canceled while deleting object from R2",
           MapUtils.ofNullable("bucket", bucket, "objectKey", key, "uri", uri.toString()), e);
+    } catch (ExecutionException e) {
+      throw new ComponentException(name, "Failed to delete object from R2",
+          MapUtils.ofNullable("bucket", bucket, "objectKey", key, "uri", uri.toString()), e.getCause());
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      future.cancel(true);
+      throw new ComponentException(name, "Interrupted while deleting object from R2",
+          MapUtils.ofNullable("bucket", bucket, "objectKey", key, "uri", uri.toString()), e);
+    } finally {
+      token.unregister(abort);
     }
   }
 
   /**
    * Deletes all staged resources from Cloudflare R2.
    *
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @throws ComponentException if deletion fails at any step.
    */
   @Override
-  public void purge() {
+  public void purge(CancellationToken token) {
     if (operations == null) {
       throw new ComponentException(name, "Stager not started");
     }
@@ -246,16 +288,32 @@ public final class CloudflareR2Stager extends AbstractStager {
     String cursor = null;
 
     do {
-      ListObjectsV2Response response;
+      ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
+          .bucket(bucket)
+          .prefix(directory != null ? directory + "/" : null)
+          .continuationToken(cursor)
+          .build();
 
+      CompletableFuture<ListObjectsV2Response> listFuture = operations.listObjectsV2(listRequest);
+      Cancellable listAbort = () -> listFuture.cancel(true);
+      token.register(listAbort);
+
+      ListObjectsV2Response response;
       try {
-        response = operations.listObjectsV2(ListObjectsV2Request.builder()
-            .bucket(bucket)
-            .prefix(directory != null ? directory + "/" : null)
-            .continuationToken(cursor)
-            .build());
-      } catch (Exception e) {
-        throw new ComponentException(name, "Failed to list objects in R2", MapUtils.ofNullable("bucket", bucket), e);
+        response = listFuture.get();
+      } catch (CancellationException e) {
+        throw new ComponentException(name, "Canceled while listing objects in R2",
+            MapUtils.ofNullable("bucket", bucket), e);
+      } catch (ExecutionException e) {
+        throw new ComponentException(name, "Failed to list objects in R2",
+            MapUtils.ofNullable("bucket", bucket), e.getCause());
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        listFuture.cancel(true);
+        throw new ComponentException(name, "Interrupted while listing objects in R2",
+            MapUtils.ofNullable("bucket", bucket), e);
+      } finally {
+        token.unregister(listAbort);
       }
 
       List<S3Object> objects = response.contents();
@@ -266,16 +324,30 @@ public final class CloudflareR2Stager extends AbstractStager {
             .collect(Collectors.toList());
 
         Delete delete = Delete.builder().objects(identifiers).build();
-        DeleteObjectsRequest request = DeleteObjectsRequest.builder()
+        DeleteObjectsRequest deleteRequest = DeleteObjectsRequest.builder()
             .bucket(bucket)
             .delete(delete)
             .build();
 
+        CompletableFuture<DeleteObjectsResponse> deleteFuture = operations.deleteObjects(deleteRequest);
+        Cancellable deleteAbort = () -> deleteFuture.cancel(true);
+        token.register(deleteAbort);
+
         try {
-          operations.deleteObjects(request);
-        } catch (Exception e) {
-          throw new ComponentException(name, "Failed to delete objects from R2", MapUtils.ofNullable("bucket", bucket),
-              e);
+          deleteFuture.get();
+        } catch (CancellationException e) {
+          throw new ComponentException(name, "Canceled while deleting objects from R2",
+              MapUtils.ofNullable("bucket", bucket), e);
+        } catch (ExecutionException e) {
+          throw new ComponentException(name, "Failed to delete objects from R2",
+              MapUtils.ofNullable("bucket", bucket), e.getCause());
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          deleteFuture.cancel(true);
+          throw new ComponentException(name, "Interrupted while deleting objects from R2",
+              MapUtils.ofNullable("bucket", bucket), e);
+        } finally {
+          token.unregister(deleteAbort);
         }
       }
 

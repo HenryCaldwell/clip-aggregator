@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.util.MapUtils;
@@ -74,13 +75,15 @@ public abstract class AbstractStager implements Stager {
    * Stages the input media and replaces the previous file.
    *
    * @param media A {@link MediaRef} representing the media to stage.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the staged media.
    * @throws ComponentException if staging fails at any step.
    */
   @Override
-  public MediaRef stage(MediaRef media) {
+  public MediaRef stage(MediaRef media, CancellationToken token) {
     Path source = media.file();
-    MediaRef result = apply(media);
+    MediaRef result = apply(media, token);
     URI output = result.uri();
 
     if (output == null
@@ -104,17 +107,22 @@ public abstract class AbstractStager implements Stager {
    * Cleans staged resources associated with the media.
    *
    * @param media A {@link MediaRef} representing the staged media.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    */
   @Override
-  public void clean(MediaRef media) {
+  public void clean(MediaRef media, CancellationToken token) {
     // No-op by default
   }
 
   /**
    * Purges all staged resources.
+   * 
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    */
   @Override
-  public void purge() {
+  public void purge(CancellationToken token) {
     // No-op by default
   }
 
@@ -122,7 +130,9 @@ public abstract class AbstractStager implements Stager {
    * Applies a subclass-specific staging.
    *
    * @param media A {@link MediaRef} representing the media to stage.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the staged media.
    */
-  protected abstract MediaRef apply(MediaRef media);
+  protected abstract MediaRef apply(MediaRef media, CancellationToken token);
 }

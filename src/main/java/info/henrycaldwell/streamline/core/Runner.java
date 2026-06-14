@@ -129,7 +129,7 @@ public final class Runner {
         LOG.info("Started stager (runner={}, stager={})",
             context.name(), context.stager().getName());
 
-        context.stager().purge();
+        context.stager().purge(token);
         LOG.info("Purged stager directory (runner={}, stager={})",
             context.name(), context.stager().getName());
       }

@@ -1392,16 +1392,16 @@ public class RunnerTest {
     }
 
     @Override
-    public MediaRef stage(MediaRef media) {
+    public MediaRef stage(MediaRef media, CancellationToken token) {
       return media;
     }
 
     @Override
-    public void clean(MediaRef media) {
+    public void clean(MediaRef media, CancellationToken token) {
     }
 
     @Override
-    public void purge() {
+    public void purge(CancellationToken token) {
       purged.incrementAndGet();
     }
   }
@@ -1422,16 +1422,16 @@ public class RunnerTest {
     }
 
     @Override
-    public MediaRef stage(MediaRef media) {
+    public MediaRef stage(MediaRef media, CancellationToken token) {
       throw new RuntimeException("stage failed");
     }
 
     @Override
-    public void clean(MediaRef media) {
+    public void clean(MediaRef media, CancellationToken token) {
     }
 
     @Override
-    public void purge() {
+    public void purge(CancellationToken token) {
     }
   }
 
@@ -1451,16 +1451,16 @@ public class RunnerTest {
     }
 
     @Override
-    public MediaRef stage(MediaRef media) {
+    public MediaRef stage(MediaRef media, CancellationToken token) {
       return media;
     }
 
     @Override
-    public void clean(MediaRef media) {
+    public void clean(MediaRef media, CancellationToken token) {
     }
 
     @Override
-    public void purge() {
+    public void purge(CancellationToken token) {
     }
   }
 

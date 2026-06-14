@@ -197,7 +197,7 @@ public final class PreparationWorkerPool {
           }
 
           try {
-            media = context.stager().stage(media);
+            media = context.stager().stage(media, token);
 
             if (observer != null) {
               observer.attemptEnd(stageAttemptId, AttemptStatus.SUCCESS, null);

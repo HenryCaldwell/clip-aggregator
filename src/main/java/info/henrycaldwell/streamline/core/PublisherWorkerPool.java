@@ -129,7 +129,7 @@ public final class PublisherWorkerPool {
       }
 
       if (failures.get() >= context.failureLimit()) {
-        clean(media);
+        clean(media, token);
         continue;
       }
 
@@ -142,11 +142,11 @@ public final class PublisherWorkerPool {
         }
 
         if (published.get() < context.posts()) {
-          clean(media);
+          clean(media, token);
           continue;
         }
 
-        clean(media);
+        clean(media, token);
         continue;
       }
 
@@ -209,7 +209,7 @@ public final class PublisherWorkerPool {
       }
 
       pending.decrementAndGet();
-      clean(media);
+      clean(media, token);
     }
   }
 
@@ -217,8 +217,10 @@ public final class PublisherWorkerPool {
    * Removes local or staged media associated with the input media.
    *
    * @param media A {@link MediaRef} representing the media to clean.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    */
-  private void clean(MediaRef media) {
+  private void clean(MediaRef media, CancellationToken token) {
     String clipId = media.clip().id();
 
     if (context.stager() == null) {
@@ -238,7 +240,7 @@ public final class PublisherWorkerPool {
       }
     } else {
       try {
-        context.stager().clean(media);
+        context.stager().clean(media, token);
         LOG.info("Deleted staged file (runner={}, stager={}, clipId={})",
             context.name(), context.stager().getName(), clipId);
       } catch (RuntimeException e) {

@@ -3,6 +3,7 @@ package info.henrycaldwell.streamline.stage;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 
 /**
@@ -27,10 +28,12 @@ public final class NoOpStager extends AbstractStager {
    * Stages the input media by performing no action.
    *
    * @param media A {@link MediaRef} representing the media to stage.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the staged media.
    */
   @Override
-  public MediaRef stage(MediaRef media) {
+  public MediaRef stage(MediaRef media, CancellationToken token) {
     return media;
   }
 
@@ -38,10 +41,12 @@ public final class NoOpStager extends AbstractStager {
    * Stages the input media by performing no action.
    *
    * @param media A {@link MediaRef} representing the media to stage.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the staged media.
    */
   @Override
-  protected MediaRef apply(MediaRef media) {
+  protected MediaRef apply(MediaRef media, CancellationToken token) {
     return media;
   }
 }

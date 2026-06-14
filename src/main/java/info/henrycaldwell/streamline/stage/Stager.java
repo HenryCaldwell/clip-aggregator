@@ -1,5 +1,6 @@
 package info.henrycaldwell.streamline.stage;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 
 /**
@@ -31,19 +32,26 @@ public interface Stager {
    * Stages the input media to a remote location.
    *
    * @param media A {@link MediaRef} representing the media to stage.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the staged media.
    */
-  MediaRef stage(MediaRef media);
+  MediaRef stage(MediaRef media, CancellationToken token);
 
   /**
    * Cleans staged resources associated with the media.
    *
    * @param media A {@link MediaRef} representing the staged media.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    */
-  void clean(MediaRef media);
+  void clean(MediaRef media, CancellationToken token);
 
   /**
    * Purges all staged resources.
+   * 
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    */
-  void purge();
+  void purge(CancellationToken token);
 }

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.SpecException;
 
@@ -56,7 +57,7 @@ public class NoOpStagerTest {
           """);
       NoOpStager stager = new NoOpStager(config);
 
-      MediaRef result = stager.stage(media);
+      MediaRef result = stager.stage(media, new CancellationToken());
 
       assertEquals(media, result);
     }
@@ -74,7 +75,7 @@ public class NoOpStagerTest {
           """);
       NoOpStager stager = new NoOpStager(config);
 
-      MediaRef result = stager.apply(media);
+      MediaRef result = stager.apply(media, new CancellationToken());
 
       assertEquals(media, result);
     }
