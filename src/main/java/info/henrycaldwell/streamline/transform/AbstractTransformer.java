@@ -8,6 +8,7 @@ import java.nio.file.StandardCopyOption;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.util.MapUtils;
@@ -57,13 +58,15 @@ public abstract class AbstractTransformer implements Transformer {
    * Transforms the input media and replaces the original file.
    *
    * @param media A {@link MediaRef} representing the media to transform.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the transformed media.
    * @throws ComponentException if transforming fails at any step.
    */
   @Override
-  public MediaRef transform(MediaRef media) {
+  public MediaRef transform(MediaRef media, CancellationToken token) {
     Path source = media.file();
-    MediaRef result = apply(media);
+    MediaRef result = apply(media, token);
     Path output = result.file();
 
     if (source == null || output == null || source.equals(output)) {
@@ -94,7 +97,9 @@ public abstract class AbstractTransformer implements Transformer {
    * Applies a subclass-specific transformation.
    *
    * @param media A {@link MediaRef} representing the media to transform.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the transformed media.
    */
-  protected abstract MediaRef apply(MediaRef media);
+  protected abstract MediaRef apply(MediaRef media, CancellationToken token);
 }

@@ -68,7 +68,7 @@ public final class Pipeline {
       }
 
       try {
-        curr = transformer.transform(curr);
+        curr = transformer.transform(curr, token);
 
         if (observer != null) {
           observer.attemptEnd(transformAttemptId, AttemptStatus.SUCCESS, null);

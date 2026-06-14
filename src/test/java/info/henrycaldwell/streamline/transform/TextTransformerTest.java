@@ -16,6 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
@@ -972,7 +973,7 @@ public class TextTransformerTest {
       };
       TextTransformer transformer = new TextTransformer(config, factory);
 
-      MediaRef result = assertDoesNotThrow(() -> transformer.apply(media));
+      MediaRef result = assertDoesNotThrow(() -> transformer.apply(media, new CancellationToken()));
 
       assertEquals(target, result.file());
     }
@@ -993,7 +994,8 @@ public class TextTransformerTest {
           """);
       TextTransformer transformer = new TextTransformer(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Text empty after formatting"));
       assertTrue(exception.getMessage().contains("clipId=clip-1"));

@@ -1,5 +1,6 @@
 package info.henrycaldwell.streamline.transform;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 
 /**
@@ -20,7 +21,9 @@ public interface Transformer {
    * Transforms the input media.
    *
    * @param media A {@link MediaRef} representing the media to transform.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the transformed media.
    */
-  MediaRef transform(MediaRef media);
+  MediaRef transform(MediaRef media, CancellationToken token);
 }

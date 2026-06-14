@@ -109,7 +109,7 @@ public class PipelineTest {
       CancellationToken token = new CancellationToken();
 
       Pipeline pipeline = new Pipeline("pipeline", List.of(
-          new CancelingTransformer("first", firstOutput, token, calls),
+          new CancelingTransformer("first", firstOutput, calls),
           new RecordingTransformer("second", MEDIA.withFile(Path.of("second.mp4")), calls)));
 
       MediaRef result = pipeline.run(MEDIA, null, new RunSession(0L, token), "worker");
@@ -159,7 +159,7 @@ public class PipelineTest {
       CancellationToken token = new CancellationToken();
 
       Pipeline pipeline = new Pipeline("pipeline", List.of(
-          new CancelingTransformer("first", firstOutput, token, calls),
+          new CancelingTransformer("first", firstOutput, calls),
           new RecordingTransformer("second", MEDIA.withFile(Path.of("second.mp4")), calls)));
 
       pipeline.run(MEDIA, observer, new RunSession(42L, token), "worker");
@@ -188,7 +188,7 @@ public class PipelineTest {
     }
 
     @Override
-    public MediaRef transform(MediaRef media) {
+    public MediaRef transform(MediaRef media, CancellationToken token) {
       calls.add(name + ":" + media.file().getFileName());
       return output;
     }
@@ -211,7 +211,7 @@ public class PipelineTest {
     }
 
     @Override
-    public MediaRef transform(MediaRef media) {
+    public MediaRef transform(MediaRef media, CancellationToken token) {
       input = media;
       return output;
     }
@@ -237,7 +237,7 @@ public class PipelineTest {
     }
 
     @Override
-    public MediaRef transform(MediaRef media) {
+    public MediaRef transform(MediaRef media, CancellationToken token) {
       throw error;
     }
   }
@@ -246,13 +246,11 @@ public class PipelineTest {
 
     private final String name;
     private final MediaRef output;
-    private final CancellationToken token;
     private final List<String> calls;
 
-    private CancelingTransformer(String name, MediaRef output, CancellationToken token, List<String> calls) {
+    private CancelingTransformer(String name, MediaRef output, List<String> calls) {
       this.name = name;
       this.output = output;
-      this.token = token;
       this.calls = calls;
     }
 
@@ -262,7 +260,7 @@ public class PipelineTest {
     }
 
     @Override
-    public MediaRef transform(MediaRef media) {
+    public MediaRef transform(MediaRef media, CancellationToken token) {
       calls.add(name + ":" + media.file().getFileName());
       token.cancel(CancellationReason.USER_CANCELED);
       return output;

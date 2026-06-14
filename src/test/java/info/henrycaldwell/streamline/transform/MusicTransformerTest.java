@@ -16,6 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -248,7 +249,7 @@ public class MusicTransformerTest {
       };
       MusicTransformer transformer = new MusicTransformer(config, factory);
 
-      MediaRef result = assertDoesNotThrow(() -> transformer.apply(media));
+      MediaRef result = assertDoesNotThrow(() -> transformer.apply(media, new CancellationToken()));
 
       assertEquals(target, result.file());
     }
@@ -268,7 +269,8 @@ public class MusicTransformerTest {
           """.formatted(music.toString().replace("\\", "\\\\")));
       MusicTransformer transformer = new MusicTransformer(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Music file missing or not a regular file"));
       assertTrue(exception.getMessage().contains("musicPath=" + music));
@@ -290,7 +292,8 @@ public class MusicTransformerTest {
           """.formatted(music.toString().replace("\\", "\\\\")));
       MusicTransformer transformer = new MusicTransformer(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Music file missing or not a regular file"));
       assertTrue(exception.getMessage().contains("musicPath=" + music));

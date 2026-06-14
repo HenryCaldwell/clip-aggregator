@@ -9,6 +9,8 @@ import java.util.concurrent.TimeUnit;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.Cancellable;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -112,9 +114,12 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
    * @param media  A {@link MediaRef} representing the media to transform.
    * @param source A {@link Path} representing the source file.
    * @param target A {@link Path} representing the target file.
+   * @param token  A {@link CancellationToken} representing the cancellation
+   *               signal.
    * @throws ComponentException if the FFmpeg process fails at any step.
    */
-  protected final void runProcess(ProcessBuilder pb, MediaRef media, Path source, Path target) {
+  protected final void runProcess(ProcessBuilder pb, MediaRef media, Path source, Path target,
+      CancellationToken token) {
     Process process;
     try {
       pb.redirectErrorStream(true);
@@ -125,28 +130,37 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
           "clipId", media.clip().id(), "sourcePath", source, "targetPath", target), e);
     }
 
-    boolean complete;
+    Cancellable kill = () -> process.destroy();
+    token.register(kill);
+
     try {
-      complete = process.waitFor(timeout, TimeUnit.SECONDS);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      process.destroyForcibly();
-      throw new ComponentException(name, "Interrupted while waiting for ffmpeg process", MapUtils
-          .ofNullable("ffmpegPath", ffmpegPath, "clipId", media.clip().id(), "sourcePath", source, "targetPath",
-              target),
-          e);
-    }
+      boolean complete;
+      try {
+        complete = process.waitFor(timeout, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        process.destroyForcibly();
+        throw new ComponentException(name, "Interrupted while waiting for ffmpeg process", MapUtils
+            .ofNullable("ffmpegPath", ffmpegPath, "clipId", media.clip().id(), "sourcePath", source, "targetPath",
+                target),
+            e);
+      }
 
-    if (!complete) {
-      process.destroyForcibly();
-      throw new ComponentException(name, "Timed out while waiting for ffmpeg process", MapUtils.ofNullable("ffmpegPath",
-          ffmpegPath, "clipId", media.clip().id(), "sourcePath", source, "targetPath", target, "timeout", timeout));
-    }
+      if (!complete) {
+        process.destroyForcibly();
+        throw new ComponentException(name, "Timed out while waiting for ffmpeg process",
+            MapUtils.ofNullable("ffmpegPath",
+                ffmpegPath, "clipId", media.clip().id(), "sourcePath", source, "targetPath", target, "timeout",
+                timeout));
+      }
 
-    int code = process.exitValue();
-    if (code != 0) {
-      throw new ComponentException(name, "ffmpeg process exited with non-zero code", MapUtils.ofNullable("ffmpegPath",
-          ffmpegPath, "clipId", media.clip().id(), "sourcePath", source, "targetPath", target, "exitCode", code));
+      int code = process.exitValue();
+      if (code != 0) {
+        throw new ComponentException(name, "ffmpeg process exited with non-zero code", MapUtils.ofNullable("ffmpegPath",
+            ffmpegPath, "clipId", media.clip().id(), "sourcePath", source, "targetPath", target, "exitCode", code));
+      }
+    } finally {
+      token.unregister(kill);
     }
   }
 

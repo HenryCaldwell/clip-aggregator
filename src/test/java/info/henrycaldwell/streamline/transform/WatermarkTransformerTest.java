@@ -16,6 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
@@ -620,7 +621,7 @@ public class WatermarkTransformerTest {
       };
       WatermarkTransformer transformer = new WatermarkTransformer(config, factory);
 
-      MediaRef result = assertDoesNotThrow(() -> transformer.apply(media));
+      MediaRef result = assertDoesNotThrow(() -> transformer.apply(media, new CancellationToken()));
 
       assertEquals(target, result.file());
     }
@@ -639,7 +640,8 @@ public class WatermarkTransformerTest {
           """);
       WatermarkTransformer transformer = new WatermarkTransformer(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Broadcaster name missing"));
       assertTrue(exception.getMessage().contains("clipId=clip-1"));
@@ -660,7 +662,8 @@ public class WatermarkTransformerTest {
           """);
       WatermarkTransformer transformer = new WatermarkTransformer(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Broadcaster name missing"));
       assertTrue(exception.getMessage().contains("clipId=clip-1"));
@@ -681,7 +684,8 @@ public class WatermarkTransformerTest {
           """);
       WatermarkTransformer transformer = new WatermarkTransformer(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Broadcaster name empty after filtering"));
       assertTrue(exception.getMessage().contains("clipId=clip-1"));
@@ -704,7 +708,8 @@ public class WatermarkTransformerTest {
           """.formatted(logo.toString().replace("\\", "\\\\")));
       WatermarkTransformer transformer = new WatermarkTransformer(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Logo file missing or not a regular file"));
       assertTrue(exception.getMessage().contains("clipId=clip-1"));
@@ -728,7 +733,8 @@ public class WatermarkTransformerTest {
           """.formatted(logo.toString().replace("\\", "\\\\")));
       WatermarkTransformer transformer = new WatermarkTransformer(config);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.apply(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Logo file missing or not a regular file"));
       assertTrue(exception.getMessage().contains("clipId=clip-1"));

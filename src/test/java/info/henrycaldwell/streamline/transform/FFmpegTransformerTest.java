@@ -19,6 +19,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
@@ -274,7 +275,8 @@ public class FFmpegTransformerTest {
           """);
       TestFFmpegTransformer transformer = new TestFFmpegTransformer(config);
 
-      assertDoesNotThrow(() -> transformer.callRunProcess(javaCommand("-version"), media, source, target));
+      assertDoesNotThrow(
+          () -> transformer.callRunProcess(javaCommand("-version"), media, source, target, new CancellationToken()));
     }
 
     @Test
@@ -291,7 +293,8 @@ public class FFmpegTransformerTest {
       TestFFmpegTransformer transformer = new TestFFmpegTransformer(config);
 
       ComponentException exception = assertThrows(ComponentException.class,
-          () -> transformer.callRunProcess(new ProcessBuilder("/this/does/not/exist"), media, source, target));
+          () -> transformer.callRunProcess(new ProcessBuilder("/this/does/not/exist"), media, source, target,
+              new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to start ffmpeg process"));
       assertTrue(exception.getMessage().contains("clipId=clip-1"));
@@ -316,7 +319,7 @@ public class FFmpegTransformerTest {
           SleepProcess.class.getName());
 
       ComponentException exception = assertThrows(ComponentException.class,
-          () -> transformer.callRunProcess(processBuilder, media, source, target));
+          () -> transformer.callRunProcess(processBuilder, media, source, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Timed out while waiting for ffmpeg process"));
       assertTrue(exception.getMessage().contains("timeout=1"));
@@ -336,7 +339,8 @@ public class FFmpegTransformerTest {
       TestFFmpegTransformer transformer = new TestFFmpegTransformer(config);
 
       ComponentException exception = assertThrows(ComponentException.class,
-          () -> transformer.callRunProcess(javaCommand("--definitely-not-a-real-java-option"), media, source, target));
+          () -> transformer.callRunProcess(javaCommand("--definitely-not-a-real-java-option"), media, source, target,
+              new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("ffmpeg process exited with non-zero code"));
       assertTrue(exception.getMessage().contains("exitCode="));
@@ -426,8 +430,9 @@ public class FFmpegTransformerTest {
       super.preflight(media, source, target);
     }
 
-    private void callRunProcess(ProcessBuilder processBuilder, MediaRef media, Path source, Path target) {
-      super.runProcess(processBuilder, media, source, target);
+    private void callRunProcess(ProcessBuilder processBuilder, MediaRef media, Path source, Path target,
+        CancellationToken token) {
+      super.runProcess(processBuilder, media, source, target, token);
     }
 
     private void callPostflight(MediaRef media, Path source, Path target) {
@@ -435,7 +440,7 @@ public class FFmpegTransformerTest {
     }
 
     @Override
-    protected MediaRef apply(MediaRef media) {
+    protected MediaRef apply(MediaRef media, CancellationToken token) {
       return media;
     }
   }

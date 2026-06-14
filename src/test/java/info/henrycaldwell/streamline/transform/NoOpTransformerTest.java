@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.SpecException;
 
@@ -56,7 +57,7 @@ public class NoOpTransformerTest {
           """);
       NoOpTransformer transformer = new NoOpTransformer(config);
 
-      MediaRef result = transformer.transform(media);
+      MediaRef result = transformer.transform(media, new CancellationToken());
 
       assertEquals(media, result);
     }
@@ -74,7 +75,7 @@ public class NoOpTransformerTest {
           """);
       NoOpTransformer transformer = new NoOpTransformer(config);
 
-      MediaRef result = transformer.apply(media);
+      MediaRef result = transformer.apply(media, new CancellationToken());
 
       assertEquals(media, result);
     }

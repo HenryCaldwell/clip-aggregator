@@ -9,6 +9,7 @@ import java.util.Map;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -145,11 +146,13 @@ public final class WatermarkTransformer extends FFmpegTransformer {
    * Applies a watermark transformation to the input media.
    *
    * @param media A {@link MediaRef} representing the media to transform.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the transformed media.
    * @throws ComponentException if transforming fails at any step.
    */
   @Override
-  public MediaRef apply(MediaRef media) {
+  public MediaRef apply(MediaRef media, CancellationToken token) {
     Path source = media.file();
     Path target = PathUtils.deriveOut(source, "-temp.mp4");
 
@@ -209,7 +212,7 @@ public final class WatermarkTransformer extends FFmpegTransformer {
             target.toString());
       }
 
-      runProcess(pb, media, source, target);
+      runProcess(pb, media, source, target, token);
       postflight(media, source, target);
 
       return media.withFile(target);

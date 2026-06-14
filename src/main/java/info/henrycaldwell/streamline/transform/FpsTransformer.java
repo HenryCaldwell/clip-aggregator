@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.util.MapUtils;
@@ -60,10 +61,12 @@ public final class FpsTransformer extends FFmpegTransformer {
    * Applies a frame rate transformation to the input media.
    * 
    * @param media A {@link MediaRef} representing the media to transform.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the transformed media.
    */
   @Override
-  public MediaRef apply(MediaRef media) {
+  public MediaRef apply(MediaRef media, CancellationToken token) {
     Path source = media.file();
     Path target = PathUtils.deriveOut(source, "-temp.mp4");
 
@@ -81,7 +84,7 @@ public final class FpsTransformer extends FFmpegTransformer {
         "-ar", "48000",
         target.toString());
 
-    runProcess(pb, media, source, target);
+    runProcess(pb, media, source, target, token);
     postflight(media, source, target);
 
     return media.withFile(target);

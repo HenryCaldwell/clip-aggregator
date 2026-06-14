@@ -18,6 +18,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -114,7 +115,7 @@ public class AbstractTransformerTest {
           """);
       TestTransformer transformer = new TestTransformer(config, applied);
 
-      MediaRef result = transformer.transform(media);
+      MediaRef result = transformer.transform(media, new CancellationToken());
 
       assertEquals(source, result.file());
       assertEquals("output", Files.readString(source));
@@ -133,7 +134,8 @@ public class AbstractTransformerTest {
           """);
       TestTransformer transformer = new TestTransformer(config, media.withFile(output));
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.transform(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.transform(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Transformer did not produce a new output file"));
       assertTrue(exception.getMessage().contains("sourcePath=null"));
@@ -152,7 +154,8 @@ public class AbstractTransformerTest {
           """);
       TestTransformer transformer = new TestTransformer(config, media.withFile(null));
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.transform(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.transform(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Transformer did not produce a new output file"));
       assertTrue(exception.getMessage().contains("sourcePath=" + source));
@@ -171,7 +174,8 @@ public class AbstractTransformerTest {
           """);
       TestTransformer transformer = new TestTransformer(config, media);
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.transform(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.transform(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Transformer did not produce a new output file"));
       assertTrue(exception.getMessage().contains("sourcePath=" + source));
@@ -191,7 +195,8 @@ public class AbstractTransformerTest {
           """);
       TestTransformer transformer = new TestTransformer(config, media.withFile(output));
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.transform(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.transform(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Transformer produced a non-regular output file"));
       assertTrue(exception.getMessage().contains("outputPath=" + output));
@@ -211,7 +216,8 @@ public class AbstractTransformerTest {
           """);
       TestTransformer transformer = new TestTransformer(config, media.withFile(output));
 
-      ComponentException exception = assertThrows(ComponentException.class, () -> transformer.transform(media));
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> transformer.transform(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Transformer produced a non-regular output file"));
       assertTrue(exception.getMessage().contains("outputPath=" + output));
@@ -228,7 +234,7 @@ public class AbstractTransformerTest {
     }
 
     @Override
-    protected MediaRef apply(MediaRef media) {
+    protected MediaRef apply(MediaRef media, CancellationToken token) {
       return output;
     }
   }

@@ -3,6 +3,7 @@ package info.henrycaldwell.streamline.transform;
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 
 /**
@@ -27,10 +28,12 @@ public final class NoOpTransformer extends AbstractTransformer {
    * Transforms the input media by performing no action.
    *
    * @param media A {@link MediaRef} representing the media to transform.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the transformed media.
    */
   @Override
-  public MediaRef transform(MediaRef media) {
+  public MediaRef transform(MediaRef media, CancellationToken token) {
     return media;
   }
 
@@ -38,10 +41,12 @@ public final class NoOpTransformer extends AbstractTransformer {
    * Transforms the input media by performing no action.
    *
    * @param media A {@link MediaRef} representing the media to transform.
+   * @param token A {@link CancellationToken} representing the cancellation
+   *              signal.
    * @return A {@link MediaRef} representing the transformed media.
    */
   @Override
-  protected MediaRef apply(MediaRef media) {
+  protected MediaRef apply(MediaRef media, CancellationToken token) {
     return media;
   }
 }

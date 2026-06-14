@@ -16,6 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.util.PathUtils;
@@ -123,7 +124,7 @@ public class FpsTransformerTest {
       };
       FpsTransformer transformer = new FpsTransformer(config, factory);
 
-      MediaRef result = assertDoesNotThrow(() -> transformer.apply(media));
+      MediaRef result = assertDoesNotThrow(() -> transformer.apply(media, new CancellationToken()));
 
       assertEquals(target, result.file());
     }
