@@ -140,7 +140,8 @@ public final class PreparationWorkerPool {
           claimed = context.history().claim(clip, context.name());
         } catch (RuntimeException e) {
           if (observer != null) {
-            observer.attemptEnd(claimAttemptId, AttemptStatus.FAILURE, e);
+            AttemptStatus status = (token.getReason() != null) ? AttemptStatus.CANCELED : AttemptStatus.FAILURE;
+            observer.attemptEnd(claimAttemptId, status, e);
           }
 
           throw e;
@@ -179,7 +180,8 @@ public final class PreparationWorkerPool {
           }
         } catch (RuntimeException e) {
           if (observer != null) {
-            observer.attemptEnd(downloadAttemptId, AttemptStatus.FAILURE, e);
+            AttemptStatus status = (token.getReason() != null) ? AttemptStatus.CANCELED : AttemptStatus.FAILURE;
+            observer.attemptEnd(downloadAttemptId, status, e);
           }
 
           throw e;
@@ -204,7 +206,8 @@ public final class PreparationWorkerPool {
             }
           } catch (RuntimeException e) {
             if (observer != null) {
-              observer.attemptEnd(stageAttemptId, AttemptStatus.FAILURE, e);
+              AttemptStatus status = (token.getReason() != null) ? AttemptStatus.CANCELED : AttemptStatus.FAILURE;
+              observer.attemptEnd(stageAttemptId, status, e);
             }
 
             throw e;

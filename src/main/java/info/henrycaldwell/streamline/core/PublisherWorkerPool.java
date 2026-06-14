@@ -187,7 +187,8 @@ public final class PublisherWorkerPool {
           }
 
           if (observer != null) {
-            observer.attemptEnd(publishAttemptId, AttemptStatus.FAILURE, e);
+            AttemptStatus status = (token.getReason() != null) ? AttemptStatus.CANCELED : AttemptStatus.FAILURE;
+            observer.attemptEnd(publishAttemptId, status, e);
           }
         }
       }

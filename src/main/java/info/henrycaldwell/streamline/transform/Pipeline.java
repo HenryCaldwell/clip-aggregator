@@ -75,7 +75,8 @@ public final class Pipeline {
         }
       } catch (RuntimeException e) {
         if (observer != null) {
-          observer.attemptEnd(transformAttemptId, AttemptStatus.FAILURE, e);
+          AttemptStatus status = (token.getReason() != null) ? AttemptStatus.CANCELED : AttemptStatus.FAILURE;
+          observer.attemptEnd(transformAttemptId, status, e);
         }
 
         throw e;
