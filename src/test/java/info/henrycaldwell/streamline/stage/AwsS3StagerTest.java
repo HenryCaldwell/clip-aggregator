@@ -22,6 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.CancellationReason;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
@@ -641,6 +642,60 @@ public class AwsS3StagerTest {
 
       assertTrue(exception.getMessage().contains("Failed to upload object to S3"));
     }
+
+    @Test
+    void throwsWhenCanceledWhileUploading() throws IOException {
+      Path source = tempDir.resolve("clip.mp4");
+      Files.writeString(source, "data");
+
+      MediaRef media = new MediaRef(null, source, null);
+      Config config = ConfigFactory.parseString("""
+          name = stager
+          type = aws-s3
+          accessKey = key-1
+          secretKey = secret-1
+          bucket = my-bucket
+          publicUrl = "https://cdn.example.com"
+          """);
+      S3Operations operations = new S3Operations() {
+        @Override
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return new CompletableFuture<>();
+        }
+
+        @Override
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
+        }
+
+        @Override
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
+        }
+
+        @Override
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
+        }
+      };
+      AwsS3Stager stager = new AwsS3Stager(config, operations);
+      CancellationToken token = new CancellationToken();
+      Thread canceler = new Thread(() -> {
+        try {
+          Thread.sleep(50);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+
+        token.cancel(CancellationReason.USER_CANCELED);
+      });
+      canceler.start();
+
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.apply(media, token));
+
+      assertTrue(exception.getMessage().contains("Canceled while uploading object to S3"));
+    }
   }
 
   @Nested
@@ -867,6 +922,57 @@ public class AwsS3StagerTest {
           () -> stager.clean(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to delete object from S3"));
+    }
+
+    @Test
+    void throwsWhenCanceledWhileDeleting() {
+      MediaRef media = new MediaRef(null, null, URI.create("https://cdn.example.com/clip.mp4"));
+      Config config = ConfigFactory.parseString("""
+          name = stager
+          type = aws-s3
+          accessKey = key-1
+          secretKey = secret-1
+          bucket = my-bucket
+          publicUrl = "https://cdn.example.com"
+          """);
+      S3Operations operations = new S3Operations() {
+        @Override
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
+        }
+
+        @Override
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return new CompletableFuture<>();
+        }
+
+        @Override
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
+        }
+
+        @Override
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder().isTruncated(false).build());
+        }
+      };
+      AwsS3Stager stager = new AwsS3Stager(config, operations);
+      CancellationToken token = new CancellationToken();
+      Thread canceler = new Thread(() -> {
+        try {
+          Thread.sleep(50);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+
+        token.cancel(CancellationReason.USER_CANCELED);
+      });
+      canceler.start();
+
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.clean(media, token));
+
+      assertTrue(exception.getMessage().contains("Canceled while deleting object from S3"));
     }
   }
 
@@ -1112,6 +1218,56 @@ public class AwsS3StagerTest {
     }
 
     @Test
+    void throwsWhenCanceledWhileListing() {
+      Config config = ConfigFactory.parseString("""
+          name = stager
+          type = aws-s3
+          accessKey = key-1
+          secretKey = secret-1
+          bucket = my-bucket
+          publicUrl = "https://cdn.example.com"
+          """);
+      S3Operations operations = new S3Operations() {
+        @Override
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
+        }
+
+        @Override
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
+        }
+
+        @Override
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectsResponse.builder().build());
+        }
+
+        @Override
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return new CompletableFuture<>();
+        }
+      };
+      AwsS3Stager stager = new AwsS3Stager(config, operations);
+      CancellationToken token = new CancellationToken();
+      Thread canceler = new Thread(() -> {
+        try {
+          Thread.sleep(50);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+
+        token.cancel(CancellationReason.USER_CANCELED);
+      });
+      canceler.start();
+
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.purge(token));
+
+      assertTrue(exception.getMessage().contains("Canceled while listing objects in S3"));
+    }
+
+    @Test
     void throwsWhenDeleteFails() {
       Config config = ConfigFactory.parseString("""
           name = stager
@@ -1151,6 +1307,59 @@ public class AwsS3StagerTest {
           () -> stager.purge(new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to delete objects from S3"));
+    }
+
+    @Test
+    void throwsWhenCanceledWhileDeleting() {
+      Config config = ConfigFactory.parseString("""
+          name = stager
+          type = aws-s3
+          accessKey = key-1
+          secretKey = secret-1
+          bucket = my-bucket
+          publicUrl = "https://cdn.example.com"
+          """);
+      S3Operations operations = new S3Operations() {
+        @Override
+        public CompletableFuture<PutObjectResponse> putObject(PutObjectRequest request, AsyncRequestBody body) {
+          return CompletableFuture.completedFuture(PutObjectResponse.builder().build());
+        }
+
+        @Override
+        public CompletableFuture<DeleteObjectResponse> deleteObject(DeleteObjectRequest request) {
+          return CompletableFuture.completedFuture(DeleteObjectResponse.builder().build());
+        }
+
+        @Override
+        public CompletableFuture<DeleteObjectsResponse> deleteObjects(DeleteObjectsRequest request) {
+          return new CompletableFuture<>();
+        }
+
+        @Override
+        public CompletableFuture<ListObjectsV2Response> listObjectsV2(ListObjectsV2Request request) {
+          return CompletableFuture.completedFuture(ListObjectsV2Response.builder()
+              .contents(S3Object.builder().key("clip-1.mp4").build())
+              .isTruncated(false)
+              .build());
+        }
+      };
+      AwsS3Stager stager = new AwsS3Stager(config, operations);
+      CancellationToken token = new CancellationToken();
+      Thread canceler = new Thread(() -> {
+        try {
+          Thread.sleep(50);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+
+        token.cancel(CancellationReason.USER_CANCELED);
+      });
+      canceler.start();
+
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> stager.purge(token));
+
+      assertTrue(exception.getMessage().contains("Canceled while deleting objects from S3"));
     }
   }
 }
