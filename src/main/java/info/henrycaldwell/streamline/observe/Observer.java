@@ -68,4 +68,11 @@ public interface Observer {
    *                  {@code null}.
    */
   void attemptEnd(long attemptId, AttemptStatus status, Throwable error);
+
+  /**
+   * Records a heartbeat for a live run.
+   * 
+   * @param runId A long representing the run identifier.
+   */
+  void heartbeat(long runId);
 }

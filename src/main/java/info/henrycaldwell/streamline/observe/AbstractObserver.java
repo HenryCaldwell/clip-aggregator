@@ -61,4 +61,15 @@ public abstract class AbstractObserver implements Observer {
   public String getName() {
     return name;
   }
+
+  /**
+   * Records a heartbeat for a live run.
+   * 
+   * @param runId A long representing the run identifier.
+   */
+  @Override
+  public void heartbeat(long runId) {
+    // No-op by default
+  }
+
 }

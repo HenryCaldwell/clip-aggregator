@@ -57,13 +57,14 @@ public final class SqliteObserver extends AbstractObserver {
 
       String createRunsSql = """
           CREATE TABLE IF NOT EXISTS runs (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            runner     TEXT NOT NULL,
-            config     TEXT,
-            status     TEXT,
-            published  INTEGER,
-            started_at TEXT NOT NULL,
-            ended_at   TEXT
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            runner       TEXT NOT NULL,
+            config       TEXT,
+            status       TEXT,
+            published    INTEGER,
+            started_at   TEXT NOT NULL,
+            ended_at     TEXT,
+            heartbeat_at TEXT
           );
           """;
 
@@ -130,14 +131,16 @@ public final class SqliteObserver extends AbstractObserver {
     }
 
     String insertSql = """
-        INSERT INTO runs (runner, config, started_at)
-        VALUES (?, ?, ?);
+        INSERT INTO runs (runner, config, started_at, heartbeat_at)
+        VALUES (?, ?, ?, ?);
         """;
 
     try (PreparedStatement insert = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
+      String now = Instant.now().toString();
       insert.setString(1, runner);
       insert.setString(2, config);
-      insert.setString(3, Instant.now().toString());
+      insert.setString(3, now);
+      insert.setString(4, now);
       insert.executeUpdate();
 
       try (ResultSet keys = insert.getGeneratedKeys()) {
@@ -272,6 +275,35 @@ public final class SqliteObserver extends AbstractObserver {
     } catch (SQLException e) {
       throw new ComponentException(name, "Failed to end attempt in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "attemptId", attemptId), e);
+    }
+  }
+
+  /**
+   * Records a heartbeat for a live run in the SQLite database.
+   *
+   * @param runId A long representing the run identifier.
+   * @throws ComponentException if the database operation fails or the observer is
+   *                            not started.
+   */
+  @Override
+  public synchronized void heartbeat(long runId) {
+    if (connection == null) {
+      throw new ComponentException(name, "Observer not started");
+    }
+
+    String updateSql = """
+        UPDATE runs
+        SET heartbeat_at = ?
+        WHERE id = ? AND status IS NULL;
+        """;
+
+    try (PreparedStatement update = connection.prepareStatement(updateSql)) {
+      update.setString(1, Instant.now().toString());
+      update.setLong(2, runId);
+      update.executeUpdate();
+    } catch (SQLException e) {
+      throw new ComponentException(name, "Failed to heartbeat in SQLite database",
+          MapUtils.ofNullable("databasePath", databasePath, "runId", runId), e);
     }
   }
 }
