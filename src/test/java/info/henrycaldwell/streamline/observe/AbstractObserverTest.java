@@ -132,6 +132,15 @@ public class AbstractObserverTest {
     }
 
     @Override
+    public long fetchStart(long runId, String retriever) {
+      return 0L;
+    }
+
+    @Override
+    public void fetchEnd(long fetchId, AttemptStatus status, int clipCount, Throwable error) {
+    }
+
+    @Override
     public long attemptStart(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
       return 0L;
     }

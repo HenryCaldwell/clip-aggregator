@@ -68,6 +68,20 @@ public final class SqliteObserver extends AbstractObserver {
           );
           """;
 
+      String createFetchesSql = """
+          CREATE TABLE IF NOT EXISTS fetches (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_id     INTEGER NOT NULL,
+            retriever  TEXT NOT NULL,
+            status     TEXT,
+            error      TEXT,
+            clip_count INTEGER,
+            started_at TEXT NOT NULL,
+            ended_at   TEXT,
+            FOREIGN KEY (run_id) REFERENCES runs(id)
+          );
+          """;
+
       String createAttemptsSql = """
           CREATE TABLE IF NOT EXISTS attempts (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,6 +100,7 @@ public final class SqliteObserver extends AbstractObserver {
 
       try (Statement create = connection.createStatement()) {
         create.executeUpdate(createRunsSql);
+        create.executeUpdate(createFetchesSql);
         create.executeUpdate(createAttemptsSql);
       }
     } catch (SQLException e) {
@@ -189,6 +204,86 @@ public final class SqliteObserver extends AbstractObserver {
     } catch (SQLException e) {
       throw new ComponentException(name, "Failed to end run in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "runId", runId), e);
+    }
+  }
+
+  /**
+   * Records the start of a fetch in the SQLite database.
+   *
+   * @param runId     A long representing the run identifier.
+   * @param retriever A string representing the retriever name.
+   * @return A long representing the fetch identifier.
+   * @throws ComponentException if the database operation fails or the observer is
+   *                            not started.
+   */
+  @Override
+  public synchronized long fetchStart(long runId, String retriever) {
+    if (connection == null) {
+      throw new ComponentException(name, "Observer not started");
+    }
+
+    String insertSql = """
+        INSERT INTO fetches (run_id, retriever, started_at)
+        VALUES (?, ?, ?);
+        """;
+
+    try (PreparedStatement insert = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
+      insert.setLong(1, runId);
+      insert.setString(2, retriever);
+      insert.setString(3, Instant.now().toString());
+      insert.executeUpdate();
+
+      try (ResultSet keys = insert.getGeneratedKeys()) {
+        if (!keys.next()) {
+          throw new ComponentException(name, "Failed to start fetch in SQLite database",
+              MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "retriever", retriever));
+        }
+
+        return keys.getLong(1);
+      }
+    } catch (SQLException e) {
+      throw new ComponentException(name, "Failed to start fetch in SQLite database",
+          MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "retriever", retriever), e);
+    }
+  }
+
+  /**
+   * Records the end of a fetch in the SQLite database.
+   *
+   * @param fetchId   A long representing the fetch identifier.
+   * @param status    An {@link AttemptStatus} representing the terminal fetch
+   *                  status.
+   * @param clipCount An integer representing the number of clips fetched.
+   * @param error     A {@link Throwable} representing the failure cause, or
+   *                  {@code null}.
+   * @throws ComponentException if the database operation fails or the observer is
+   *                            not started.
+   */
+  @Override
+  public synchronized void fetchEnd(long fetchId, AttemptStatus status, int clipCount, Throwable error) {
+    if (connection == null) {
+      throw new ComponentException(name, "Observer not started");
+    }
+
+    String updateSql = """
+        UPDATE fetches
+        SET status = ?,
+            error = ?,
+            clip_count = ?,
+            ended_at = ?
+        WHERE id = ?;
+        """;
+
+    try (PreparedStatement update = connection.prepareStatement(updateSql)) {
+      update.setString(1, status.name().toLowerCase());
+      update.setString(2, error != null ? error.toString() : null);
+      update.setInt(3, clipCount);
+      update.setString(4, Instant.now().toString());
+      update.setLong(5, fetchId);
+      update.executeUpdate();
+    } catch (SQLException e) {
+      throw new ComponentException(name, "Failed to end fetch in SQLite database",
+          MapUtils.ofNullable("databasePath", databasePath, "fetchId", fetchId), e);
     }
   }
 

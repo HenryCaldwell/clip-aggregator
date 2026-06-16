@@ -296,6 +296,15 @@ public class PipelineTest {
     }
 
     @Override
+    public long fetchStart(long runId, String retriever) {
+      return 0L;
+    }
+
+    @Override
+    public void fetchEnd(long fetchId, AttemptStatus status, int clipCount, Throwable error) {
+    }
+
+    @Override
     public long attemptStart(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
       startedAttempts.add(new StartedAttempt(runId, worker, clip, stage, component));
       return nextId++;

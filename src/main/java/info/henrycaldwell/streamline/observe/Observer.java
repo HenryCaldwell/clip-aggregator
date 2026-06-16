@@ -47,6 +47,27 @@ public interface Observer {
   void runEnd(long runId, RunStatus status, int published);
 
   /**
+   * Records the start of a fetch for a single retriever.
+   *
+   * @param runId     A long representing the run identifier.
+   * @param retriever A string representing the retriever name.
+   * @return A long representing the fetch identifier.
+   */
+  long fetchStart(long runId, String retriever);
+
+  /**
+   * Records the end of a fetch for a single retriever.
+   *
+   * @param fetchId   A long representing the fetch identifier.
+   * @param status    An {@link AttemptStatus} representing the terminal fetch
+   *                  status.
+   * @param clipCount An integer representing the number of clips fetched.
+   * @param error     A {@link Throwable} representing the failure cause, or
+   *                  {@code null}.
+   */
+  void fetchEnd(long fetchId, AttemptStatus status, int clipCount, Throwable error);
+
+  /**
    * Records the start of an attempt at a single pipeline stage for a single clip.
    *
    * @param runId     A long representing the run identifier.
