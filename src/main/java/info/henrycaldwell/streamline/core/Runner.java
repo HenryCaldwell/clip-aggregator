@@ -46,8 +46,6 @@ public final class Runner {
 
   private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
 
-  private static final long HEARTBEAT_INTERVAL = 10L;
-
   private Runner() {
   }
 
@@ -98,13 +96,14 @@ public final class Runner {
    */
   public static void run(RunnerContext context) {
     LOG.info(
-        "Run started (runner={}, posts={}, workDir={}, preparationThreads={}, publisherThreads={}, failureLimit={}, observer={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
+        "Run started (runner={}, posts={}, workDir={}, preparationThreads={}, publisherThreads={}, failureLimit={}, heartbeatInterval={}, observer={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
         context.name(),
         context.posts(),
         context.workDir(),
         context.preparationThreads(),
         context.publisherThreads(),
         context.failureLimit(),
+        context.heartbeatInterval(),
         context.observer() != null ? context.observer().getName() : null,
         context.retrievers().keySet(),
         context.history() != null ? context.history().getName() : null,
@@ -157,7 +156,7 @@ public final class Runner {
 
       if (context.observer() != null) {
         runId = context.observer().runStart(context.name(), context.configJson());
-        heartbeats = startHeartbeats(context.observer(), context.name(), runId);
+        heartbeats = startHeartbeats(context.observer(), context.name(), runId, context.heartbeatInterval());
       }
 
       RunSession session = new RunSession(runId, token);
@@ -254,6 +253,12 @@ public final class Runner {
           MapUtils.ofNullable("key", "failureLimit", "value", failureLimit));
     }
 
+    long heartbeatInterval = root.hasPath("heartbeatInterval") ? root.getNumber("heartbeatInterval").longValue() : 10L;
+    if (heartbeatInterval <= 0) {
+      throw new SpecException(name, "Invalid key value (expected heartbeatInterval to be greater than 0)",
+          MapUtils.ofNullable("key", "heartbeatInterval", "value", heartbeatInterval));
+    }
+
     String configJson = root.root().render(ConfigRenderOptions.concise());
 
     Observer observer = buildObserver(root);
@@ -289,13 +294,14 @@ public final class Runner {
     }
 
     LOG.info(
-        "Built runner context (runner={}, posts={}, workDir={}, preparationThreads={}, publisherThreads={}, failureLimit={}, observer={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
+        "Built runner context (runner={}, posts={}, workDir={}, preparationThreads={}, publisherThreads={}, failureLimit={}, heartbeatInterval={}, observer={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
         name,
         posts,
         workDir,
         preparationThreads,
         publisherThreads,
         failureLimit,
+        heartbeatInterval,
         observer != null ? observer.getName() : null,
         retrievers.keySet(),
         history != null ? history.getName() : null,
@@ -311,6 +317,7 @@ public final class Runner {
         preparationThreads,
         publisherThreads,
         failureLimit,
+        heartbeatInterval,
         configJson,
         observer,
         retrievers,
@@ -328,10 +335,11 @@ public final class Runner {
    *                 heartbeats.
    * @param runner   A string representing the runner name.
    * @param runId    A long representing the run identifier.
+   * @param interval A long representing the heartbeat interval in seconds.
    * @return A {@link ScheduledExecutorService} representing the heartbeat
    *         scheduler.
    */
-  private static ScheduledExecutorService startHeartbeats(Observer observer, String runner, long runId) {
+  private static ScheduledExecutorService startHeartbeats(Observer observer, String runner, long runId, long interval) {
     ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(task -> {
       Thread thread = new Thread(task, runner + "-heartbeat");
       thread.setDaemon(true);
@@ -344,10 +352,10 @@ public final class Runner {
       } catch (RuntimeException e) {
         LOG.warn("Failed to record heartbeat (runner={}, runId={})", runner, runId, e);
       }
-    }, HEARTBEAT_INTERVAL, HEARTBEAT_INTERVAL, TimeUnit.SECONDS);
+    }, interval, interval, TimeUnit.SECONDS);
 
     LOG.info("Started runner heartbeats (runner={}, observer={}, interval={})",
-        runner, observer.getName(), HEARTBEAT_INTERVAL);
+        runner, observer.getName(), interval);
 
     return executor;
   }
