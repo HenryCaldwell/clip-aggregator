@@ -26,6 +26,7 @@ import com.typesafe.config.ConfigRenderOptions;
 import info.henrycaldwell.streamline.download.Downloader;
 import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.history.History;
+import info.henrycaldwell.streamline.observe.AttemptStatus;
 import info.henrycaldwell.streamline.observe.Observer;
 import info.henrycaldwell.streamline.observe.RunStatus;
 import info.henrycaldwell.streamline.publish.Publisher;
@@ -380,12 +381,26 @@ public final class Runner {
       String pipelineName = retriever.getPipeline();
       Pipeline pipeline = (pipelineName != null) ? context.pipelines().get(pipelineName) : null;
 
+      long fetchId = -1;
+      if (context.observer() != null) {
+        fetchId = context.observer().fetchStart(session.runId(), retrieverName);
+      }
+
       List<ClipRef> clips;
       try {
         clips = retriever.fetch(token);
       } catch (RuntimeException e) {
+        if (context.observer() != null) {
+          AttemptStatus status = token.getReason() != null ? AttemptStatus.CANCELED : AttemptStatus.FAILURE;
+          context.observer().fetchEnd(fetchId, status, 0, e);
+        }
+
         LOG.error("Failed to fetch clips (runner={}, retriever={})", context.name(), retrieverName, e);
         continue;
+      }
+
+      if (context.observer() != null) {
+        context.observer().fetchEnd(fetchId, AttemptStatus.SUCCESS, clips.size(), null);
       }
 
       LOG.info("Fetched retriever clips (runner={}, retriever={}, pipeline={}, clips={})",
