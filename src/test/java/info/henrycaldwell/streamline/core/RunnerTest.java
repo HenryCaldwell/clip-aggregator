@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -1005,6 +1006,79 @@ public class RunnerTest {
     }
 
     @Test
+    void recordsSuccessfulFetch() {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      NoOpDownloader downloader = new NoOpDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, 10L, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.startedFetches.size());
+      assertEquals("test_retriever", observer.startedFetches.get(0).retriever());
+      assertEquals(1, observer.endedFetches.size());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedFetches.get(0).status());
+      assertEquals(1, observer.endedFetches.get(0).clipCount());
+      assertNull(observer.endedFetches.get(0).error());
+    }
+
+    @Test
+    void recordsFailedFetch() {
+      ThrowingRetriever retriever = new ThrowingRetriever();
+      NoOpDownloader downloader = new NoOpDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, 10L, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.startedFetches.size());
+      assertEquals(1, observer.endedFetches.size());
+      assertEquals(AttemptStatus.FAILURE, observer.endedFetches.get(0).status());
+      assertEquals(0, observer.endedFetches.get(0).clipCount());
+      assertNotNull(observer.endedFetches.get(0).error());
+    }
+
+    @Test
+    void recordsCanceledFetch() {
+      CancelingRetriever retriever = new CancelingRetriever();
+      NoOpDownloader downloader = new NoOpDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, 10L, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      assertEquals(1, observer.startedFetches.size());
+      assertEquals(1, observer.endedFetches.size());
+      assertEquals(AttemptStatus.CANCELED, observer.endedFetches.get(0).status());
+      assertNotNull(observer.endedFetches.get(0).error());
+    }
+
+    @Test
     void recordsSkippedAttemptForPublishedClip() {
       ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
       TestRetriever retriever = new TestRetriever(List.of(clip));
@@ -1462,6 +1536,25 @@ public class RunnerTest {
     }
   }
 
+  private static final class CancelingRetriever implements Retriever {
+
+    @Override
+    public String getName() {
+      return "canceling_retriever";
+    }
+
+    @Override
+    public String getPipeline() {
+      return null;
+    }
+
+    @Override
+    public List<ClipRef> fetch(CancellationToken token) {
+      token.cancel(CancellationReason.USER_CANCELED);
+      throw new RuntimeException("fetch canceled");
+    }
+  }
+
   private static final class TrackingHistory implements History {
 
     private final AtomicInteger claimed = new AtomicInteger();
@@ -1877,6 +1970,12 @@ public class RunnerTest {
     record EndedRun(long runId, RunStatus status, int published) {
     }
 
+    record StartedFetch(long runId, String retriever) {
+    }
+
+    record EndedFetch(long fetchId, AttemptStatus status, int clipCount, Throwable error) {
+    }
+
     record StartedAttempt(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
     }
 
@@ -1885,6 +1984,8 @@ public class RunnerTest {
 
     private final List<StartedRun> startedRuns = new ArrayList<>();
     private final List<EndedRun> endedRuns = new ArrayList<>();
+    private final List<StartedFetch> startedFetches = new ArrayList<>();
+    private final List<EndedFetch> endedFetches = new ArrayList<>();
     private final List<StartedAttempt> startedAttempts = new ArrayList<>();
     private final List<EndedAttempt> endedAttempts = new ArrayList<>();
     private final List<Long> heartbeats = new ArrayList<>();
@@ -1911,11 +2012,13 @@ public class RunnerTest {
 
     @Override
     public long fetchStart(long runId, String retriever) {
-      return 0L;
+      startedFetches.add(new StartedFetch(runId, retriever));
+      return nextId++;
     }
 
     @Override
     public void fetchEnd(long fetchId, AttemptStatus status, int clipCount, Throwable error) {
+      endedFetches.add(new EndedFetch(fetchId, status, clipCount, error));
     }
 
     @Override
