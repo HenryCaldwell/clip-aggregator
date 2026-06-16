@@ -108,13 +108,13 @@ publishers = [
 1. **Run with a configuration file:**
 
 ```bash
-java -jar target/streamline-1.0.0.jar /path/to/config.conf
+java -jar target/streamline-1.1.0.jar /path/to/config.conf
 ```
 
 2. **Increase memory allocation for large runs:**
 
 ```bash
-java -Xmx8g -Xms1g -jar target/streamline-1.0.0.jar /path/to/config.conf
+java -Xmx8g -Xms1g -jar target/streamline-1.1.0.jar /path/to/config.conf
 ```
 
 3. **Troubleshooting:**
