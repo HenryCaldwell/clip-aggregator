@@ -2,6 +2,7 @@ package info.henrycaldwell.streamline.observe;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -212,6 +213,7 @@ public class SqliteObserverTest {
         assertNull(row.published());
         assertNotNull(row.startedAt());
         assertNull(row.endedAt());
+        assertNotNull(row.heartbeatAt());
       } finally {
         observer.stop();
       }
@@ -389,6 +391,81 @@ public class SqliteObserverTest {
     }
   }
 
+  @Nested
+  class Heartbeat {
+
+    @Test
+    void throwsWhenObserverIsNotStarted() {
+      Path database = tempDir.resolve("observer.db");
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteObserver observer = new SqliteObserver(config);
+
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> observer.heartbeat(1L));
+
+      assertTrue(exception.getMessage().contains("Observer not started"));
+    }
+
+    @Test
+    void updatesHeartbeatForLiveRun() throws Exception {
+      Path database = tempDir.resolve("observer.db");
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteObserver observer = new SqliteObserver(config);
+      observer.start();
+
+      try {
+        long runId = observer.runStart("runner", null);
+        String initial = runRow(database, runId).heartbeatAt();
+
+        Thread.sleep(10);
+        observer.heartbeat(runId);
+
+        RunRow row = runRow(database, runId);
+
+        assertNotNull(row.heartbeatAt());
+        assertNotEquals(initial, row.heartbeatAt());
+      } finally {
+        observer.stop();
+      }
+    }
+
+    @Test
+    void doesNotUpdateTerminalRun() throws Exception {
+      Path database = tempDir.resolve("observer.db");
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteObserver observer = new SqliteObserver(config);
+      observer.start();
+
+      try {
+        long runId = observer.runStart("runner", null);
+        observer.runEnd(runId, RunStatus.COMPLETED, 0);
+
+        String terminalHeartbeat = runRow(database, runId).heartbeatAt();
+
+        Thread.sleep(10);
+        observer.heartbeat(runId);
+
+        RunRow row = runRow(database, runId);
+
+        assertEquals(terminalHeartbeat, row.heartbeatAt());
+      } finally {
+        observer.stop();
+      }
+    }
+  }
+
   private static String escape(Path path) {
     return path.toString().replace("\\", "\\\\");
   }
@@ -396,7 +473,7 @@ public class SqliteObserverTest {
   private static RunRow runRow(Path database, long id) throws Exception {
     try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
         PreparedStatement statement = connection.prepareStatement("""
-            SELECT runner, config, status, published, started_at, ended_at
+            SELECT runner, config, status, published, started_at, ended_at, heartbeat_at
             FROM runs
             WHERE id = ?
             """)) {
@@ -414,7 +491,8 @@ public class SqliteObserverTest {
             result.getString("status"),
             published,
             result.getString("started_at"),
-            result.getString("ended_at"));
+            result.getString("ended_at"),
+            result.getString("heartbeat_at"));
       }
     }
   }
@@ -451,7 +529,8 @@ public class SqliteObserverTest {
       String status,
       Integer published,
       String startedAt,
-      String endedAt) {
+      String endedAt,
+      String heartbeatAt) {
   }
 
   private record AttemptRow(
