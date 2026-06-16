@@ -11,6 +11,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +45,8 @@ import info.henrycaldwell.streamline.util.MapUtils;
 public final class Runner {
 
   private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
+
+  private static final long HEARTBEAT_INTERVAL = 10L;
 
   private Runner() {
   }
@@ -112,6 +117,8 @@ public final class Runner {
     CancellationToken token = new CancellationToken();
     int published = 0;
 
+    ScheduledExecutorService heartbeats = null;
+
     try {
       if (context.observer() != null) {
         context.observer().start();
@@ -150,6 +157,7 @@ public final class Runner {
 
       if (context.observer() != null) {
         runId = context.observer().runStart(context.name(), context.configJson());
+        heartbeats = startHeartbeats(context.observer(), context.name(), runId);
       }
 
       RunSession session = new RunSession(runId, token);
@@ -160,12 +168,18 @@ public final class Runner {
       RunStatus status = (reason == null) ? RunStatus.COMPLETED : reason.status();
 
       if (context.observer() != null) {
+        heartbeats.shutdown();
+        heartbeats = null;
         context.observer().runEnd(runId, status, published);
       }
 
       LOG.info("Run completed (runner={}, posts={}, published={}, status={})",
           context.name(), context.posts(), published, status);
     } finally {
+      if (heartbeats != null) {
+        heartbeats.shutdownNow();
+      }
+
       if (context.observer() != null) {
         context.observer().stop();
         LOG.info("Stopped observer (runner={}, observer={})", context.name(), context.observer().getName());
@@ -305,6 +319,37 @@ public final class Runner {
         pipelines,
         stager,
         publishers);
+  }
+
+  /**
+   * Starts a scheduler that periodically records heartbeats.
+   * 
+   * @param observer An {@link Observer} representing the observer recording the
+   *                 heartbeats.
+   * @param runner   A string representing the runner name.
+   * @param runId    A long representing the run identifier.
+   * @return A {@link ScheduledExecutorService} representing the heartbeat
+   *         scheduler.
+   */
+  private static ScheduledExecutorService startHeartbeats(Observer observer, String runner, long runId) {
+    ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(task -> {
+      Thread thread = new Thread(task, runner + "-heartbeat");
+      thread.setDaemon(true);
+      return thread;
+    });
+
+    executor.scheduleAtFixedRate(() -> {
+      try {
+        observer.heartbeat(runId);
+      } catch (RuntimeException e) {
+        LOG.warn("Failed to record heartbeat (runner={}, runId={})", runner, runId, e);
+      }
+    }, HEARTBEAT_INTERVAL, HEARTBEAT_INTERVAL, TimeUnit.SECONDS);
+
+    LOG.info("Started runner heartbeats (runner={}, observer={}, interval={})",
+        runner, observer.getName(), HEARTBEAT_INTERVAL);
+
+    return executor;
   }
 
   /**
