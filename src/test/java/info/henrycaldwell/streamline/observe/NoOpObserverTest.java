@@ -77,6 +77,36 @@ public class NoOpObserverTest {
   }
 
   @Nested
+  class FetchStart {
+
+    @Test
+    void returnsZero() {
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = no_op
+          """);
+      NoOpObserver observer = new NoOpObserver(config);
+
+      assertEquals(0L, observer.fetchStart(0L, "retriever"));
+    }
+  }
+
+  @Nested
+  class FetchEnd {
+
+    @Test
+    void doesNothing() {
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = no_op
+          """);
+      NoOpObserver observer = new NoOpObserver(config);
+
+      assertDoesNotThrow(() -> observer.fetchEnd(0L, AttemptStatus.SUCCESS, 0, null));
+    }
+  }
+
+  @Nested
   class AttemptStart {
 
     @Test
