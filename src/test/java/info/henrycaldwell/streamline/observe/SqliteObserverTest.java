@@ -110,6 +110,9 @@ public class SqliteObserverTest {
         try (ResultSet result = connection.getMetaData().getTables(null, null, "runs", null)) {
           assertTrue(result.next());
         }
+        try (ResultSet result = connection.getMetaData().getTables(null, null, "fetches", null)) {
+          assertTrue(result.next());
+        }
         try (ResultSet result = connection.getMetaData().getTables(null, null, "attempts", null)) {
           assertTrue(result.next());
         }
@@ -258,6 +261,132 @@ public class SqliteObserverTest {
 
         assertEquals("completed", row.status());
         assertEquals(3, row.published());
+        assertNotNull(row.endedAt());
+      } finally {
+        observer.stop();
+      }
+    }
+  }
+
+  @Nested
+  class FetchStart {
+
+    @Test
+    void throwsWhenObserverIsNotStarted() {
+      Path database = tempDir.resolve("observer.db");
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteObserver observer = new SqliteObserver(config);
+
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> observer.fetchStart(1L, "retriever"));
+
+      assertTrue(exception.getMessage().contains("Observer not started"));
+    }
+
+    @Test
+    void insertsStartedFetch() throws Exception {
+      Path database = tempDir.resolve("observer.db");
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteObserver observer = new SqliteObserver(config);
+      observer.start();
+
+      try {
+        long runId = observer.runStart("runner", null);
+        long fetchId = observer.fetchStart(runId, "retriever");
+
+        FetchRow row = fetchRow(database, fetchId);
+
+        assertEquals(runId, row.runId());
+        assertEquals("retriever", row.retriever());
+        assertNull(row.status());
+        assertNull(row.error());
+        assertNull(row.clipCount());
+        assertNotNull(row.startedAt());
+        assertNull(row.endedAt());
+      } finally {
+        observer.stop();
+      }
+    }
+  }
+
+  @Nested
+  class FetchEnd {
+
+    @Test
+    void throwsWhenObserverIsNotStarted() {
+      Path database = tempDir.resolve("observer.db");
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteObserver observer = new SqliteObserver(config);
+
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> observer.fetchEnd(1L, AttemptStatus.SUCCESS, 0, null));
+
+      assertTrue(exception.getMessage().contains("Observer not started"));
+    }
+
+    @Test
+    void marksStartedFetchSucceeded() throws Exception {
+      Path database = tempDir.resolve("observer.db");
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteObserver observer = new SqliteObserver(config);
+      observer.start();
+
+      try {
+        long runId = observer.runStart("runner", null);
+        long fetchId = observer.fetchStart(runId, "retriever");
+
+        observer.fetchEnd(fetchId, AttemptStatus.SUCCESS, 5, null);
+
+        FetchRow row = fetchRow(database, fetchId);
+
+        assertEquals("success", row.status());
+        assertNull(row.error());
+        assertEquals(5, row.clipCount());
+        assertNotNull(row.endedAt());
+      } finally {
+        observer.stop();
+      }
+    }
+
+    @Test
+    void marksStartedFetchFailed() throws Exception {
+      Path database = tempDir.resolve("observer.db");
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteObserver observer = new SqliteObserver(config);
+      observer.start();
+
+      try {
+        long runId = observer.runStart("runner", null);
+        long fetchId = observer.fetchStart(runId, "retriever");
+
+        RuntimeException error = new RuntimeException("fetch failed");
+        observer.fetchEnd(fetchId, AttemptStatus.FAILURE, 0, error);
+
+        FetchRow row = fetchRow(database, fetchId);
+
+        assertEquals("failure", row.status());
+        assertEquals(error.toString(), row.error());
+        assertEquals(0, row.clipCount());
         assertNotNull(row.endedAt());
       } finally {
         observer.stop();
@@ -497,6 +626,33 @@ public class SqliteObserverTest {
     }
   }
 
+  private static FetchRow fetchRow(Path database, long id) throws Exception {
+    try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
+        PreparedStatement statement = connection.prepareStatement("""
+            SELECT run_id, retriever, status, error, clip_count, started_at, ended_at
+            FROM fetches
+            WHERE id = ?
+            """)) {
+      statement.setLong(1, id);
+
+      try (ResultSet result = statement.executeQuery()) {
+        assertTrue(result.next());
+
+        int clipCountValue = result.getInt("clip_count");
+        Integer clipCount = result.wasNull() ? null : clipCountValue;
+
+        return new FetchRow(
+            result.getLong("run_id"),
+            result.getString("retriever"),
+            result.getString("status"),
+            result.getString("error"),
+            clipCount,
+            result.getString("started_at"),
+            result.getString("ended_at"));
+      }
+    }
+  }
+
   private static AttemptRow attemptRow(Path database, long id) throws Exception {
     try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
         PreparedStatement statement = connection.prepareStatement("""
@@ -531,6 +687,16 @@ public class SqliteObserverTest {
       String startedAt,
       String endedAt,
       String heartbeatAt) {
+  }
+
+  private record FetchRow(
+      long runId,
+      String retriever,
+      String status,
+      String error,
+      Integer clipCount,
+      String startedAt,
+      String endedAt) {
   }
 
   private record AttemptRow(
