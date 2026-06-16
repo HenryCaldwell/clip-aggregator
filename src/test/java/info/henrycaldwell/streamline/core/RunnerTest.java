@@ -13,6 +13,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Nested;
@@ -1356,6 +1358,60 @@ public class RunnerTest {
       assertEquals(0, observer.endedRuns.get(0).published());
     }
 
+    @Test
+    void recordsHeartbeatsDuringRun() throws InterruptedException {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      NoOpDownloader downloader = new NoOpDownloader();
+      BlockingPublisher publisher = new BlockingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, 1L, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", publisher));
+
+      Thread thread = new Thread(() -> Runner.run(context));
+      thread.start();
+
+      try {
+        assertTrue(observer.heartbeatLatch.await(3, TimeUnit.SECONDS));
+      } finally {
+        publisher.release();
+        thread.join();
+      }
+
+      assertFalse(observer.heartbeats.isEmpty());
+      assertEquals(1L, observer.heartbeats.get(0));
+    }
+
+    @Test
+    void stopsHeartbeatsAfterRun() throws InterruptedException {
+      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
+      TestRetriever retriever = new TestRetriever(List.of(clip));
+      NoOpDownloader downloader = new NoOpDownloader();
+      TrackingPublisher tracker = new TrackingPublisher();
+      RecordingObserver observer = new RecordingObserver();
+      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, 1L, null,
+          observer,
+          Map.of("r", retriever),
+          null,
+          downloader,
+          Map.of(),
+          null,
+          Map.of("p", tracker));
+
+      Runner.run(context);
+
+      int initialCount = observer.heartbeats.size();
+      Thread.sleep(2000);
+
+      assertEquals(initialCount, observer.heartbeats.size());
+    }
+
   }
 
   private static final class TestRetriever implements Retriever {
@@ -1789,6 +1845,30 @@ public class RunnerTest {
     }
   }
 
+  private static final class BlockingPublisher implements Publisher {
+
+    private final CountDownLatch latch = new CountDownLatch(1);
+
+    @Override
+    public String getName() {
+      return "blocking_publisher";
+    }
+
+    @Override
+    public PublishRef publish(MediaRef media, CancellationToken token) {
+      try {
+        latch.await();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      return new PublishRef(media.clip(), null);
+    }
+
+    void release() {
+      latch.countDown();
+    }
+  }
+
   private static final class RecordingObserver extends AbstractObserver {
 
     record StartedRun(String runner, String config) {
@@ -1807,6 +1887,8 @@ public class RunnerTest {
     private final List<EndedRun> endedRuns = new ArrayList<>();
     private final List<StartedAttempt> startedAttempts = new ArrayList<>();
     private final List<EndedAttempt> endedAttempts = new ArrayList<>();
+    private final List<Long> heartbeats = new ArrayList<>();
+    private final CountDownLatch heartbeatLatch = new CountDownLatch(1);
     private long nextId = 1;
 
     private RecordingObserver() {
@@ -1836,6 +1918,12 @@ public class RunnerTest {
     @Override
     public void attemptEnd(long attemptId, AttemptStatus status, Throwable error) {
       endedAttempts.add(new EndedAttempt(attemptId, status, error));
+    }
+
+    @Override
+    public void heartbeat(long runId) {
+      heartbeats.add(runId);
+      heartbeatLatch.countDown();
     }
   }
 }
