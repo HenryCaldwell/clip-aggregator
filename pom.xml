@@ -10,6 +10,7 @@
     <packaging>pom</packaging>
 
     <modules>
+      <module>streamline-admin</module>
       <module>streamline-core</module>
     </modules>
 </project>
