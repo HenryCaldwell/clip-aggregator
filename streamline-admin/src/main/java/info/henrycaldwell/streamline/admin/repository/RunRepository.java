@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.sql.DataSource;
 
@@ -57,6 +58,17 @@ public class RunRepository {
     params.add(limit);
 
     return jdbc.query(sql.toString(), this::mapRow, params.toArray());
+  }
+
+  public Optional<RunRow> one(long id) {
+    String sql = """
+        SELECT id, runner, status, published, started_at, ended_at, heartbeat_at
+        FROM runs
+        WHERE id = ?;
+        """;
+    List<RunRow> rows = jdbc.query(sql, this::mapRow, id);
+
+    return rows.stream().findFirst();
   }
 
   private RunRow mapRow(ResultSet result, int rowNum) throws SQLException {

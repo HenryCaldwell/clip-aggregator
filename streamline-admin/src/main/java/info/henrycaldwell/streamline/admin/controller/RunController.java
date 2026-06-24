@@ -3,6 +3,7 @@ package info.henrycaldwell.streamline.admin.controller;
 import java.time.Instant;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,5 +42,11 @@ public class RunController {
     RunFilters filters = new RunFilters(status, runner, from, to);
 
     return service.all(cursor, safeLimit, filters);
+  }
+
+  @Operation(summary = "Get run")
+  @GetMapping("/{id}")
+  public RunSummary one(@PathVariable long id) {
+    return service.one(id);
   }
 }

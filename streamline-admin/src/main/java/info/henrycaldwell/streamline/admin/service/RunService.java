@@ -46,6 +46,13 @@ public class RunService {
     return new Page<>(items, nextCursor, hasMore);
   }
 
+  public RunSummary one(long id) {
+    RunRow row = repository.one(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Run not found"));
+
+    return toSummary(row);
+  }
+
   private RunSummary toSummary(RunRow row) {
     String status;
     if (row.status() != null) {
