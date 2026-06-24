@@ -165,7 +165,7 @@ public final class Runner {
       published = process(context, session);
 
       CancellationReason reason = token.getReason();
-      RunStatus status = (reason == null) ? RunStatus.COMPLETED : reason.status();
+      RunStatus status = (reason == null) ? RunStatus.SUCCESS : reason.status();
 
       if (context.observer() != null) {
         heartbeats.shutdown();

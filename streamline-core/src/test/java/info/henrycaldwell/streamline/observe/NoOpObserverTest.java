@@ -72,7 +72,7 @@ public class NoOpObserverTest {
           """);
       NoOpObserver observer = new NoOpObserver(config);
 
-      assertDoesNotThrow(() -> observer.runEnd(0L, RunStatus.COMPLETED, 0));
+      assertDoesNotThrow(() -> observer.runEnd(0L, RunStatus.SUCCESS, 0));
     }
   }
 

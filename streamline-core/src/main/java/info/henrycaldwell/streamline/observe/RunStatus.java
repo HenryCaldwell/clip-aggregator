@@ -7,8 +7,8 @@ package info.henrycaldwell.streamline.observe;
  */
 public enum RunStatus {
 
-  COMPLETED,
-  FAILED,
+  SUCCESS,
+  FAILURE,
   CANCELED,
 
 }

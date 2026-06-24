@@ -237,13 +237,13 @@ public class SqliteObserverTest {
       SqliteObserver observer = new SqliteObserver(config);
 
       ComponentException exception = assertThrows(ComponentException.class,
-          () -> observer.runEnd(1L, RunStatus.COMPLETED, 0));
+          () -> observer.runEnd(1L, RunStatus.SUCCESS, 0));
 
       assertTrue(exception.getMessage().contains("Observer not started"));
     }
 
     @Test
-    void marksStartedRunCompleted() throws Exception {
+    void marksStartedRunSucceeded() throws Exception {
       Path database = tempDir.resolve("observer.db");
       Config config = ConfigFactory.parseString("""
           name = observer
@@ -255,11 +255,11 @@ public class SqliteObserverTest {
 
       try {
         long runId = observer.runStart("runner", null);
-        observer.runEnd(runId, RunStatus.COMPLETED, 3);
+        observer.runEnd(runId, RunStatus.SUCCESS, 3);
 
         RunRow row = runRow(database, runId);
 
-        assertEquals("completed", row.status());
+        assertEquals("success", row.status());
         assertEquals(3, row.published());
         assertNotNull(row.endedAt());
       } finally {
@@ -579,7 +579,7 @@ public class SqliteObserverTest {
 
       try {
         long runId = observer.runStart("runner", null);
-        observer.runEnd(runId, RunStatus.COMPLETED, 0);
+        observer.runEnd(runId, RunStatus.SUCCESS, 0);
 
         String terminalHeartbeat = runRow(database, runId).heartbeatAt();
 

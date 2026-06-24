@@ -989,7 +989,7 @@ public class RunnerTest {
       assertEquals("test", observer.startedRuns.get(0).runner());
       assertEquals("{\"name\":\"test\"}", observer.startedRuns.get(0).config());
       assertEquals(1, observer.endedRuns.size());
-      assertEquals(RunStatus.COMPLETED, observer.endedRuns.get(0).status());
+      assertEquals(RunStatus.SUCCESS, observer.endedRuns.get(0).status());
       assertEquals(1, observer.endedRuns.get(0).published());
 
       assertEquals(4, observer.startedAttempts.size());
@@ -1377,7 +1377,7 @@ public class RunnerTest {
       Runner.run(context);
 
       assertEquals(1, observer.endedRuns.size());
-      assertEquals(RunStatus.FAILED, observer.endedRuns.get(0).status());
+      assertEquals(RunStatus.FAILURE, observer.endedRuns.get(0).status());
       assertEquals(0, observer.endedRuns.get(0).published());
     }
 
@@ -1405,7 +1405,7 @@ public class RunnerTest {
       Runner.run(context);
 
       assertEquals(1, observer.endedRuns.size());
-      assertEquals(RunStatus.FAILED, observer.endedRuns.get(0).status());
+      assertEquals(RunStatus.FAILURE, observer.endedRuns.get(0).status());
       assertEquals(0, observer.endedRuns.get(0).published());
     }
 

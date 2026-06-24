@@ -9,9 +9,9 @@ import info.henrycaldwell.streamline.observe.RunStatus;
  */
 public enum CancellationReason {
 
-  POSTS_REACHED(RunStatus.COMPLETED),
-  PREPARATION_FAILURE_LIMIT(RunStatus.FAILED),
-  PUBLISHER_FAILURE_LIMIT(RunStatus.FAILED),
+  POSTS_REACHED(RunStatus.SUCCESS),
+  PREPARATION_FAILURE_LIMIT(RunStatus.FAILURE),
+  PUBLISHER_FAILURE_LIMIT(RunStatus.FAILURE),
   USER_CANCELED(RunStatus.CANCELED);
 
   private final RunStatus status;
