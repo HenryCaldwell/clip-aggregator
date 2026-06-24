@@ -62,15 +62,15 @@ public final class NoOpObserver extends AbstractObserver {
   /**
    * Records the end of a fetch without recording state.
    *
-   * @param fetchId   A long representing the fetch identifier.
-   * @param status    An {@link AttemptStatus} representing the terminal fetch
-   *                  status.
-   * @param clipCount An integer representing the number of clips fetched.
-   * @param error     A {@link Throwable} representing the failure cause, or
-   *                  {@code null}.
+   * @param fetchId A long representing the fetch identifier.
+   * @param status  An {@link AttemptStatus} representing the terminal fetch
+   *                status.
+   * @param clips   An integer representing the number of clips fetched.
+   * @param error   A {@link Throwable} representing the failure cause, or
+   *                {@code null}.
    */
   @Override
-  public void fetchEnd(long fetchId, AttemptStatus status, int clipCount, Throwable error) {
+  public void fetchEnd(long fetchId, AttemptStatus status, int clips, Throwable error) {
   }
 
   /**

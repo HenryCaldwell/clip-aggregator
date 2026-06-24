@@ -301,7 +301,7 @@ public class PipelineTest {
     }
 
     @Override
-    public void fetchEnd(long fetchId, AttemptStatus status, int clipCount, Throwable error) {
+    public void fetchEnd(long fetchId, AttemptStatus status, int clips, Throwable error) {
     }
 
     @Override

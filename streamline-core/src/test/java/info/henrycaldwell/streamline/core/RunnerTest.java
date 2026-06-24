@@ -1027,7 +1027,7 @@ public class RunnerTest {
       assertEquals("test_retriever", observer.startedFetches.get(0).retriever());
       assertEquals(1, observer.endedFetches.size());
       assertEquals(AttemptStatus.SUCCESS, observer.endedFetches.get(0).status());
-      assertEquals(1, observer.endedFetches.get(0).clipCount());
+      assertEquals(1, observer.endedFetches.get(0).clips());
       assertNull(observer.endedFetches.get(0).error());
     }
 
@@ -1051,7 +1051,7 @@ public class RunnerTest {
       assertEquals(1, observer.startedFetches.size());
       assertEquals(1, observer.endedFetches.size());
       assertEquals(AttemptStatus.FAILURE, observer.endedFetches.get(0).status());
-      assertEquals(0, observer.endedFetches.get(0).clipCount());
+      assertEquals(0, observer.endedFetches.get(0).clips());
       assertNotNull(observer.endedFetches.get(0).error());
     }
 
@@ -1973,7 +1973,7 @@ public class RunnerTest {
     record StartedFetch(long runId, String retriever) {
     }
 
-    record EndedFetch(long fetchId, AttemptStatus status, int clipCount, Throwable error) {
+    record EndedFetch(long fetchId, AttemptStatus status, int clips, Throwable error) {
     }
 
     record StartedAttempt(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
@@ -2017,8 +2017,8 @@ public class RunnerTest {
     }
 
     @Override
-    public void fetchEnd(long fetchId, AttemptStatus status, int clipCount, Throwable error) {
-      endedFetches.add(new EndedFetch(fetchId, status, clipCount, error));
+    public void fetchEnd(long fetchId, AttemptStatus status, int clips, Throwable error) {
+      endedFetches.add(new EndedFetch(fetchId, status, clips, error));
     }
 
     @Override

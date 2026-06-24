@@ -308,7 +308,7 @@ public class SqliteObserverTest {
         assertEquals("retriever", row.retriever());
         assertNull(row.status());
         assertNull(row.error());
-        assertNull(row.clipCount());
+        assertNull(row.clips());
         assertNotNull(row.startedAt());
         assertNull(row.endedAt());
       } finally {
@@ -357,7 +357,7 @@ public class SqliteObserverTest {
 
         assertEquals("success", row.status());
         assertNull(row.error());
-        assertEquals(5, row.clipCount());
+        assertEquals(5, row.clips());
         assertNotNull(row.endedAt());
       } finally {
         observer.stop();
@@ -386,7 +386,7 @@ public class SqliteObserverTest {
 
         assertEquals("failure", row.status());
         assertEquals(error.toString(), row.error());
-        assertEquals(0, row.clipCount());
+        assertEquals(0, row.clips());
         assertNotNull(row.endedAt());
       } finally {
         observer.stop();
@@ -629,7 +629,7 @@ public class SqliteObserverTest {
   private static FetchRow fetchRow(Path database, long id) throws Exception {
     try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
         PreparedStatement statement = connection.prepareStatement("""
-            SELECT run_id, retriever, status, error, clip_count, started_at, ended_at
+            SELECT run_id, retriever, status, error, clips, started_at, ended_at
             FROM fetches
             WHERE id = ?
             """)) {
@@ -638,15 +638,15 @@ public class SqliteObserverTest {
       try (ResultSet result = statement.executeQuery()) {
         assertTrue(result.next());
 
-        int clipCountValue = result.getInt("clip_count");
-        Integer clipCount = result.wasNull() ? null : clipCountValue;
+        int clipsValue = result.getInt("clips");
+        Integer clips = result.wasNull() ? null : clipsValue;
 
         return new FetchRow(
             result.getLong("run_id"),
             result.getString("retriever"),
             result.getString("status"),
             result.getString("error"),
-            clipCount,
+            clips,
             result.getString("started_at"),
             result.getString("ended_at"));
       }
@@ -694,7 +694,7 @@ public class SqliteObserverTest {
       String retriever,
       String status,
       String error,
-      Integer clipCount,
+      Integer clips,
       String startedAt,
       String endedAt) {
   }

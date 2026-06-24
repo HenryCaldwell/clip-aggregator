@@ -58,14 +58,14 @@ public interface Observer {
   /**
    * Records the end of a fetch for a single retriever.
    *
-   * @param fetchId   A long representing the fetch identifier.
-   * @param status    An {@link AttemptStatus} representing the terminal fetch
-   *                  status.
-   * @param clipCount An integer representing the number of clips fetched.
-   * @param error     A {@link Throwable} representing the failure cause, or
-   *                  {@code null}.
+   * @param fetchId A long representing the fetch identifier.
+   * @param status  An {@link AttemptStatus} representing the terminal fetch
+   *                status.
+   * @param clips   An integer representing the number of clips fetched.
+   * @param error   A {@link Throwable} representing the failure cause, or
+   *                {@code null}.
    */
-  void fetchEnd(long fetchId, AttemptStatus status, int clipCount, Throwable error);
+  void fetchEnd(long fetchId, AttemptStatus status, int clips, Throwable error);
 
   /**
    * Records the start of an attempt at a single pipeline stage for a single clip.

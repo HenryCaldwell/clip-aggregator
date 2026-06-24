@@ -75,7 +75,7 @@ public final class SqliteObserver extends AbstractObserver {
             retriever  TEXT NOT NULL,
             status     TEXT,
             error      TEXT,
-            clip_count INTEGER,
+            clips      INTEGER,
             started_at TEXT NOT NULL,
             ended_at   TEXT,
             FOREIGN KEY (run_id) REFERENCES runs(id)
@@ -250,17 +250,17 @@ public final class SqliteObserver extends AbstractObserver {
   /**
    * Records the end of a fetch in the SQLite database.
    *
-   * @param fetchId   A long representing the fetch identifier.
-   * @param status    An {@link AttemptStatus} representing the terminal fetch
-   *                  status.
-   * @param clipCount An integer representing the number of clips fetched.
-   * @param error     A {@link Throwable} representing the failure cause, or
-   *                  {@code null}.
+   * @param fetchId A long representing the fetch identifier.
+   * @param status  An {@link AttemptStatus} representing the terminal fetch
+   *                status.
+   * @param clips   An integer representing the number of clips fetched.
+   * @param error   A {@link Throwable} representing the failure cause, or
+   *                {@code null}.
    * @throws ComponentException if the database operation fails or the observer is
    *                            not started.
    */
   @Override
-  public synchronized void fetchEnd(long fetchId, AttemptStatus status, int clipCount, Throwable error) {
+  public synchronized void fetchEnd(long fetchId, AttemptStatus status, int clips, Throwable error) {
     if (connection == null) {
       throw new ComponentException(name, "Observer not started");
     }
@@ -269,7 +269,7 @@ public final class SqliteObserver extends AbstractObserver {
         UPDATE fetches
         SET status = ?,
             error = ?,
-            clip_count = ?,
+            clips = ?,
             ended_at = ?
         WHERE id = ?;
         """;
@@ -277,7 +277,7 @@ public final class SqliteObserver extends AbstractObserver {
     try (PreparedStatement update = connection.prepareStatement(updateSql)) {
       update.setString(1, status.name().toLowerCase());
       update.setString(2, error != null ? error.toString() : null);
-      update.setInt(3, clipCount);
+      update.setInt(3, clips);
       update.setString(4, Instant.now().toString());
       update.setLong(5, fetchId);
       update.executeUpdate();
