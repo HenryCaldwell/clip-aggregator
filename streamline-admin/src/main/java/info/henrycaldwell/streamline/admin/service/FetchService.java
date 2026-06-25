@@ -40,6 +40,13 @@ public class FetchService {
     return new Page<>(items, nextCursor, hasMore);
   }
 
+  public FetchSummary one(long id) {
+    FetchRow row = repository.one(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fetch not found"));
+
+    return toSummary(row);
+  }
+
   private FetchSummary toSummary(FetchRow row) {
     String status = row.status() != null ? row.status() : "in_progress";
 
