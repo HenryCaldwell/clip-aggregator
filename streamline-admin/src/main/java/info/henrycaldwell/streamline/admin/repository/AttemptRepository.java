@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.sql.DataSource;
 
@@ -67,6 +68,17 @@ public class AttemptRepository {
     params.add(limit);
 
     return jdbc.query(sql.toString(), this::mapRow, params.toArray());
+  }
+
+  public Optional<AttemptRow> one(long id) {
+    String sql = """
+        SELECT id, run_id, worker, clip_id, stage, component, status, error, started_at, ended_at
+        FROM attempts
+        WHERE id = ?;
+        """;
+    List<AttemptRow> rows = jdbc.query(sql, this::mapRow, id);
+
+    return rows.stream().findFirst();
   }
 
   public List<AttemptRow> byRunId(long runId, Long prevId, int limit) {

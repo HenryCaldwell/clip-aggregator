@@ -40,6 +40,13 @@ public class AttemptService {
     return new Page<>(items, nextCursor, hasMore);
   }
 
+  public AttemptSummary one(long id) {
+    AttemptRow row = repository.one(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attempt not found"));
+
+    return toSummary(row);
+  }
+
   private AttemptSummary toSummary(AttemptRow row) {
     String status = row.status() != null ? row.status() : "in_progress";
 
