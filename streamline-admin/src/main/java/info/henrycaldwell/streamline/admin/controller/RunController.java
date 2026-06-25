@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import info.henrycaldwell.streamline.admin.model.AttemptSummary;
 import info.henrycaldwell.streamline.admin.model.FetchSummary;
 import info.henrycaldwell.streamline.admin.model.Page;
 import info.henrycaldwell.streamline.admin.model.RunSummary;
@@ -60,5 +61,16 @@ public class RunController {
     int safeLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
 
     return service.fetches(id, cursor, safeLimit);
+  }
+
+  @Operation(summary = "List run attempts")
+  @GetMapping("/{id}/attempts")
+  public Page<AttemptSummary> attempts(
+      @PathVariable long id,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(required = false, defaultValue = DEFAULT_LIMIT) int limit) {
+    int safeLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
+
+    return service.attempts(id, cursor, safeLimit);
   }
 }
