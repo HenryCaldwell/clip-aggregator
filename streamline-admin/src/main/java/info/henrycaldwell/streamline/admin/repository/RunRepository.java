@@ -71,6 +71,17 @@ public class RunRepository {
     return rows.stream().findFirst();
   }
 
+  public boolean exists(long id) {
+    String sql = """
+        SELECT COUNT(*)
+        FROM runs
+        WHERE id = ?;
+        """;
+    Integer count = jdbc.queryForObject(sql, Integer.class, id);
+
+    return count != null && count > 0;
+  }
+
   private RunRow mapRow(ResultSet result, int rowNum) throws SQLException {
     int publishedValue = result.getInt("published");
     Integer published = result.wasNull() ? null : publishedValue;

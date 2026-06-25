@@ -11,8 +11,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import info.henrycaldwell.streamline.admin.model.FetchSummary;
 import info.henrycaldwell.streamline.admin.model.Page;
 import info.henrycaldwell.streamline.admin.model.RunSummary;
+import info.henrycaldwell.streamline.admin.repository.FetchRepository;
+import info.henrycaldwell.streamline.admin.repository.FetchRow;
 import info.henrycaldwell.streamline.admin.repository.RunFilters;
 import info.henrycaldwell.streamline.admin.repository.RunRepository;
 import info.henrycaldwell.streamline.admin.repository.RunRow;
@@ -20,19 +23,21 @@ import info.henrycaldwell.streamline.admin.repository.RunRow;
 @Service
 public class RunService {
 
-  private final RunRepository repository;
+  private final RunRepository runRepository;
+  private final FetchRepository fetchRepository;
   private final Duration strandedThreshold;
 
-  public RunService(RunRepository repository,
+  public RunService(RunRepository runRepository, FetchRepository fetchRepository,
       @Value("${streamline.observer.stranded-threshold}") long strandedThreshold) {
-    this.repository = repository;
+    this.runRepository = runRepository;
+    this.fetchRepository = fetchRepository;
     this.strandedThreshold = Duration.ofSeconds(strandedThreshold);
   }
 
   public Page<RunSummary> all(String cursor, int limit, RunFilters filters) {
     Long prevId = decodeCursor(cursor);
 
-    List<RunRow> rows = repository.all(prevId, limit + 1, filters);
+    List<RunRow> rows = runRepository.all(prevId, limit + 1, filters);
 
     boolean hasMore = rows.size() > limit;
     if (hasMore) {
@@ -47,10 +52,31 @@ public class RunService {
   }
 
   public RunSummary one(long id) {
-    RunRow row = repository.one(id)
+    RunRow row = runRepository.one(id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Run not found"));
 
     return toSummary(row);
+  }
+
+  public Page<FetchSummary> fetches(long id, String cursor, int limit) {
+    if (!runRepository.exists(id)) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Run not found");
+    }
+
+    Long prevId = decodeCursor(cursor);
+
+    List<FetchRow> rows = fetchRepository.byRunId(id, prevId, limit + 1);
+
+    boolean hasMore = rows.size() > limit;
+    if (hasMore) {
+      rows = rows.subList(0, limit);
+    }
+
+    List<FetchSummary> items = rows.stream().map(this::toFetchSummary).toList();
+
+    String nextCursor = hasMore && !items.isEmpty() ? encodeCursor(items.get(items.size() - 1).id()) : null;
+
+    return new Page<>(items, nextCursor, hasMore);
   }
 
   private RunSummary toSummary(RunRow row) {
@@ -69,6 +95,20 @@ public class RunService {
         row.runner(),
         status,
         row.published(),
+        row.startedAt(),
+        row.endedAt());
+  }
+
+  private FetchSummary toFetchSummary(FetchRow row) {
+    String status = row.status() != null ? row.status() : "in_progress";
+
+    return new FetchSummary(
+        row.id(),
+        row.runId(),
+        row.retriever(),
+        status,
+        row.error(),
+        row.clips(),
         row.startedAt(),
         row.endedAt());
   }

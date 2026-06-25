@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import info.henrycaldwell.streamline.admin.model.FetchSummary;
 import info.henrycaldwell.streamline.admin.model.Page;
 import info.henrycaldwell.streamline.admin.model.RunSummary;
 import info.henrycaldwell.streamline.admin.repository.RunFilters;
@@ -48,5 +49,16 @@ public class RunController {
   @GetMapping("/{id}")
   public RunSummary one(@PathVariable long id) {
     return service.one(id);
+  }
+
+  @Operation(summary = "List run fetches")
+  @GetMapping("/{id}/fetches")
+  public Page<FetchSummary> fetches(
+      @PathVariable long id,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(required = false, defaultValue = DEFAULT_LIMIT) int limit) {
+    int safeLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
+
+    return service.fetches(id, cursor, safeLimit);
   }
 }
