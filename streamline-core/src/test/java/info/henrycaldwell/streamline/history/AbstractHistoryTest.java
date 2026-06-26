@@ -13,8 +13,6 @@ import com.typesafe.config.ConfigFactory;
 
 import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.ClipRef;
-import info.henrycaldwell.streamline.core.MediaRef;
-import info.henrycaldwell.streamline.core.PublishRef;
 import info.henrycaldwell.streamline.error.SpecException;
 
 public class AbstractHistoryTest {
@@ -125,20 +123,12 @@ public class AbstractHistoryTest {
     }
 
     @Override
-    public boolean claim(ClipRef clip, String runner) {
+    public boolean contains(ClipRef clip, String runner) {
       return false;
     }
 
     @Override
-    public void prepare(MediaRef media, String runner) {
-    }
-
-    @Override
-    public void publish(PublishRef ref, String runner, String publisher) {
-    }
-
-    @Override
-    public void fail(ClipRef clip, String runner, String error) {
+    public void add(ClipRef clip, String runner) {
     }
   }
 }

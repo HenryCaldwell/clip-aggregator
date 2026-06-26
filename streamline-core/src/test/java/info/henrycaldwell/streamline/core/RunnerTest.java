@@ -743,10 +743,8 @@ public class RunnerTest {
 
       Runner.run(context);
 
-      assertEquals(1, history.claimed.get());
-      assertEquals(1, history.prepared.get());
-      assertEquals(1, history.published.get());
-      assertEquals(0, history.failed.get());
+      assertEquals(1, history.contained.get());
+      assertEquals(1, history.added.get());
       assertEquals(1, tracker.published.get());
     }
 
@@ -900,10 +898,8 @@ public class RunnerTest {
 
       Runner.run(context);
 
-      assertEquals(1, history.claimed.get());
-      assertEquals(0, history.prepared.get());
-      assertEquals(1, history.failed.get());
-      assertEquals(0, history.published.get());
+      assertEquals(1, history.contained.get());
+      assertEquals(0, history.added.get());
       assertEquals(0, tracker.published.get());
     }
 
@@ -952,10 +948,8 @@ public class RunnerTest {
 
       Runner.run(context);
 
-      assertEquals(1, history.claimed.get());
-      assertEquals(1, history.prepared.get());
-      assertEquals(1, history.failed.get());
-      assertEquals(0, history.published.get());
+      assertEquals(1, history.contained.get());
+      assertEquals(0, history.added.get());
     }
   }
 
@@ -1543,10 +1537,8 @@ public class RunnerTest {
 
   private static final class TrackingHistory implements History {
 
-    private final AtomicInteger claimed = new AtomicInteger();
-    private final AtomicInteger prepared = new AtomicInteger();
-    private final AtomicInteger published = new AtomicInteger();
-    private final AtomicInteger failed = new AtomicInteger();
+    private final AtomicInteger contained = new AtomicInteger();
+    private final AtomicInteger added = new AtomicInteger();
 
     @Override
     public void start() {
@@ -1562,24 +1554,14 @@ public class RunnerTest {
     }
 
     @Override
-    public boolean claim(ClipRef clip, String runner) {
-      claimed.incrementAndGet();
-      return true;
+    public boolean contains(ClipRef clip, String runner) {
+      contained.incrementAndGet();
+      return false;
     }
 
     @Override
-    public void prepare(MediaRef media, String runner) {
-      prepared.incrementAndGet();
-    }
-
-    @Override
-    public void publish(PublishRef ref, String runner, String publisher) {
-      published.incrementAndGet();
-    }
-
-    @Override
-    public void fail(ClipRef clip, String runner, String error) {
-      failed.incrementAndGet();
+    public void add(ClipRef clip, String runner) {
+      added.incrementAndGet();
     }
   }
 
@@ -1599,20 +1581,12 @@ public class RunnerTest {
     }
 
     @Override
-    public boolean claim(ClipRef clip, String runner) {
-      return false;
+    public boolean contains(ClipRef clip, String runner) {
+      return true;
     }
 
     @Override
-    public void prepare(MediaRef media, String runner) {
-    }
-
-    @Override
-    public void publish(PublishRef ref, String runner, String publisher) {
-    }
-
-    @Override
-    public void fail(ClipRef clip, String runner, String error) {
+    public void add(ClipRef clip, String runner) {
     }
   }
 
@@ -1632,20 +1606,12 @@ public class RunnerTest {
     }
 
     @Override
-    public boolean claim(ClipRef clip, String runner) {
-      throw new RuntimeException("claim failed");
+    public boolean contains(ClipRef clip, String runner) {
+      throw new RuntimeException("contains failed");
     }
 
     @Override
-    public void prepare(MediaRef media, String runner) {
-    }
-
-    @Override
-    public void publish(PublishRef ref, String runner, String publisher) {
-    }
-
-    @Override
-    public void fail(ClipRef clip, String runner, String error) {
+    public void add(ClipRef clip, String runner) {
     }
   }
 

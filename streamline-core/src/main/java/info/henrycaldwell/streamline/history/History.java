@@ -1,13 +1,11 @@
 package info.henrycaldwell.streamline.history;
 
 import info.henrycaldwell.streamline.core.ClipRef;
-import info.henrycaldwell.streamline.core.MediaRef;
-import info.henrycaldwell.streamline.core.PublishRef;
 
 /**
  * Interface for tracking clips.
  *
- * This interface defines a contract for recording claimed clips to prevent
+ * This interface defines a contract for recording published clips to prevent
  * reposts.
  */
 public interface History {
@@ -30,39 +28,20 @@ public interface History {
   String getName();
 
   /**
-   * Attempts to claim a clip.
-   *
-   * @param clip   A {@link ClipRef} representing the clip to claim.
+   * Checks whether a clip has been published.
+   * 
+   * @param clip   A {@link ClipRef} representing the clip to check.
    * @param runner A string representing the runner name.
-   * @return {@code true} if the clip was successfully claimed, {@code false} if
-   *         the clip was already published.
+   * @return {@code true} if the clip has been published, {@code false} if the
+   *         clip has not been published.
    */
-  boolean claim(ClipRef clip, String runner);
+  boolean contains(ClipRef clip, String runner);
 
   /**
-   * Marks a clip as successfully prepared.
-   *
-   * @param media  A {@link MediaRef} representing the prepared media.
+   * Records a clip as published.
+   * 
+   * @param clip   A {@link ClipRef} representing the published clip.
    * @param runner A string representing the runner name.
    */
-  void prepare(MediaRef media, String runner);
-
-  /**
-   * Marks a clip as successfully published.
-   *
-   * @param ref       A {@link PublishRef} representing the published clip.
-   * @param runner    A string representing the runner name.
-   * @param publisher A string representing the publisher name.
-   */
-  void publish(PublishRef ref, String runner, String publisher);
-
-  /**
-   * Marks a clip as failed.
-   *
-   * @param clip   A {@link ClipRef} representing the failed clip.
-   * @param runner A string representing the runner name.
-   * @param error  A string representing the human-readable error message, or
-   *               {@code null}.
-   */
-  void fail(ClipRef clip, String runner, String error);
+  void add(ClipRef clip, String runner);
 }

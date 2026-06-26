@@ -135,9 +135,9 @@ public final class PreparationWorkerPool {
           claimAttemptId = observer.attemptStart(runId, worker, clip, PipelineStage.CLAIM, context.history().getName());
         }
 
-        boolean claimed;
+        boolean published;
         try {
-          claimed = context.history().claim(clip, context.name());
+          published = context.history().contains(clip, context.name());
         } catch (RuntimeException e) {
           if (observer != null) {
             AttemptStatus status = (token.getReason() != null) ? AttemptStatus.CANCELED : AttemptStatus.FAILURE;
@@ -147,7 +147,7 @@ public final class PreparationWorkerPool {
           throw e;
         }
 
-        if (!claimed) {
+        if (published) {
           if (observer != null) {
             observer.attemptEnd(claimAttemptId, AttemptStatus.SKIPPED, null);
           }
@@ -217,10 +217,6 @@ public final class PreparationWorkerPool {
         LOG.error("Failed to prepare clip (runner={}, retriever={}, clipId={}, thread={})", context.name(),
             retrieverName, clipId, worker, e);
 
-        if (context.history() != null) {
-          context.history().fail(clip, context.name(), e.getMessage());
-        }
-
         if (failures.incrementAndGet() >= context.failureLimit()) {
           LOG.error("Reached preparation failure limit (runner={}, limit={}, thread={})", context.name(),
               context.failureLimit(), worker);
@@ -231,10 +227,6 @@ public final class PreparationWorkerPool {
       }
 
       failures.set(0);
-
-      if (context.history() != null) {
-        context.history().prepare(media, context.name());
-      }
 
       LOG.info(
           "Prepared clip (runner={}, retriever={}, pipeline={}, stager={}, clipId={}, views={}, thread={})",

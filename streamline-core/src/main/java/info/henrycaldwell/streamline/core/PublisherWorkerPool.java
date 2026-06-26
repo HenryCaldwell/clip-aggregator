@@ -169,10 +169,6 @@ public final class PublisherWorkerPool {
           LOG.info("Published clip (runner={}, publisher={}, clipId={}, URI={}, thread={})", context.name(),
               publisherName, clipId, ref.uri(), worker);
 
-          if (context.history() != null) {
-            context.history().publish(ref, context.name(), publisherName);
-          }
-
           if (observer != null) {
             observer.publish(runId, clipId, publisherName, ref.uri() != null ? ref.uri().toString() : null);
           }
@@ -186,10 +182,6 @@ public final class PublisherWorkerPool {
           LOG.error("Failed to publish clip (runner={}, publisher={}, clipId={}, thread={})", context.name(),
               publisherName, clipId, worker, e);
 
-          if (context.history() != null) {
-            context.history().fail(clip, context.name(), e.getMessage());
-          }
-
           if (observer != null) {
             AttemptStatus status = (token.getReason() != null) ? AttemptStatus.CANCELED : AttemptStatus.FAILURE;
             observer.attemptEnd(publishAttemptId, status, e);
@@ -199,6 +191,10 @@ public final class PublisherWorkerPool {
 
       if (success) {
         failures.set(0);
+
+        if (context.history() != null) {
+          context.history().add(clip, context.name());
+        }
 
         if (published.incrementAndGet() >= context.posts()) {
           token.cancel(CancellationReason.POSTS_REACHED);

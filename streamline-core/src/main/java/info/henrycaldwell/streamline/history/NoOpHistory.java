@@ -4,8 +4,6 @@ import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.ClipRef;
-import info.henrycaldwell.streamline.core.MediaRef;
-import info.henrycaldwell.streamline.core.PublishRef;
 
 /**
  * Class for tracking clips by performing no action.
@@ -27,47 +25,24 @@ public final class NoOpHistory extends AbstractHistory {
   }
 
   /**
-   * Claims a clip without recording state.
+   * Checks whether a clip has been published without consulting state.
    *
-   * @param clip   A {@link ClipRef} representing the clip to claim.
+   * @param clip   A {@link ClipRef} representing the clip to check.
    * @param runner A string representing the runner name.
-   * @return {@code true} always, as no state is recorded to detect duplicates.
+   * @return {@code false} always, as no state is recorded to detect duplicates.
    */
   @Override
-  public boolean claim(ClipRef clip, String runner) {
-    return true;
+  public boolean contains(ClipRef clip, String runner) {
+    return false;
   }
 
   /**
-   * Marks a clip as successfully prepared without recording state.
+   * Records a clip as published without recording state.
    *
-   * @param media  A {@link MediaRef} representing the prepared media.
+   * @param clip   A {@link ClipRef} representing the published clip.
    * @param runner A string representing the runner name.
    */
   @Override
-  public void prepare(MediaRef media, String runner) {
-  }
-
-  /**
-   * Marks a clip as successfully published without recording state.
-   *
-   * @param ref       A {@link PublishRef} representing the published clip.
-   * @param runner    A string representing the runner name.
-   * @param publisher A string representing the publisher name.
-   */
-  @Override
-  public void publish(PublishRef ref, String runner, String publisher) {
-  }
-
-  /**
-   * Marks a clip as failed without recording state.
-   *
-   * @param clip   A {@link ClipRef} representing the failed clip.
-   * @param runner A string representing the runner name.
-   * @param error  A string representing the human-readable error message, or
-   *               {@code null}.
-   */
-  @Override
-  public void fail(ClipRef clip, String runner, String error) {
+  public void add(ClipRef clip, String runner) {
   }
 }
