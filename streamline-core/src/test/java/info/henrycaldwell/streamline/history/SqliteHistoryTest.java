@@ -1,12 +1,14 @@
 package info.henrycaldwell.streamline.history;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 import org.junit.jupiter.api.Nested;
@@ -16,9 +18,13 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.ClipRef;
+import info.henrycaldwell.streamline.error.ComponentException;
 import info.henrycaldwell.streamline.error.SpecException;
 
 public class SqliteHistoryTest {
+
+  private static final ClipRef CLIP = new ClipRef("clip-1", null, null, null, null, 0, null);
 
   @TempDir
   Path tempDir;
@@ -160,7 +166,144 @@ public class SqliteHistoryTest {
     }
   }
 
+  @Nested
+  class Contains {
+
+    @Test
+    void throwsWhenHistoryIsNotStarted() {
+      Path database = tempDir.resolve("history.db");
+      Config config = ConfigFactory.parseString("""
+          name = history
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteHistory history = new SqliteHistory(config);
+
+      ComponentException exception = assertThrows(ComponentException.class, () -> history.contains(CLIP, "runner"));
+
+      assertTrue(exception.getMessage().contains("History not started"));
+    }
+
+    @Test
+    void returnsFalseWhenClipIsNotPublished() {
+      Path database = tempDir.resolve("history.db");
+      Config config = ConfigFactory.parseString("""
+          name = history
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteHistory history = new SqliteHistory(config);
+      history.start();
+
+      try {
+        boolean result = history.contains(CLIP, "runner");
+
+        assertFalse(result);
+      } finally {
+        history.stop();
+      }
+    }
+
+    @Test
+    void returnsTrueWhenClipIsPublished() {
+      Path database = tempDir.resolve("history.db");
+      Config config = ConfigFactory.parseString("""
+          name = history
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteHistory history = new SqliteHistory(config);
+      history.start();
+
+      try {
+        history.add(CLIP, "runner");
+
+        boolean result = history.contains(CLIP, "runner");
+
+        assertTrue(result);
+      } finally {
+        history.stop();
+      }
+    }
+  }
+
+  @Nested
+  class Add {
+
+    @Test
+    void throwsWhenHistoryIsNotStarted() {
+      Path database = tempDir.resolve("history.db");
+      Config config = ConfigFactory.parseString("""
+          name = history
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteHistory history = new SqliteHistory(config);
+
+      ComponentException exception = assertThrows(ComponentException.class, () -> history.add(CLIP, "runner"));
+
+      assertTrue(exception.getMessage().contains("History not started"));
+    }
+
+    @Test
+    void insertsPublishedClip() throws Exception {
+      Path database = tempDir.resolve("history.db");
+      Config config = ConfigFactory.parseString("""
+          name = history
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteHistory history = new SqliteHistory(config);
+      history.start();
+
+      try {
+        history.add(CLIP, "runner");
+
+        assertTrue(clipExists(database, "clip-1", "runner"));
+      } finally {
+        history.stop();
+      }
+    }
+
+    @Test
+    void throwsWhenClipIsAlreadyPublished() {
+      Path database = tempDir.resolve("history.db");
+      Config config = ConfigFactory.parseString("""
+          name = history
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteHistory history = new SqliteHistory(config);
+      history.start();
+
+      try {
+        history.add(CLIP, "runner");
+
+        ComponentException exception = assertThrows(ComponentException.class, () -> history.add(CLIP, "runner"));
+
+        assertTrue(exception.getMessage().contains("Failed to add"));
+        assertTrue(exception.getMessage().contains("clipId=clip-1"));
+      } finally {
+        history.stop();
+      }
+    }
+  }
+
   private static String escape(Path path) {
     return path.toString().replace("\\", "\\\\");
+  }
+
+  private static boolean clipExists(Path database, String id, String runner) throws Exception {
+    try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
+        PreparedStatement statement = connection.prepareStatement("""
+            SELECT 1 FROM clips WHERE id = ? AND runner = ?
+            """)) {
+      statement.setString(1, id);
+      statement.setString(2, runner);
+
+      try (ResultSet result = statement.executeQuery()) {
+        return result.next();
+      }
+    }
   }
 }
