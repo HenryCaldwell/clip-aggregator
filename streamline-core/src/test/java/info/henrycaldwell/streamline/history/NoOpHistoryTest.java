@@ -1,6 +1,7 @@
 package info.henrycaldwell.streamline.history;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.error.SpecException;
 
 public class NoOpHistoryTest {
@@ -39,6 +41,38 @@ public class NoOpHistoryTest {
 
       assertTrue(exception.getMessage().contains("Unknown configuration key"));
       assertTrue(exception.getMessage().contains("key=extra"));
+    }
+  }
+
+  @Nested
+  class Contains {
+
+    @Test
+    void returnsFalse() {
+      ClipRef clip = new ClipRef("clip-1", null, null, null, null, 0, null);
+      Config config = ConfigFactory.parseString("""
+          name = history
+          type = no_op
+          """);
+      NoOpHistory history = new NoOpHistory(config);
+
+      assertFalse(history.contains(clip, "runner"));
+    }
+  }
+
+  @Nested
+  class Add {
+
+    @Test
+    void doesNothing() {
+      ClipRef clip = new ClipRef("clip-1", null, null, null, null, 0, null);
+      Config config = ConfigFactory.parseString("""
+          name = history
+          type = no_op
+          """);
+      NoOpHistory history = new NoOpHistory(config);
+
+      assertDoesNotThrow(() -> history.add(clip, "runner"));
     }
   }
 }
