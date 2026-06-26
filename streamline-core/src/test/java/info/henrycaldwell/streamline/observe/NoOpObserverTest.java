@@ -135,4 +135,19 @@ public class NoOpObserverTest {
       assertDoesNotThrow(() -> observer.attemptEnd(0L, AttemptStatus.SUCCESS, null));
     }
   }
+
+  @Nested
+  class Publish {
+
+    @Test
+    void doesNothing() {
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = no_op
+          """);
+      NoOpObserver observer = new NoOpObserver(config);
+
+      assertDoesNotThrow(() -> observer.publish(0L, "clip-1", "publisher", "https://example.com/p/1"));
+    }
+  }
 }
