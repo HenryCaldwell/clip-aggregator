@@ -992,6 +992,13 @@ public class RunnerTest {
       assertEquals(RunStatus.SUCCESS, observer.endedRuns.get(0).status());
       assertEquals(1, observer.endedRuns.get(0).published());
 
+      assertEquals(1, observer.startedFetches.size());
+      assertEquals("test_retriever", observer.startedFetches.get(0).retriever());
+      assertEquals(1, observer.endedFetches.size());
+      assertEquals(AttemptStatus.SUCCESS, observer.endedFetches.get(0).status());
+      assertEquals(1, observer.endedFetches.get(0).clips());
+      assertNull(observer.endedFetches.get(0).error());
+
       assertEquals(4, observer.startedAttempts.size());
       assertEquals(PipelineStage.CLAIM, observer.startedAttempts.get(0).stage());
       assertEquals(PipelineStage.DOWNLOAD, observer.startedAttempts.get(1).stage());
@@ -1003,32 +1010,11 @@ public class RunnerTest {
       assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(1).status());
       assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(2).status());
       assertEquals(AttemptStatus.SUCCESS, observer.endedAttempts.get(3).status());
-    }
 
-    @Test
-    void recordsSuccessfulFetch() {
-      ClipRef clip = new ClipRef("clip-1", null, "Title", "Broadcaster", "en", 100, null);
-      TestRetriever retriever = new TestRetriever(List.of(clip));
-      NoOpDownloader downloader = new NoOpDownloader();
-      TrackingPublisher tracker = new TrackingPublisher();
-      RecordingObserver observer = new RecordingObserver();
-      RunnerContext context = new RunnerContext("test", 5, workDir, 1, 1, 3, 10L, null,
-          observer,
-          Map.of("r", retriever),
-          null,
-          downloader,
-          Map.of(),
-          null,
-          Map.of("p", tracker));
-
-      Runner.run(context);
-
-      assertEquals(1, observer.startedFetches.size());
-      assertEquals("test_retriever", observer.startedFetches.get(0).retriever());
-      assertEquals(1, observer.endedFetches.size());
-      assertEquals(AttemptStatus.SUCCESS, observer.endedFetches.get(0).status());
-      assertEquals(1, observer.endedFetches.get(0).clips());
-      assertNull(observer.endedFetches.get(0).error());
+      assertEquals(1, observer.publishes.size());
+      assertEquals("clip-1", observer.publishes.get(0).clipId());
+      assertEquals("tracking_publisher", observer.publishes.get(0).publisher());
+      assertNull(observer.publishes.get(0).uri());
     }
 
     @Test
@@ -1982,12 +1968,16 @@ public class RunnerTest {
     record EndedAttempt(long attemptId, AttemptStatus status, Throwable error) {
     }
 
+    record Publish(long runId, String clipId, String publisher, String uri) {
+    }
+
     private final List<StartedRun> startedRuns = new ArrayList<>();
     private final List<EndedRun> endedRuns = new ArrayList<>();
     private final List<StartedFetch> startedFetches = new ArrayList<>();
     private final List<EndedFetch> endedFetches = new ArrayList<>();
     private final List<StartedAttempt> startedAttempts = new ArrayList<>();
     private final List<EndedAttempt> endedAttempts = new ArrayList<>();
+    private final List<Publish> publishes = new ArrayList<>();
     private final List<Long> heartbeats = new ArrayList<>();
     private final CountDownLatch heartbeatLatch = new CountDownLatch(1);
     private long nextId = 1;
@@ -2034,6 +2024,7 @@ public class RunnerTest {
 
     @Override
     public void publish(long runId, String clipId, String publisher, String uri) {
+      publishes.add(new Publish(runId, clipId, publisher, uri));
     }
 
     @Override
