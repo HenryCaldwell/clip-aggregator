@@ -173,6 +173,10 @@ public final class PublisherWorkerPool {
             context.history().publish(ref, context.name(), publisherName);
           }
 
+          if (observer != null) {
+            observer.publish(runId, clipId, publisherName, ref.uri() != null ? ref.uri().toString() : null);
+          }
+
           success = true;
 
           if (observer != null) {
