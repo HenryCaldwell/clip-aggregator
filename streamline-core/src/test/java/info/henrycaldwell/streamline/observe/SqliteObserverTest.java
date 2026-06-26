@@ -521,6 +521,53 @@ public class SqliteObserverTest {
   }
 
   @Nested
+  class Publish {
+
+    @Test
+    void throwsWhenObserverIsNotStarted() {
+      Path database = tempDir.resolve("observer.db");
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteObserver observer = new SqliteObserver(config);
+
+      ComponentException exception = assertThrows(ComponentException.class,
+          () -> observer.publish(1L, "clip-1", "publisher", "https://example.com/p/1"));
+
+      assertTrue(exception.getMessage().contains("Observer not started"));
+    }
+
+    @Test
+    void insertsPublish() throws Exception {
+      Path database = tempDir.resolve("observer.db");
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(database)));
+      SqliteObserver observer = new SqliteObserver(config);
+      observer.start();
+
+      try {
+        long runId = observer.runStart("runner", null);
+        observer.publish(runId, "clip-1", "publisher", "https://example.com/p/1");
+
+        PublishRow row = publishRow(database, runId);
+
+        assertEquals(runId, row.runId());
+        assertEquals("clip-1", row.clipId());
+        assertEquals("publisher", row.publisher());
+        assertEquals("https://example.com/p/1", row.uri());
+        assertNotNull(row.publishedAt());
+      } finally {
+        observer.stop();
+      }
+    }
+  }
+
+  @Nested
   class Heartbeat {
 
     @Test
@@ -653,6 +700,28 @@ public class SqliteObserverTest {
     }
   }
 
+  private static PublishRow publishRow(Path database, long runId) throws Exception {
+    try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
+        PreparedStatement statement = connection.prepareStatement("""
+            SELECT run_id, clip_id, publisher, uri, published_at
+            FROM publishes
+            WHERE run_id = ?
+            """)) {
+      statement.setLong(1, runId);
+
+      try (ResultSet result = statement.executeQuery()) {
+        assertTrue(result.next());
+
+        return new PublishRow(
+            result.getLong("run_id"),
+            result.getString("clip_id"),
+            result.getString("publisher"),
+            result.getString("uri"),
+            result.getString("published_at"));
+      }
+    }
+  }
+
   private static AttemptRow attemptRow(Path database, long id) throws Exception {
     try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
         PreparedStatement statement = connection.prepareStatement("""
@@ -709,5 +778,13 @@ public class SqliteObserverTest {
       String error,
       String startedAt,
       String endedAt) {
+  }
+
+  private record PublishRow(
+      long runId,
+      String clipId,
+      String publisher,
+      String uri,
+      String publishedAt) {
   }
 }
