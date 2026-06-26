@@ -314,5 +314,9 @@ public class PipelineTest {
     public void attemptEnd(long attemptId, AttemptStatus status, Throwable error) {
       endedAttempts.add(new EndedAttempt(attemptId, status, error));
     }
+
+    @Override
+    public void publish(long runId, String clipId, String publisher, String uri) {
+    }
   }
 }

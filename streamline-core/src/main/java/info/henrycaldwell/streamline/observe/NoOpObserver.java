@@ -100,4 +100,16 @@ public final class NoOpObserver extends AbstractObserver {
   @Override
   public void attemptEnd(long attemptId, AttemptStatus status, Throwable error) {
   }
+
+  /**
+   * Records a successful publish without recording state.
+   * 
+   * @param runId     A long representing the run identifier.
+   * @param clipId    A string representing the clip identifier.
+   * @param publisher A string representing the publisher name.
+   * @param uri       A string representing the published URI, or {@code null}.
+   */
+  @Override
+  public void publish(long runId, String clipId, String publisher, String uri) {
+  }
 }

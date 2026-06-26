@@ -98,10 +98,23 @@ public final class SqliteObserver extends AbstractObserver {
           );
           """;
 
+      String createPublishesSql = """
+          CREATE TABLE IF NOT EXISTS publishes (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_id       INTEGER NOT NULL,
+            clip_id      TEXT NOT NULL,
+            publisher    TEXT NOT NULL,
+            uri          TEXT,
+            published_at TEXT NOT NULL,
+            FOREIGN KEY (run_id) REFERENCES runs(id)
+          );
+          """;
+
       try (Statement create = connection.createStatement()) {
         create.executeUpdate(createRunsSql);
         create.executeUpdate(createFetchesSql);
         create.executeUpdate(createAttemptsSql);
+        create.executeUpdate(createPublishesSql);
       }
     } catch (SQLException e) {
       throw new ComponentException(name, "Failed to open SQLite database",
@@ -370,6 +383,41 @@ public final class SqliteObserver extends AbstractObserver {
     } catch (SQLException e) {
       throw new ComponentException(name, "Failed to end attempt in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "attemptId", attemptId), e);
+    }
+  }
+
+  /**
+   * Records a successful publish in the SQLite database.
+   *
+   * @param runId     A long representing the run identifier.
+   * @param clipId    A string representing the clip identifier.
+   * @param publisher A string representing the publisher name.
+   * @param uri       A string representing the published URI, or {@code null}.
+   * @throws ComponentException if the database operation fails or the observer is
+   *                            not started.
+   */
+  @Override
+  public synchronized void publish(long runId, String clipId, String publisher, String uri) {
+    if (connection == null) {
+      throw new ComponentException(name, "Observer not started");
+    }
+
+    String insertSql = """
+        INSERT INTO publishes (run_id, clip_id, publisher, uri, published_at)
+        VALUES (?, ?, ?, ?, ?);
+        """;
+
+    try (PreparedStatement insert = connection.prepareStatement(insertSql)) {
+      insert.setLong(1, runId);
+      insert.setString(2, clipId);
+      insert.setString(3, publisher);
+      insert.setString(4, uri);
+      insert.setString(5, Instant.now().toString());
+      insert.executeUpdate();
+    } catch (SQLException e) {
+      throw new ComponentException(name, "Failed to publish in SQLite database",
+          MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "clipId", clipId, "publisher", publisher),
+          e);
     }
   }
 

@@ -148,5 +148,9 @@ public class AbstractObserverTest {
     @Override
     public void attemptEnd(long attemptId, AttemptStatus status, Throwable error) {
     }
+
+    @Override
+    public void publish(long runId, String clipId, String publisher, String uri) {
+    }
   }
 }

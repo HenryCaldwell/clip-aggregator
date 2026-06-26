@@ -2033,6 +2033,10 @@ public class RunnerTest {
     }
 
     @Override
+    public void publish(long runId, String clipId, String publisher, String uri) {
+    }
+
+    @Override
     public void heartbeat(long runId) {
       heartbeats.add(runId);
       heartbeatLatch.countDown();

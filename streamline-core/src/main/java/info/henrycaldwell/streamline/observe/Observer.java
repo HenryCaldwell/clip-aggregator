@@ -91,6 +91,16 @@ public interface Observer {
   void attemptEnd(long attemptId, AttemptStatus status, Throwable error);
 
   /**
+   * Records a successful publish for a single clip.
+   * 
+   * @param runId     A long representing the run identifier.
+   * @param clipId    A string representing the clip identifier.
+   * @param publisher A string representing the publisher name.
+   * @param uri       A string representing the published URI, or {@code null}.
+   */
+  void publish(long runId, String clipId, String publisher, String uri);
+
+  /**
    * Records a heartbeat for a live run.
    * 
    * @param runId A long representing the run identifier.
