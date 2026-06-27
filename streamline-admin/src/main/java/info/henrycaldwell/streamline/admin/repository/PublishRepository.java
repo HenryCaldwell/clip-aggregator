@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.sql.DataSource;
 
@@ -62,6 +63,17 @@ public class PublishRepository {
     params.add(limit);
 
     return jdbc.query(sql.toString(), this::mapRow, params.toArray());
+  }
+
+  public Optional<PublishRow> one(long id) {
+    String sql = """
+        SELECT id, run_id, clip_id, publisher, uri, published_at
+        FROM publishes
+        WHERE id = ?;
+        """;
+    List<PublishRow> rows = jdbc.query(sql, this::mapRow, id);
+
+    return rows.stream().findFirst();
   }
 
   public List<PublishRow> byRunId(long runId, Long prevId, int limit) {

@@ -40,6 +40,13 @@ public class PublishService {
     return new Page<>(items, nextCursor, hasMore);
   }
 
+  public PublishSummary one(long id) {
+    PublishRow row = repository.one(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publish not found"));
+
+    return toSummary(row);
+  }
+
   private PublishSummary toSummary(PublishRow row) {
     return new PublishSummary(
         row.id(),
