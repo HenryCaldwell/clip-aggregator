@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import info.henrycaldwell.streamline.admin.model.AttemptSummary;
 import info.henrycaldwell.streamline.admin.model.FetchSummary;
 import info.henrycaldwell.streamline.admin.model.Page;
+import info.henrycaldwell.streamline.admin.model.PublishSummary;
 import info.henrycaldwell.streamline.admin.model.RunSummary;
 import info.henrycaldwell.streamline.admin.repository.RunFilters;
 import info.henrycaldwell.streamline.admin.service.RunService;
@@ -72,5 +73,16 @@ public class RunController {
     int safeLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
 
     return service.attempts(id, cursor, safeLimit);
+  }
+
+  @Operation(summary = "List run publishes")
+  @GetMapping("/{id}/publishes")
+  public Page<PublishSummary> publishes(
+      @PathVariable long id,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(required = false, defaultValue = DEFAULT_LIMIT) int limit) {
+    int safeLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
+
+    return service.publishes(id, cursor, safeLimit);
   }
 }
