@@ -306,6 +306,7 @@ public class SqliteObserverTest {
 
         assertEquals(runId, row.runId());
         assertEquals("retriever", row.retriever());
+        assertEquals("worker", row.worker());
         assertNull(row.status());
         assertNull(row.error());
         assertNull(row.clips());
