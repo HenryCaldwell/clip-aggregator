@@ -87,7 +87,7 @@ public class NoOpObserverTest {
           """);
       NoOpObserver observer = new NoOpObserver(config);
 
-      assertEquals(0L, observer.fetchStart(0L, "retriever"));
+      assertEquals(0L, observer.fetchStart(0L, "retriever", "worker"));
     }
   }
 

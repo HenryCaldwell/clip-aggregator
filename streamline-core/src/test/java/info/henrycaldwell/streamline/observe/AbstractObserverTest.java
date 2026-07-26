@@ -132,7 +132,7 @@ public class AbstractObserverTest {
     }
 
     @Override
-    public long fetchStart(long runId, String retriever) {
+    public long fetchStart(long runId, String retriever, String worker) {
       return 0L;
     }
 

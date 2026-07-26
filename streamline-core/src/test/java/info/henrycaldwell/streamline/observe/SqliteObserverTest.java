@@ -282,7 +282,7 @@ public class SqliteObserverTest {
       SqliteObserver observer = new SqliteObserver(config);
 
       ComponentException exception = assertThrows(ComponentException.class,
-          () -> observer.fetchStart(1L, "retriever"));
+          () -> observer.fetchStart(1L, "retriever", "worker"));
 
       assertTrue(exception.getMessage().contains("Observer not started"));
     }
@@ -300,7 +300,7 @@ public class SqliteObserverTest {
 
       try {
         long runId = observer.runStart("runner", null);
-        long fetchId = observer.fetchStart(runId, "retriever");
+        long fetchId = observer.fetchStart(runId, "retriever", "worker");
 
         FetchRow row = fetchRow(database, fetchId);
 
@@ -349,7 +349,7 @@ public class SqliteObserverTest {
 
       try {
         long runId = observer.runStart("runner", null);
-        long fetchId = observer.fetchStart(runId, "retriever");
+        long fetchId = observer.fetchStart(runId, "retriever", "worker");
 
         observer.fetchEnd(fetchId, AttemptStatus.SUCCESS, 5, null);
 
@@ -377,7 +377,7 @@ public class SqliteObserverTest {
 
       try {
         long runId = observer.runStart("runner", null);
-        long fetchId = observer.fetchStart(runId, "retriever");
+        long fetchId = observer.fetchStart(runId, "retriever", "worker");
 
         RuntimeException error = new RuntimeException("fetch failed");
         observer.fetchEnd(fetchId, AttemptStatus.FAILURE, 0, error);
@@ -676,7 +676,7 @@ public class SqliteObserverTest {
   private static FetchRow fetchRow(Path database, long id) throws Exception {
     try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
         PreparedStatement statement = connection.prepareStatement("""
-            SELECT run_id, retriever, status, error, clips, started_at, ended_at
+            SELECT run_id, retriever, worker, status, error, clips, started_at, ended_at
             FROM fetches
             WHERE id = ?
             """)) {
@@ -691,6 +691,7 @@ public class SqliteObserverTest {
         return new FetchRow(
             result.getLong("run_id"),
             result.getString("retriever"),
+            result.getString("worker"),
             result.getString("status"),
             result.getString("error"),
             clips,
@@ -761,6 +762,7 @@ public class SqliteObserverTest {
   private record FetchRow(
       long runId,
       String retriever,
+      String worker,
       String status,
       String error,
       Integer clips,

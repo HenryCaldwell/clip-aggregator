@@ -73,6 +73,7 @@ public final class SqliteObserver extends AbstractObserver {
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             run_id     INTEGER NOT NULL,
             retriever  TEXT NOT NULL,
+            worker     TEXT NOT NULL,
             status     TEXT,
             error      TEXT,
             clips      INTEGER,
@@ -225,38 +226,42 @@ public final class SqliteObserver extends AbstractObserver {
    *
    * @param runId     A long representing the run identifier.
    * @param retriever A string representing the retriever name.
+   * @param worker    A string representing the worker name.
    * @return A long representing the fetch identifier.
    * @throws ComponentException if the database operation fails or the observer is
    *                            not started.
    */
   @Override
-  public synchronized long fetchStart(long runId, String retriever) {
+  public synchronized long fetchStart(long runId, String retriever, String worker) {
     if (connection == null) {
       throw new ComponentException(name, "Observer not started");
     }
 
     String insertSql = """
-        INSERT INTO fetches (run_id, retriever, started_at)
-        VALUES (?, ?, ?);
+        INSERT INTO fetches (run_id, retriever, worker, started_at)
+        VALUES (?, ?, ?, ?);
         """;
 
     try (PreparedStatement insert = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
       insert.setLong(1, runId);
       insert.setString(2, retriever);
-      insert.setString(3, Instant.now().toString());
+      insert.setString(3, worker);
+      insert.setString(4, Instant.now().toString());
       insert.executeUpdate();
 
       try (ResultSet keys = insert.getGeneratedKeys()) {
         if (!keys.next()) {
           throw new ComponentException(name, "Failed to start fetch in SQLite database",
-              MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "retriever", retriever));
+              MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "retriever", retriever, "worker",
+                  worker));
         }
 
         return keys.getLong(1);
       }
     } catch (SQLException e) {
       throw new ComponentException(name, "Failed to start fetch in SQLite database",
-          MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "retriever", retriever), e);
+          MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "retriever", retriever, "worker", worker),
+          e);
     }
   }
 

@@ -52,10 +52,11 @@ public final class NoOpObserver extends AbstractObserver {
    *
    * @param runId     A long representing the run identifier.
    * @param retriever A string representing the retriever name.
+   * @param worker    A string representing the worker name.
    * @return {@code 0} always, as no state is recorded to identify the fetch.
    */
   @Override
-  public long fetchStart(long runId, String retriever) {
+  public long fetchStart(long runId, String retriever, String worker) {
     return 0;
   }
 

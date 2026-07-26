@@ -1922,7 +1922,7 @@ public class RunnerTest {
     record EndedRun(long runId, RunStatus status, int published) {
     }
 
-    record StartedFetch(long runId, String retriever) {
+    record StartedFetch(long runId, String retriever, String worker) {
     }
 
     record EndedFetch(long fetchId, AttemptStatus status, int clips, Throwable error) {
@@ -1967,8 +1967,8 @@ public class RunnerTest {
     }
 
     @Override
-    public long fetchStart(long runId, String retriever) {
-      startedFetches.add(new StartedFetch(runId, retriever));
+    public long fetchStart(long runId, String retriever, String worker) {
+      startedFetches.add(new StartedFetch(runId, retriever, worker));
       return nextId++;
     }
 

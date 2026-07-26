@@ -51,9 +51,10 @@ public interface Observer {
    *
    * @param runId     A long representing the run identifier.
    * @param retriever A string representing the retriever name.
+   * @param worker    A string representing the worker name.
    * @return A long representing the fetch identifier.
    */
-  long fetchStart(long runId, String retriever);
+  long fetchStart(long runId, String retriever, String worker);
 
   /**
    * Records the end of a fetch for a single retriever.

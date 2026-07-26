@@ -383,7 +383,7 @@ public final class Runner {
 
       long fetchId = -1;
       if (context.observer() != null) {
-        fetchId = context.observer().fetchStart(session.runId(), retrieverName);
+        fetchId = context.observer().fetchStart(session.runId(), retrieverName, "fetcher-worker-1");
       }
 
       List<ClipRef> clips;
