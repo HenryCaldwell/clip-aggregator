@@ -161,7 +161,7 @@ public final class PublisherWorkerPool {
 
         long publishAttemptId = -1;
         if (observer != null) {
-          publishAttemptId = observer.attemptStart(runId, worker, clip, PipelineStage.PUBLISH, publisherName);
+          publishAttemptId = observer.attemptStart(runId, clip, PipelineStage.PUBLISH, publisherName, worker);
         }
 
         try {

@@ -77,14 +77,14 @@ public final class NoOpObserver extends AbstractObserver {
    * Records the start of an attempt without recording state.
    *
    * @param runId     A long representing the run identifier.
-   * @param worker    A string representing the worker name.
    * @param clip      A {@link ClipRef} representing the clip being processed.
    * @param stage     A {@link PipelineStage} representing the pipeline stage.
    * @param component A string representing the component name, or {@code null}.
+   * @param worker    A string representing the worker name.
    * @return {@code 0} always, as no state is recorded to identify the attempt.
    */
   @Override
-  public long attemptStart(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
+  public long attemptStart(long runId, ClipRef clip, PipelineStage stage, String component, String worker) {
     return 0;
   }
 

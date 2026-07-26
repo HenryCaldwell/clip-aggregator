@@ -269,7 +269,7 @@ public class PipelineTest {
 
   private static final class RecordingObserver extends AbstractObserver {
 
-    record StartedAttempt(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
+    record StartedAttempt(long runId, ClipRef clip, PipelineStage stage, String component, String worker) {
     }
 
     record EndedAttempt(long attemptId, AttemptStatus status, Throwable error) {
@@ -305,8 +305,8 @@ public class PipelineTest {
     }
 
     @Override
-    public long attemptStart(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
-      startedAttempts.add(new StartedAttempt(runId, worker, clip, stage, component));
+    public long attemptStart(long runId, ClipRef clip, PipelineStage stage, String component, String worker) {
+      startedAttempts.add(new StartedAttempt(runId, clip, stage, component, worker));
       return nextId++;
     }
 

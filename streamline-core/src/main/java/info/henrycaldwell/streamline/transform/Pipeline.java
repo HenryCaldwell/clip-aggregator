@@ -64,7 +64,7 @@ public final class Pipeline {
 
       long transformAttemptId = -1;
       if (observer != null) {
-        transformAttemptId = observer.attemptStart(runId, worker, clip, PipelineStage.TRANSFORM, transformer.getName());
+        transformAttemptId = observer.attemptStart(runId, clip, PipelineStage.TRANSFORM, transformer.getName(), worker);
       }
 
       try {

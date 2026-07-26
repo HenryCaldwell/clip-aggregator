@@ -141,7 +141,7 @@ public class AbstractObserverTest {
     }
 
     @Override
-    public long attemptStart(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
+    public long attemptStart(long runId, ClipRef clip, PipelineStage stage, String component, String worker) {
       return 0L;
     }
 

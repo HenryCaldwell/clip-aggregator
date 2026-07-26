@@ -132,7 +132,7 @@ public final class PreparationWorkerPool {
       if (context.history() != null) {
         long claimAttemptId = -1;
         if (observer != null) {
-          claimAttemptId = observer.attemptStart(runId, worker, clip, PipelineStage.CLAIM, context.history().getName());
+          claimAttemptId = observer.attemptStart(runId, clip, PipelineStage.CLAIM, context.history().getName(), worker);
         }
 
         boolean published;
@@ -168,8 +168,8 @@ public final class PreparationWorkerPool {
 
         long downloadAttemptId = -1;
         if (observer != null) {
-          downloadAttemptId = observer.attemptStart(runId, worker, clip, PipelineStage.DOWNLOAD,
-              context.downloader().getName());
+          downloadAttemptId = observer.attemptStart(runId, clip, PipelineStage.DOWNLOAD, context.downloader().getName(),
+              worker);
         }
 
         try {
@@ -194,8 +194,8 @@ public final class PreparationWorkerPool {
         if (context.stager() != null) {
           long stageAttemptId = -1;
           if (observer != null) {
-            stageAttemptId = observer.attemptStart(runId, worker, clip, PipelineStage.STAGE,
-                context.stager().getName());
+            stageAttemptId = observer.attemptStart(runId, clip, PipelineStage.STAGE, context.stager().getName(),
+                worker);
           }
 
           try {

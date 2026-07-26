@@ -1928,7 +1928,7 @@ public class RunnerTest {
     record EndedFetch(long fetchId, AttemptStatus status, int clips, Throwable error) {
     }
 
-    record StartedAttempt(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
+    record StartedAttempt(long runId, ClipRef clip, PipelineStage stage, String component, String worker) {
     }
 
     record EndedAttempt(long attemptId, AttemptStatus status, Throwable error) {
@@ -1978,8 +1978,8 @@ public class RunnerTest {
     }
 
     @Override
-    public long attemptStart(long runId, String worker, ClipRef clip, PipelineStage stage, String component) {
-      startedAttempts.add(new StartedAttempt(runId, worker, clip, stage, component));
+    public long attemptStart(long runId, ClipRef clip, PipelineStage stage, String component, String worker) {
+      startedAttempts.add(new StartedAttempt(runId, clip, stage, component, worker));
       return nextId++;
     }
 

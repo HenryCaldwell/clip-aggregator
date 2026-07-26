@@ -86,10 +86,10 @@ public final class SqliteObserver extends AbstractObserver {
           CREATE TABLE IF NOT EXISTS attempts (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             run_id     INTEGER NOT NULL,
-            worker     TEXT NOT NULL,
             clip_id    TEXT NOT NULL,
             stage      TEXT NOT NULL,
             component  TEXT,
+            worker     TEXT NOT NULL,
             status     TEXT,
             error      TEXT,
             started_at TEXT NOT NULL,
@@ -304,17 +304,17 @@ public final class SqliteObserver extends AbstractObserver {
    * Records the start of an attempt in the SQLite database.
    *
    * @param runId     A long representing the run identifier.
-   * @param worker    A string representing the worker name.
    * @param clip      A {@link ClipRef} representing the clip being processed.
    * @param stage     A {@link PipelineStage} representing the pipeline stage.
    * @param component A string representing the component name, or {@code null}.
+   * @param worker    A string representing the worker name.
    * @return A long representing the attempt identifier.
    * @throws ComponentException if the database operation fails or the observer is
    *                            not started.
    */
   @Override
-  public synchronized long attemptStart(long runId, String worker, ClipRef clip, PipelineStage stage,
-      String component) {
+  public synchronized long attemptStart(long runId, ClipRef clip, PipelineStage stage, String component,
+      String worker) {
     String id = clip.id();
 
     if (connection == null) {
@@ -322,16 +322,16 @@ public final class SqliteObserver extends AbstractObserver {
     }
 
     String insertSql = """
-        INSERT INTO attempts (run_id, worker, clip_id, stage, component, started_at)
+        INSERT INTO attempts (run_id, clip_id, stage, component, worker, started_at)
         VALUES (?, ?, ?, ?, ?, ?);
         """;
 
     try (PreparedStatement insert = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
       insert.setLong(1, runId);
-      insert.setString(2, worker);
-      insert.setString(3, id);
-      insert.setString(4, stage.name().toLowerCase());
-      insert.setString(5, component);
+      insert.setString(2, id);
+      insert.setString(3, stage.name().toLowerCase());
+      insert.setString(4, component);
+      insert.setString(5, worker);
       insert.setString(6, Instant.now().toString());
       insert.executeUpdate();
 

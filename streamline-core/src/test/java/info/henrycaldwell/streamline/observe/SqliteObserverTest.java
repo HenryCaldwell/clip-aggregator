@@ -408,7 +408,7 @@ public class SqliteObserverTest {
       SqliteObserver observer = new SqliteObserver(config);
 
       ComponentException exception = assertThrows(ComponentException.class,
-          () -> observer.attemptStart(1L, "worker", CLIP, PipelineStage.DOWNLOAD, "yt-dlp"));
+          () -> observer.attemptStart(1L, CLIP, PipelineStage.DOWNLOAD, "yt-dlp", "worker"));
 
       assertTrue(exception.getMessage().contains("Observer not started"));
     }
@@ -426,7 +426,7 @@ public class SqliteObserverTest {
 
       try {
         long runId = observer.runStart("runner", null);
-        long attemptId = observer.attemptStart(runId, "worker", CLIP, PipelineStage.DOWNLOAD, "yt-dlp");
+        long attemptId = observer.attemptStart(runId, CLIP, PipelineStage.DOWNLOAD, "yt-dlp", "worker");
 
         AttemptRow row = attemptRow(database, attemptId);
 
@@ -477,7 +477,7 @@ public class SqliteObserverTest {
 
       try {
         long runId = observer.runStart("runner", null);
-        long attemptId = observer.attemptStart(runId, "worker", CLIP, PipelineStage.DOWNLOAD, "yt-dlp");
+        long attemptId = observer.attemptStart(runId, CLIP, PipelineStage.DOWNLOAD, "yt-dlp", "worker");
 
         observer.attemptEnd(attemptId, AttemptStatus.SUCCESS, null);
 
@@ -504,7 +504,7 @@ public class SqliteObserverTest {
 
       try {
         long runId = observer.runStart("runner", null);
-        long attemptId = observer.attemptStart(runId, "worker", CLIP, PipelineStage.DOWNLOAD, "yt-dlp");
+        long attemptId = observer.attemptStart(runId, CLIP, PipelineStage.DOWNLOAD, "yt-dlp", "worker");
 
         RuntimeException error = new RuntimeException("download failed");
         observer.attemptEnd(attemptId, AttemptStatus.FAILURE, error);
@@ -725,7 +725,7 @@ public class SqliteObserverTest {
   private static AttemptRow attemptRow(Path database, long id) throws Exception {
     try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
         PreparedStatement statement = connection.prepareStatement("""
-            SELECT run_id, worker, clip_id, stage, component, status, error, started_at, ended_at
+            SELECT run_id, clip_id, stage, component, worker, status, error, started_at, ended_at
             FROM attempts
             WHERE id = ?
             """)) {
@@ -736,10 +736,10 @@ public class SqliteObserverTest {
 
         return new AttemptRow(
             result.getLong("run_id"),
-            result.getString("worker"),
             result.getString("clip_id"),
             result.getString("stage"),
             result.getString("component"),
+            result.getString("worker"),
             result.getString("status"),
             result.getString("error"),
             result.getString("started_at"),
@@ -770,10 +770,10 @@ public class SqliteObserverTest {
 
   private record AttemptRow(
       long runId,
-      String worker,
       String clipId,
       String stage,
       String component,
+      String worker,
       String status,
       String error,
       String startedAt,

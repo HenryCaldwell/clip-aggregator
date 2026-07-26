@@ -71,13 +71,13 @@ public interface Observer {
    * Records the start of an attempt at a single pipeline stage for a single clip.
    *
    * @param runId     A long representing the run identifier.
-   * @param worker    A string representing the worker name.
    * @param clip      A {@link ClipRef} representing the clip being processed.
    * @param stage     A {@link PipelineStage} representing the pipeline stage.
    * @param component A string representing the component name, or {@code null}.
+   * @param worker    A string representing the worker name.
    * @return A long representing the attempt identifier.
    */
-  long attemptStart(long runId, String worker, ClipRef clip, PipelineStage stage, String component);
+  long attemptStart(long runId, ClipRef clip, PipelineStage stage, String component, String worker);
 
   /**
    * Records the end of an attempt at a single pipeline stage for a single clip.

@@ -117,7 +117,7 @@ public class NoOpObserverTest {
           """);
       NoOpObserver observer = new NoOpObserver(config);
 
-      assertEquals(0L, observer.attemptStart(0L, "worker", CLIP, PipelineStage.DOWNLOAD, "component"));
+      assertEquals(0L, observer.attemptStart(0L, CLIP, PipelineStage.DOWNLOAD, "component", "worker"));
     }
   }
 
