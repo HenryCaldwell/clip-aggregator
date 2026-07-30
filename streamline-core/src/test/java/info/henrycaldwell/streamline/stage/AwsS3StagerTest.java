@@ -301,6 +301,7 @@ public class AwsS3StagerTest {
           () -> stager.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Input file missing or not a regular file"));
+      assertTrue(exception.getMessage().contains("sourcePath=null"));
       stager.stop();
     }
 
@@ -511,6 +512,7 @@ public class AwsS3StagerTest {
           () -> stager.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Input file missing or not a regular file"));
+      assertTrue(exception.getMessage().contains("sourcePath=null"));
     }
 
     @Test
@@ -641,6 +643,9 @@ public class AwsS3StagerTest {
           () -> stager.apply(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to upload object to S3"));
+      assertTrue(exception.getMessage().contains("bucket=my-bucket"));
+      assertTrue(exception.getMessage().contains("objectKey=clip.mp4"));
+      assertTrue(exception.getMessage().contains("sourcePath=" + source));
     }
 
     @Test
@@ -695,6 +700,9 @@ public class AwsS3StagerTest {
           () -> stager.apply(media, token));
 
       assertTrue(exception.getMessage().contains("Canceled while uploading object to S3"));
+      assertTrue(exception.getMessage().contains("bucket=my-bucket"));
+      assertTrue(exception.getMessage().contains("objectKey=clip.mp4"));
+      assertTrue(exception.getMessage().contains("sourcePath=" + source));
     }
   }
 
@@ -781,6 +789,7 @@ public class AwsS3StagerTest {
           () -> stager.clean(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Staged media URI missing"));
+      assertTrue(exception.getMessage().contains("clipId=null"));
     }
 
     @Test
@@ -822,6 +831,8 @@ public class AwsS3StagerTest {
           () -> stager.clean(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Staged media URI path missing"));
+      assertTrue(exception.getMessage().contains("clipId=null"));
+      assertTrue(exception.getMessage().contains("uri=https://cdn.example.com"));
     }
 
     @Test
@@ -863,6 +874,8 @@ public class AwsS3StagerTest {
           () -> stager.clean(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Staged media URI object key empty"));
+      assertTrue(exception.getMessage().contains("clipId=null"));
+      assertTrue(exception.getMessage().contains("uri=https://cdn.example.com/"));
     }
 
     @Test
@@ -922,6 +935,9 @@ public class AwsS3StagerTest {
           () -> stager.clean(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to delete object from S3"));
+      assertTrue(exception.getMessage().contains("bucket=my-bucket"));
+      assertTrue(exception.getMessage().contains("objectKey=clip.mp4"));
+      assertTrue(exception.getMessage().contains("uri=https://cdn.example.com/clip.mp4"));
     }
 
     @Test
@@ -973,6 +989,9 @@ public class AwsS3StagerTest {
           () -> stager.clean(media, token));
 
       assertTrue(exception.getMessage().contains("Canceled while deleting object from S3"));
+      assertTrue(exception.getMessage().contains("bucket=my-bucket"));
+      assertTrue(exception.getMessage().contains("objectKey=clip.mp4"));
+      assertTrue(exception.getMessage().contains("uri=https://cdn.example.com/clip.mp4"));
     }
   }
 
@@ -1215,6 +1234,7 @@ public class AwsS3StagerTest {
           () -> stager.purge(new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to list objects in S3"));
+      assertTrue(exception.getMessage().contains("bucket=my-bucket"));
     }
 
     @Test
@@ -1265,6 +1285,7 @@ public class AwsS3StagerTest {
           () -> stager.purge(token));
 
       assertTrue(exception.getMessage().contains("Canceled while listing objects in S3"));
+      assertTrue(exception.getMessage().contains("bucket=my-bucket"));
     }
 
     @Test
@@ -1307,6 +1328,7 @@ public class AwsS3StagerTest {
           () -> stager.purge(new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to delete objects from S3"));
+      assertTrue(exception.getMessage().contains("bucket=my-bucket"));
     }
 
     @Test
@@ -1360,6 +1382,7 @@ public class AwsS3StagerTest {
           () -> stager.purge(token));
 
       assertTrue(exception.getMessage().contains("Canceled while deleting objects from S3"));
+      assertTrue(exception.getMessage().contains("bucket=my-bucket"));
     }
   }
 }
