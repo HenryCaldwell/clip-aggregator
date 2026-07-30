@@ -139,6 +139,21 @@ public class SqliteObserverTest {
         observer.stop();
       }
     }
+
+    @Test
+    void throwsWhenDatabaseCannotBeOpened() {
+      Config config = ConfigFactory.parseString("""
+          name = observer
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(tempDir)));
+      SqliteObserver observer = new SqliteObserver(config);
+
+      ComponentException exception = assertThrows(ComponentException.class, observer::start);
+
+      assertTrue(exception.getMessage().contains("Failed to open SQLite database"));
+      assertTrue(exception.getMessage().contains("databasePath=" + tempDir));
+    }
   }
 
   @Nested
