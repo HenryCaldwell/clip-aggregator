@@ -189,6 +189,9 @@ public class YtDlpDownloaderTest {
           () -> downloader.download(clip, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to start yt-dlp process"));
+      assertTrue(exception.getMessage().contains("ytDlpPath=/this/does/not/exist"));
+      assertTrue(exception.getMessage().contains("clipId=clip-1"));
+      assertTrue(exception.getMessage().contains("targetPath=" + target));
     }
 
     @Test
@@ -210,6 +213,7 @@ public class YtDlpDownloaderTest {
           () -> downloader.download(clip, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Timed out while waiting for yt-dlp process"));
+      assertTrue(exception.getMessage().contains("clipId=clip-1"));
       assertTrue(exception.getMessage().contains("timeout=1"));
     }
 
@@ -230,6 +234,7 @@ public class YtDlpDownloaderTest {
           () -> downloader.download(clip, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("yt-dlp process exited with non-zero code"));
+      assertTrue(exception.getMessage().contains("clipId=clip-1"));
       assertTrue(exception.getMessage().contains("exitCode="));
     }
 
@@ -302,6 +307,7 @@ public class YtDlpDownloaderTest {
           () -> downloader.download(clip, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Output file empty after download"));
+      assertTrue(exception.getMessage().contains("targetPath=" + target));
       assertTrue(exception.getMessage().contains("sizeBytes=0"));
     }
   }
