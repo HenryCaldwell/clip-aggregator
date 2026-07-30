@@ -121,11 +121,14 @@ public final class TwitchRetriever extends AbstractRetriever {
 
     if ((gameId == null) == (broadcasterId == null)) {
       throw new SpecException(Retriever.TYPE, null, name,
-          "Invalid key combination (expected exactly one of gameId or broadcasterId)");
+          "Invalid key combination (expected exactly one of gameId or broadcasterId)",
+          MapUtils.ofNullable("key", "gameId, broadcasterId", "value", gameId + ", " + broadcasterId));
     }
 
     if (broadcasterId != null && !languages.isEmpty()) {
-      throw new SpecException(Retriever.TYPE, null, name, "Invalid key combination (expected languages only with gameId)");
+      throw new SpecException(Retriever.TYPE, null, name,
+          "Invalid key combination (expected languages only with gameId)",
+          MapUtils.ofNullable("key", "broadcasterId, languages", "value", broadcasterId + ", " + languages));
     }
 
     this.http = HttpClient.newHttpClient();
