@@ -173,6 +173,7 @@ public class FFmpegTransformerTest {
           () -> transformer.callPreflight(media, source, target));
 
       assertTrue(exception.getMessage().contains("Input file missing or not a regular file"));
+      assertTrue(exception.getMessage().contains("clipId=clip-1"));
       assertTrue(exception.getMessage().contains("sourcePath=" + source));
     }
 
@@ -194,6 +195,7 @@ public class FFmpegTransformerTest {
           () -> transformer.callPreflight(media, source, target));
 
       assertTrue(exception.getMessage().contains("Input file missing or not a regular file"));
+      assertTrue(exception.getMessage().contains("clipId=clip-1"));
       assertTrue(exception.getMessage().contains("sourcePath=" + source));
     }
 
@@ -214,6 +216,7 @@ public class FFmpegTransformerTest {
           () -> transformer.callPreflight(media, source, null));
 
       assertTrue(exception.getMessage().contains("Target path is null"));
+      assertTrue(exception.getMessage().contains("clipId=clip-1"));
       assertTrue(exception.getMessage().contains("targetPath=null"));
     }
 
@@ -256,6 +259,8 @@ public class FFmpegTransformerTest {
           () -> transformer.callPreflight(media, source, target));
 
       assertTrue(exception.getMessage().contains("Target file already exists"));
+      assertTrue(exception.getMessage().contains("clipId=clip-1"));
+      assertTrue(exception.getMessage().contains("sourcePath=" + source));
       assertTrue(exception.getMessage().contains("targetPath=" + target));
     }
   }
@@ -298,7 +303,10 @@ public class FFmpegTransformerTest {
               new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to start ffmpeg process"));
+      assertTrue(exception.getMessage().contains("ffmpegPath=ffmpeg"));
       assertTrue(exception.getMessage().contains("clipId=clip-1"));
+      assertTrue(exception.getMessage().contains("sourcePath=" + source));
+      assertTrue(exception.getMessage().contains("targetPath=" + target));
     }
 
     @Test
@@ -323,6 +331,10 @@ public class FFmpegTransformerTest {
           () -> transformer.callRunProcess(processBuilder, media, source, target, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Timed out while waiting for ffmpeg process"));
+      assertTrue(exception.getMessage().contains("ffmpegPath=ffmpeg"));
+      assertTrue(exception.getMessage().contains("clipId=clip-1"));
+      assertTrue(exception.getMessage().contains("sourcePath=" + source));
+      assertTrue(exception.getMessage().contains("targetPath=" + target));
       assertTrue(exception.getMessage().contains("timeout=1"));
     }
 
@@ -344,6 +356,10 @@ public class FFmpegTransformerTest {
               new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("ffmpeg process exited with non-zero code"));
+      assertTrue(exception.getMessage().contains("ffmpegPath=ffmpeg"));
+      assertTrue(exception.getMessage().contains("clipId=clip-1"));
+      assertTrue(exception.getMessage().contains("sourcePath=" + source));
+      assertTrue(exception.getMessage().contains("targetPath=" + target));
       assertTrue(exception.getMessage().contains("exitCode="));
     }
 
@@ -403,6 +419,8 @@ public class FFmpegTransformerTest {
           () -> transformer.callPostflight(media, source, target));
 
       assertTrue(exception.getMessage().contains("Output file missing after transform"));
+      assertTrue(exception.getMessage().contains("clipId=clip-1"));
+      assertTrue(exception.getMessage().contains("sourcePath=" + source));
       assertTrue(exception.getMessage().contains("targetPath=" + target));
     }
 
@@ -424,6 +442,9 @@ public class FFmpegTransformerTest {
           () -> transformer.callPostflight(media, source, target));
 
       assertTrue(exception.getMessage().contains("Output file empty after transform"));
+      assertTrue(exception.getMessage().contains("clipId=clip-1"));
+      assertTrue(exception.getMessage().contains("sourcePath=" + source));
+      assertTrue(exception.getMessage().contains("targetPath=" + target));
       assertTrue(exception.getMessage().contains("sizeBytes=0"));
     }
 
