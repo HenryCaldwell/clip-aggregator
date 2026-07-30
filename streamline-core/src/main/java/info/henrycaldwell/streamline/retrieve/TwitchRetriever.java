@@ -98,23 +98,19 @@ public final class TwitchRetriever extends AbstractRetriever {
     this.limit = limit;
 
     List<String> languages = config.hasPath("languages") ? config.getStringList("languages") : List.of();
-    for (int i = 0; i < languages.size(); i++) {
-      String language = languages.get(i);
-
+    for (String language : languages) {
       if (language == null || language.isBlank()) {
         throw new SpecException(Retriever.TYPE, null, name, "Invalid key value (expected languages to be non-blank strings)",
-            MapUtils.ofNullable("key", "languages", "value", language, "index", i));
+            MapUtils.ofNullable("key", "languages", "value", language));
       }
     }
     this.languages = List.copyOf(languages);
 
     List<String> tags = config.hasPath("tags") ? config.getStringList("tags") : List.of();
-    for (int i = 0; i < tags.size(); i++) {
-      String tag = tags.get(i);
-
+    for (String tag : tags) {
       if (tag == null || tag.isBlank()) {
         throw new SpecException(Retriever.TYPE, null, name, "Invalid key value (expected tags to be non-blank strings)",
-            MapUtils.ofNullable("key", "tags", "value", tag, "index", i));
+            MapUtils.ofNullable("key", "tags", "value", tag));
       }
     }
     this.tags = List.copyOf(tags);
