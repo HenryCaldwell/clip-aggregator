@@ -2,13 +2,16 @@ package info.henrycaldwell.streamline.transform;
 
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
+import info.henrycaldwell.streamline.error.ComponentType;
 
 /**
  * Interface for transforming media.
- * 
+ *
  * This interface defines a contract for producing new media from input media.
  */
 public interface Transformer {
+
+  ComponentType TYPE = ComponentType.TRANSFORMER;
 
   /**
    * Returns the configured transformer name.

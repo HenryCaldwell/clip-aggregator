@@ -4,13 +4,16 @@ import java.util.List;
 
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
+import info.henrycaldwell.streamline.error.ComponentType;
 
 /**
  * Interface for retrieving clips.
- * 
+ *
  * This interface defines a contract for producing clips from external sources.
  */
 public interface Retriever {
+
+  ComponentType TYPE = ComponentType.RETRIEVER;
 
   /**
    * Returns the configured retriever name.

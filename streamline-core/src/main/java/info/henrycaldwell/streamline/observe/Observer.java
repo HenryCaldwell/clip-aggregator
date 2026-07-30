@@ -1,6 +1,7 @@
 package info.henrycaldwell.streamline.observe;
 
 import info.henrycaldwell.streamline.core.ClipRef;
+import info.henrycaldwell.streamline.error.ComponentType;
 
 /**
  * Interface for observing runs.
@@ -9,6 +10,8 @@ import info.henrycaldwell.streamline.core.ClipRef;
  * events.
  */
 public interface Observer {
+
+  ComponentType TYPE = ComponentType.OBSERVER;
 
   /**
    * Initializes any underlying resources required by the observer.

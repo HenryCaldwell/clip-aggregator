@@ -16,14 +16,14 @@ public class SpecExceptionTest {
 
     @Test
     void formatsWithSpecCategory() {
-      SpecException ex = new SpecException("comp", "msg");
+      SpecException ex = new SpecException(null, null, "name", "msg");
 
-      assertTrue(ex.getMessage().startsWith("[SPEC:comp] msg"));
+      assertTrue(ex.getMessage().startsWith("[SPEC:name] msg"));
     }
 
     @Test
     void includesDetailsWhenPresent() {
-      SpecException ex = new SpecException("comp", "msg", Map.of("key", "value"));
+      SpecException ex = new SpecException(null, null, "name", "msg", Map.of("key", "value"));
 
       assertTrue(ex.getMessage().contains("(key=value)"));
     }
@@ -35,14 +35,14 @@ public class SpecExceptionTest {
     @Test
     void returnsCauseWhenProvided() {
       Throwable cause = new RuntimeException("cause");
-      SpecException ex = new SpecException("comp", "msg", null, cause);
+      SpecException ex = new SpecException(null, null, "name", "msg", null, cause);
 
       assertEquals(cause, ex.getCause());
     }
 
     @Test
     void returnsNullWhenNoCause() {
-      SpecException ex = new SpecException("comp", "msg");
+      SpecException ex = new SpecException(null, null, "name", "msg");
 
       assertNull(ex.getCause());
     }

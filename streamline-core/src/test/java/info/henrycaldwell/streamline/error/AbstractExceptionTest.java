@@ -87,15 +87,15 @@ public class AbstractExceptionTest {
   private static final class TestException extends AbstractException {
 
     TestException(String category, String component, String message) {
-      super(category, component, message);
+      super(category, null, null, component, message);
     }
 
     TestException(String category, String component, String message, Map<String, ?> details) {
-      super(category, component, message, details);
+      super(category, null, null, component, message, details);
     }
 
     TestException(String category, String component, String message, Map<String, ?> details, Throwable cause) {
-      super(category, component, message, details, cause);
+      super(category, null, null, component, message, details, cause);
     }
   }
 }

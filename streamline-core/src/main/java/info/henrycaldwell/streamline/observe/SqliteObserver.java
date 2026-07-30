@@ -118,9 +118,8 @@ public final class SqliteObserver extends AbstractObserver {
         create.executeUpdate(createPublishesSql);
       }
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to open SQLite database",
-          MapUtils.ofNullable("databasePath", databasePath),
-          e);
+      throw new ComponentException(Observer.TYPE, null, name, "Failed to open SQLite database",
+          MapUtils.ofNullable("databasePath", databasePath), e);
     }
   }
 
@@ -135,7 +134,7 @@ public final class SqliteObserver extends AbstractObserver {
       try {
         connection.close();
       } catch (SQLException e) {
-        throw new ComponentException(name, "Failed to close SQLite database connection",
+        throw new ComponentException(Observer.TYPE, null, name, "Failed to close SQLite database connection",
             MapUtils.ofNullable("databasePath", databasePath), e);
       } finally {
         connection = null;
@@ -156,7 +155,7 @@ public final class SqliteObserver extends AbstractObserver {
   @Override
   public synchronized long runStart(String runner, String config) {
     if (connection == null) {
-      throw new ComponentException(name, "Observer not started");
+      throw new ComponentException(Observer.TYPE, null, name, "Observer not started");
     }
 
     String insertSql = """
@@ -174,14 +173,14 @@ public final class SqliteObserver extends AbstractObserver {
 
       try (ResultSet keys = insert.getGeneratedKeys()) {
         if (!keys.next()) {
-          throw new ComponentException(name, "Failed to start run in SQLite database",
+          throw new ComponentException(Observer.TYPE, null, name, "Failed to start run in SQLite database",
               MapUtils.ofNullable("databasePath", databasePath, "runner", runner));
         }
 
         return keys.getLong(1);
       }
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to start run in SQLite database",
+      throw new ComponentException(Observer.TYPE, null, name, "Failed to start run in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "runner", runner), e);
     }
   }
@@ -198,7 +197,7 @@ public final class SqliteObserver extends AbstractObserver {
   @Override
   public synchronized void runEnd(long runId, RunStatus status, int published) {
     if (connection == null) {
-      throw new ComponentException(name, "Observer not started");
+      throw new ComponentException(Observer.TYPE, null, name, "Observer not started");
     }
 
     String updateSql = """
@@ -216,7 +215,7 @@ public final class SqliteObserver extends AbstractObserver {
       update.setLong(4, runId);
       update.executeUpdate();
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to end run in SQLite database",
+      throw new ComponentException(Observer.TYPE, null, name, "Failed to end run in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "runId", runId), e);
     }
   }
@@ -234,7 +233,7 @@ public final class SqliteObserver extends AbstractObserver {
   @Override
   public synchronized long fetchStart(long runId, String retriever, String worker) {
     if (connection == null) {
-      throw new ComponentException(name, "Observer not started");
+      throw new ComponentException(Observer.TYPE, null, name, "Observer not started");
     }
 
     String insertSql = """
@@ -251,15 +250,14 @@ public final class SqliteObserver extends AbstractObserver {
 
       try (ResultSet keys = insert.getGeneratedKeys()) {
         if (!keys.next()) {
-          throw new ComponentException(name, "Failed to start fetch in SQLite database",
-              MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "retriever", retriever, "worker",
-                  worker));
+          throw new ComponentException(Observer.TYPE, null, name, "Failed to start fetch in SQLite database", MapUtils
+              .ofNullable("databasePath", databasePath, "runId", runId, "retriever", retriever, "worker", worker));
         }
 
         return keys.getLong(1);
       }
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to start fetch in SQLite database",
+      throw new ComponentException(Observer.TYPE, null, name, "Failed to start fetch in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "retriever", retriever, "worker", worker),
           e);
     }
@@ -280,7 +278,7 @@ public final class SqliteObserver extends AbstractObserver {
   @Override
   public synchronized void fetchEnd(long fetchId, AttemptStatus status, int clips, Throwable error) {
     if (connection == null) {
-      throw new ComponentException(name, "Observer not started");
+      throw new ComponentException(Observer.TYPE, null, name, "Observer not started");
     }
 
     String updateSql = """
@@ -300,7 +298,7 @@ public final class SqliteObserver extends AbstractObserver {
       update.setLong(5, fetchId);
       update.executeUpdate();
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to end fetch in SQLite database",
+      throw new ComponentException(Observer.TYPE, null, name, "Failed to end fetch in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "fetchId", fetchId), e);
     }
   }
@@ -323,7 +321,7 @@ public final class SqliteObserver extends AbstractObserver {
     String id = clip.id();
 
     if (connection == null) {
-      throw new ComponentException(name, "Observer not started");
+      throw new ComponentException(Observer.TYPE, null, name, "Observer not started");
     }
 
     String insertSql = """
@@ -342,14 +340,14 @@ public final class SqliteObserver extends AbstractObserver {
 
       try (ResultSet keys = insert.getGeneratedKeys()) {
         if (!keys.next()) {
-          throw new ComponentException(name, "Failed to start attempt in SQLite database",
+          throw new ComponentException(Observer.TYPE, null, name, "Failed to start attempt in SQLite database",
               MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "clipId", id));
         }
 
         return keys.getLong(1);
       }
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to start attempt in SQLite database",
+      throw new ComponentException(Observer.TYPE, null, name, "Failed to start attempt in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "clipId", id), e);
     }
   }
@@ -368,7 +366,7 @@ public final class SqliteObserver extends AbstractObserver {
   @Override
   public synchronized void attemptEnd(long attemptId, AttemptStatus status, Throwable error) {
     if (connection == null) {
-      throw new ComponentException(name, "Observer not started");
+      throw new ComponentException(Observer.TYPE, null, name, "Observer not started");
     }
 
     String updateSql = """
@@ -386,7 +384,7 @@ public final class SqliteObserver extends AbstractObserver {
       update.setLong(4, attemptId);
       update.executeUpdate();
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to end attempt in SQLite database",
+      throw new ComponentException(Observer.TYPE, null, name, "Failed to end attempt in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "attemptId", attemptId), e);
     }
   }
@@ -404,7 +402,7 @@ public final class SqliteObserver extends AbstractObserver {
   @Override
   public synchronized void publish(long runId, String clipId, String publisher, String uri) {
     if (connection == null) {
-      throw new ComponentException(name, "Observer not started");
+      throw new ComponentException(Observer.TYPE, null, name, "Observer not started");
     }
 
     String insertSql = """
@@ -420,7 +418,7 @@ public final class SqliteObserver extends AbstractObserver {
       insert.setString(5, Instant.now().toString());
       insert.executeUpdate();
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to publish in SQLite database",
+      throw new ComponentException(Observer.TYPE, null, name, "Failed to publish in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "runId", runId, "clipId", clipId, "publisher", publisher),
           e);
     }
@@ -436,7 +434,7 @@ public final class SqliteObserver extends AbstractObserver {
   @Override
   public synchronized void heartbeat(long runId) {
     if (connection == null) {
-      throw new ComponentException(name, "Observer not started");
+      throw new ComponentException(Observer.TYPE, null, name, "Observer not started");
     }
 
     String updateSql = """
@@ -450,7 +448,7 @@ public final class SqliteObserver extends AbstractObserver {
       update.setLong(2, runId);
       update.executeUpdate();
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to heartbeat in SQLite database",
+      throw new ComponentException(Observer.TYPE, null, name, "Failed to heartbeat in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "runId", runId), e);
     }
   }

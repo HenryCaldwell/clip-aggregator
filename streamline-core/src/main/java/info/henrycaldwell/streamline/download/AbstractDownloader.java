@@ -30,7 +30,7 @@ public abstract class AbstractDownloader implements Downloader {
         ? config.getString("name")
         : "UNNAMED_DOWNLOADER";
 
-    composite.validate(config, display);
+    composite.validate(config, Downloader.TYPE, null, display);
 
     this.name = config.getString("name");
   }

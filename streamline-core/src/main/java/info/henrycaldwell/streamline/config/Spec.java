@@ -8,6 +8,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigValue;
 
+import info.henrycaldwell.streamline.error.ComponentType;
 import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.util.MapUtils;
 
@@ -181,10 +182,13 @@ public final class Spec {
    * Validates a configuration block against this spec.
    *
    * @param config A {@link Config} representing the block to validate.
+   * @param type   A {@link ComponentType} representing the component type.
+   * @param parent A string representing the parent component name, or
+   *               {@code null}.
    * @param name   A string representing a display name.
    * @throws SpecException if validation fails at any step.
    */
-  public void validate(Config config, String name) {
+  public void validate(Config config, ComponentType type, String parent, String name) {
     Set<String> legal = new LinkedHashSet<>();
     Set<String> required = new LinkedHashSet<>();
 
@@ -212,23 +216,24 @@ public final class Spec {
       String key = entry.getKey();
 
       if (!legal.contains(key)) {
-        throw new SpecException(name, "Unknown configuration key", MapUtils.ofNullable("key", key));
+        throw new SpecException(type, parent, name, "Unknown configuration key", MapUtils.ofNullable("key", key));
       }
     }
 
     for (String key : required) {
       if (!config.hasPath(key)) {
-        throw new SpecException(name, "Missing required key", MapUtils.ofNullable("key", key));
+        throw new SpecException(type, parent, name, "Missing required key", MapUtils.ofNullable("key", key));
       }
     }
 
     for (String key : requiredStrings) {
       try {
         if (config.getString(key).isBlank()) {
-          throw new SpecException(name, "Missing required key", MapUtils.ofNullable("key", key));
+          throw new SpecException(type, parent, name, "Missing required key", MapUtils.ofNullable("key", key));
         }
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(name, "Incorrect key type (expected string)", MapUtils.ofNullable("key", key), e);
+        throw new SpecException(type, parent, name, "Incorrect key type (expected string)",
+            MapUtils.ofNullable("key", key), e);
       }
     }
 
@@ -236,7 +241,8 @@ public final class Spec {
       try {
         config.getNumber(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(name, "Incorrect key type (expected number)", MapUtils.ofNullable("key", key), e);
+        throw new SpecException(type, parent, name, "Incorrect key type (expected number)",
+            MapUtils.ofNullable("key", key), e);
       }
     }
 
@@ -244,7 +250,8 @@ public final class Spec {
       try {
         config.getBoolean(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(name, "Incorrect key type (expected boolean)", MapUtils.ofNullable("key", key), e);
+        throw new SpecException(type, parent, name, "Incorrect key type (expected boolean)",
+            MapUtils.ofNullable("key", key), e);
       }
     }
 
@@ -252,7 +259,8 @@ public final class Spec {
       try {
         config.getStringList(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(name, "Incorrect key type (expected list<string>)", MapUtils.ofNullable("key", key), e);
+        throw new SpecException(type, parent, name, "Incorrect key type (expected list<string>)",
+            MapUtils.ofNullable("key", key), e);
       }
     }
 
@@ -260,7 +268,8 @@ public final class Spec {
       try {
         config.getNumberList(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(name, "Incorrect key type (expected list<number>)", MapUtils.ofNullable("key", key), e);
+        throw new SpecException(type, parent, name, "Incorrect key type (expected list<number>)",
+            MapUtils.ofNullable("key", key), e);
       }
     }
 
@@ -268,8 +277,8 @@ public final class Spec {
       try {
         config.getBooleanList(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(name, "Incorrect key type (expected list<boolean>)", MapUtils.ofNullable("key", key),
-            e);
+        throw new SpecException(type, parent, name, "Incorrect key type (expected list<boolean>)",
+            MapUtils.ofNullable("key", key), e);
       }
     }
 
@@ -278,7 +287,8 @@ public final class Spec {
         try {
           config.getString(key);
         } catch (ConfigException.WrongType e) {
-          throw new SpecException(name, "Incorrect key type (expected string)", MapUtils.ofNullable("key", key), e);
+          throw new SpecException(type, parent, name, "Incorrect key type (expected string)",
+              MapUtils.ofNullable("key", key), e);
         }
       }
     }
@@ -288,7 +298,8 @@ public final class Spec {
         try {
           config.getNumber(key);
         } catch (ConfigException.WrongType e) {
-          throw new SpecException(name, "Incorrect key type (expected number)", MapUtils.ofNullable("key", key), e);
+          throw new SpecException(type, parent, name, "Incorrect key type (expected number)",
+              MapUtils.ofNullable("key", key), e);
         }
       }
     }
@@ -298,7 +309,8 @@ public final class Spec {
         try {
           config.getBoolean(key);
         } catch (ConfigException.WrongType e) {
-          throw new SpecException(name, "Incorrect key type (expected boolean)", MapUtils.ofNullable("key", key), e);
+          throw new SpecException(type, parent, name, "Incorrect key type (expected boolean)",
+              MapUtils.ofNullable("key", key), e);
         }
       }
     }
@@ -308,8 +320,8 @@ public final class Spec {
         try {
           config.getStringList(key);
         } catch (ConfigException.WrongType e) {
-          throw new SpecException(name, "Incorrect key type (expected list<string>)", MapUtils.ofNullable("key", key),
-              e);
+          throw new SpecException(type, parent, name, "Incorrect key type (expected list<string>)",
+              MapUtils.ofNullable("key", key), e);
         }
       }
     }
@@ -319,8 +331,8 @@ public final class Spec {
         try {
           config.getNumberList(key);
         } catch (ConfigException.WrongType e) {
-          throw new SpecException(name, "Incorrect key type (expected list<number>)", MapUtils.ofNullable("key", key),
-              e);
+          throw new SpecException(type, parent, name, "Incorrect key type (expected list<number>)",
+              MapUtils.ofNullable("key", key), e);
         }
       }
     }
@@ -330,8 +342,8 @@ public final class Spec {
         try {
           config.getBooleanList(key);
         } catch (ConfigException.WrongType e) {
-          throw new SpecException(name, "Incorrect key type (expected list<boolean>)", MapUtils.ofNullable("key", key),
-              e);
+          throw new SpecException(type, parent, name, "Incorrect key type (expected list<boolean>)",
+              MapUtils.ofNullable("key", key), e);
         }
       }
     }

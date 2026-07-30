@@ -54,28 +54,32 @@ public final class VerticalBlurTransformer extends FFmpegTransformer {
 
     int targetWidth = config.hasPath("targetWidth") ? config.getNumber("targetWidth").intValue() : 1080;
     if (targetWidth <= 0) {
-      throw new SpecException(name, "Invalid key value (expected targetWidth to be greater than 0)",
+      throw new SpecException(Transformer.TYPE, null, name,
+          "Invalid key value (expected targetWidth to be greater than 0)",
           MapUtils.ofNullable("key", "targetWidth", "value", targetWidth));
     }
     this.targetWidth = targetWidth;
 
     int targetHeight = config.hasPath("targetHeight") ? config.getNumber("targetHeight").intValue() : 1920;
     if (targetHeight <= 0) {
-      throw new SpecException(name, "Invalid key value (expected targetHeight to be greater than 0)",
+      throw new SpecException(Transformer.TYPE, null, name,
+          "Invalid key value (expected targetHeight to be greater than 0)",
           MapUtils.ofNullable("key", "targetHeight", "value", targetHeight));
     }
     this.targetHeight = targetHeight;
 
     double blurSigma = config.hasPath("blurSigma") ? config.getNumber("blurSigma").doubleValue() : 40.0;
     if (blurSigma <= 0.0) {
-      throw new SpecException(name, "Invalid key value (expected blurSigma to be greater than 0)",
+      throw new SpecException(Transformer.TYPE, null, name,
+          "Invalid key value (expected blurSigma to be greater than 0)",
           MapUtils.ofNullable("key", "blurSigma", "value", blurSigma));
     }
     this.blurSigma = blurSigma;
 
     int blurSteps = config.hasPath("blurSteps") ? config.getNumber("blurSteps").intValue() : 2;
     if (blurSteps <= 0) {
-      throw new SpecException(name, "Invalid key value (expected blurSteps to be greater than 0)",
+      throw new SpecException(Transformer.TYPE, null, name,
+          "Invalid key value (expected blurSteps to be greater than 0)",
           MapUtils.ofNullable("key", "blurSteps", "value", blurSteps));
     }
     this.blurSteps = blurSteps;

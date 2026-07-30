@@ -30,7 +30,7 @@ public abstract class AbstractPublisher implements Publisher {
         ? config.getString("name")
         : "UNNAMED_PUBLISHER";
 
-    composite.validate(config, display);
+    composite.validate(config, Publisher.TYPE, null, display);
 
     this.name = config.getString("name");
   }

@@ -29,13 +29,14 @@ public final class PublisherFactory {
    */
   public static Publisher fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {
-      throw new SpecException("UNNAMED_PUBLISHER", "Missing required key", MapUtils.ofNullable("key", "name"));
+      throw new SpecException(Publisher.TYPE, null, "UNNAMED_PUBLISHER", "Missing required key",
+          MapUtils.ofNullable("key", "name"));
     }
 
     String name = config.getString("name");
 
     if (!config.hasPath("type") || config.getString("type").isBlank()) {
-      throw new SpecException(name, "Missing required key", MapUtils.ofNullable("key", "type"));
+      throw new SpecException(Publisher.TYPE, null, name, "Missing required key", MapUtils.ofNullable("key", "type"));
     }
 
     String type = config.getString("type");
@@ -47,7 +48,9 @@ public final class PublisherFactory {
       case "no_op" -> {
         return new NoOpPublisher(config);
       }
-      default -> throw new SpecException(name, "Unknown publisher type", MapUtils.ofNullable("type", type));
+      default ->
+        throw new SpecException(Publisher.TYPE, null, name, "Unknown publisher type",
+            MapUtils.ofNullable("type", type));
     }
   }
 }

@@ -31,7 +31,7 @@ public abstract class AbstractObserver implements Observer {
         ? config.getString("name")
         : "UNNAMED_OBSERVER";
 
-    composite.validate(config, display);
+    composite.validate(config, Observer.TYPE, null, display);
 
     this.name = config.getString("name");
   }

@@ -30,13 +30,14 @@ public final class StagerFactory {
    */
   public static Stager fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {
-      throw new SpecException("UNNAMED_STAGER", "Missing required key", MapUtils.ofNullable("key", "name"));
+      throw new SpecException(Stager.TYPE, null, "UNNAMED_STAGER", "Missing required key",
+          MapUtils.ofNullable("key", "name"));
     }
 
     String name = config.getString("name");
 
     if (!config.hasPath("type") || config.getString("type").isBlank()) {
-      throw new SpecException(name, "Missing required key", MapUtils.ofNullable("key", "type"));
+      throw new SpecException(Stager.TYPE, null, name, "Missing required key", MapUtils.ofNullable("key", "type"));
     }
 
     String type = config.getString("type");
@@ -51,7 +52,8 @@ public final class StagerFactory {
       case "no_op" -> {
         return new NoOpStager(config);
       }
-      default -> throw new SpecException(name, "Unknown stager type", MapUtils.ofNullable("type", type));
+      default ->
+        throw new SpecException(Stager.TYPE, null, name, "Unknown stager type", MapUtils.ofNullable("type", type));
     }
   }
 }

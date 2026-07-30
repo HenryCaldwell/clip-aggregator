@@ -5,13 +5,16 @@ import java.nio.file.Path;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
+import info.henrycaldwell.streamline.error.ComponentType;
 
 /**
  * Interface for downloading clips.
- * 
+ *
  * This interface defines a contract for producing local media from input clips.
  */
 public interface Downloader {
+
+  ComponentType TYPE = ComponentType.DOWNLOADER;
 
   /**
    * Returns the configured downloader name.

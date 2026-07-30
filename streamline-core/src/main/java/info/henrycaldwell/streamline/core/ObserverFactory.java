@@ -29,13 +29,14 @@ public final class ObserverFactory {
    */
   public static Observer fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {
-      throw new SpecException("UNNAMED_OBSERVER", "Missing required key", MapUtils.ofNullable("key", "name"));
+      throw new SpecException(Observer.TYPE, null, "UNNAMED_OBSERVER", "Missing required key",
+          MapUtils.ofNullable("key", "name"));
     }
 
     String name = config.getString("name");
 
     if (!config.hasPath("type") || config.getString("type").isBlank()) {
-      throw new SpecException(name, "Missing required key", MapUtils.ofNullable("key", "type"));
+      throw new SpecException(Observer.TYPE, null, name, "Missing required key", MapUtils.ofNullable("key", "type"));
     }
 
     String type = config.getString("type");
@@ -47,7 +48,8 @@ public final class ObserverFactory {
       case "no_op" -> {
         return new NoOpObserver(config);
       }
-      default -> throw new SpecException(name, "Unknown observer type", MapUtils.ofNullable("type", type));
+      default ->
+        throw new SpecException(Observer.TYPE, null, name, "Unknown observer type", MapUtils.ofNullable("type", type));
     }
   }
 }

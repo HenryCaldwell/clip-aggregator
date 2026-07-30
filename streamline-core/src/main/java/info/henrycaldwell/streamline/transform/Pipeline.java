@@ -6,16 +6,19 @@ import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.core.RunSession;
+import info.henrycaldwell.streamline.error.ComponentType;
 import info.henrycaldwell.streamline.observe.AttemptStatus;
 import info.henrycaldwell.streamline.observe.Observer;
 import info.henrycaldwell.streamline.observe.PipelineStage;
 
 /**
  * Class for running media transformers in sequence.
- * 
+ *
  * This class applies transformers to media in the configured order.
  */
 public final class Pipeline {
+
+  public static final ComponentType TYPE = ComponentType.PIPELINE;
 
   private final String name;
   private final List<Transformer> transformers;

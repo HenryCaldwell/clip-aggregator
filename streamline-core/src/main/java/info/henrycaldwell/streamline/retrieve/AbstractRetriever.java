@@ -34,7 +34,7 @@ public abstract class AbstractRetriever implements Retriever {
         ? config.getString("name")
         : "UNNAMED_RETRIEVER";
 
-    composite.validate(config, display);
+    composite.validate(config, Retriever.TYPE, null, display);
 
     this.name = config.getString("name");
     this.pipeline = config.hasPath("pipeline") && !config.getString("pipeline").isBlank()

@@ -66,9 +66,8 @@ public final class SqliteHistory extends AbstractHistory {
         create.executeUpdate(createClipsSql);
       }
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to open SQLite database",
-          MapUtils.ofNullable("databasePath", databasePath),
-          e);
+      throw new ComponentException(History.TYPE, null, name, "Failed to open SQLite database",
+          MapUtils.ofNullable("databasePath", databasePath), e);
     }
   }
 
@@ -83,7 +82,7 @@ public final class SqliteHistory extends AbstractHistory {
       try {
         connection.close();
       } catch (SQLException e) {
-        throw new ComponentException(name, "Failed to close SQLite database connection",
+        throw new ComponentException(History.TYPE, null, name, "Failed to close SQLite database connection",
             MapUtils.ofNullable("databasePath", databasePath), e);
       } finally {
         connection = null;
@@ -106,7 +105,7 @@ public final class SqliteHistory extends AbstractHistory {
     String id = clip.id();
 
     if (connection == null) {
-      throw new ComponentException(name, "History not started");
+      throw new ComponentException(History.TYPE, null, name, "History not started");
     }
 
     String selectSql = """
@@ -121,7 +120,7 @@ public final class SqliteHistory extends AbstractHistory {
         return result.next();
       }
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to check contains in SQLite database",
+      throw new ComponentException(History.TYPE, null, name, "Failed to check contains in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "clipId", id, "runner", runner), e);
     }
   }
@@ -139,7 +138,7 @@ public final class SqliteHistory extends AbstractHistory {
     String id = clip.id();
 
     if (connection == null) {
-      throw new ComponentException(name, "History not started");
+      throw new ComponentException(History.TYPE, null, name, "History not started");
     }
 
     String insertSql = """
@@ -152,7 +151,7 @@ public final class SqliteHistory extends AbstractHistory {
       insert.setString(2, runner);
       insert.executeUpdate();
     } catch (SQLException e) {
-      throw new ComponentException(name, "Failed to add in SQLite database",
+      throw new ComponentException(History.TYPE, null, name, "Failed to add in SQLite database",
           MapUtils.ofNullable("databasePath", databasePath, "clipId", id, "runner", runner), e);
     }
   }

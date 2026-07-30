@@ -29,13 +29,14 @@ public final class HistoryFactory {
    */
   public static History fromConfig(Config config) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {
-      throw new SpecException("UNNAMED_HISTORY", "Missing required key", MapUtils.ofNullable("key", "name"));
+      throw new SpecException(History.TYPE, null, "UNNAMED_HISTORY", "Missing required key",
+          MapUtils.ofNullable("key", "name"));
     }
 
     String name = config.getString("name");
 
     if (!config.hasPath("type") || config.getString("type").isBlank()) {
-      throw new SpecException(name, "Missing required key", MapUtils.ofNullable("key", "type"));
+      throw new SpecException(History.TYPE, null, name, "Missing required key", MapUtils.ofNullable("key", "type"));
     }
 
     String type = config.getString("type");
@@ -47,7 +48,8 @@ public final class HistoryFactory {
       case "no_op" -> {
         return new NoOpHistory(config);
       }
-      default -> throw new SpecException(name, "Unknown history type", MapUtils.ofNullable("type", type));
+      default ->
+        throw new SpecException(History.TYPE, null, name, "Unknown history type", MapUtils.ofNullable("type", type));
     }
   }
 }

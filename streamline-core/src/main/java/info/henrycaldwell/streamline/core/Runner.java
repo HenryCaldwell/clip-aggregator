@@ -24,6 +24,7 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigRenderOptions;
 
 import info.henrycaldwell.streamline.download.Downloader;
+import info.henrycaldwell.streamline.error.ComponentType;
 import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.history.History;
 import info.henrycaldwell.streamline.observe.AttemptStatus;
@@ -59,14 +60,15 @@ public final class Runner {
    */
   public static void main(String[] args) {
     if (args.length != 1) {
-      throw new SpecException("CLI", "Invalid arguments (expected exactly one config path argument)",
+      throw new SpecException(ComponentType.CLI, null, null,
+          "Invalid arguments (expected exactly one config path argument)",
           MapUtils.ofNullable("argCount", args.length));
     }
 
     File file = new File(args[0]);
 
     if (!file.isFile()) {
-      throw new SpecException("CLI", "Config file missing or not a regular file",
+      throw new SpecException(ComponentType.CLI, null, null, "Config file missing or not a regular file",
           MapUtils.ofNullable("configPath", file.toString()));
     }
 
@@ -209,54 +211,62 @@ public final class Runner {
    */
   private static RunnerContext buildContext(Config root) {
     if (!root.hasPath("name") || root.getString("name").isBlank()) {
-      throw new SpecException("ROOT", "Missing required key", MapUtils.ofNullable("key", "name"));
+      throw new SpecException(ComponentType.ROOT, null, null, "Missing required key",
+          MapUtils.ofNullable("key", "name"));
     }
 
     String name = root.getString("name");
 
     if (!root.hasPath("posts")) {
-      throw new SpecException(name, "Missing required key", MapUtils.ofNullable("key", "posts"));
+      throw new SpecException(ComponentType.ROOT, null, null, "Missing required key",
+          MapUtils.ofNullable("key", "posts"));
     }
 
     int posts;
     try {
       posts = root.getInt("posts");
     } catch (ConfigException.WrongType e) {
-      throw new SpecException(name, "Incorrect key type (expected number)", MapUtils.ofNullable("key", "posts"), e);
+      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected number)",
+          MapUtils.ofNullable("key", "posts"), e);
     }
 
     if (posts <= 0) {
-      throw new SpecException(name, "Invalid key value (expected posts to be greater than 0)",
+      throw new SpecException(ComponentType.ROOT, null, null, "Invalid key value (expected posts to be greater than 0)",
           MapUtils.ofNullable("key", "posts", "value", posts));
     }
 
     if (!root.hasPath("workDir") || root.getString("workDir").isBlank()) {
-      throw new SpecException(name, "Missing required key", MapUtils.ofNullable("key", "workDir"));
+      throw new SpecException(ComponentType.ROOT, null, null, "Missing required key",
+          MapUtils.ofNullable("key", "workDir"));
     }
 
     Path workDir = Paths.get(root.getString("workDir"));
 
     int preparationThreads = root.hasPath("preparationThreads") ? root.getInt("preparationThreads") : 1;
     if (preparationThreads <= 0) {
-      throw new SpecException(name, "Invalid key value (expected preparationThreads to be greater than 0)",
+      throw new SpecException(ComponentType.ROOT, null, null,
+          "Invalid key value (expected preparationThreads to be greater than 0)",
           MapUtils.ofNullable("key", "preparationThreads", "value", preparationThreads));
     }
 
     int publisherThreads = root.hasPath("publisherThreads") ? root.getInt("publisherThreads") : 1;
     if (publisherThreads <= 0) {
-      throw new SpecException(name, "Invalid key value (expected publisherThreads to be greater than 0)",
+      throw new SpecException(ComponentType.ROOT, null, null,
+          "Invalid key value (expected publisherThreads to be greater than 0)",
           MapUtils.ofNullable("key", "publisherThreads", "value", publisherThreads));
     }
 
     int failureLimit = root.hasPath("failureLimit") ? root.getInt("failureLimit") : 3;
     if (failureLimit <= 0) {
-      throw new SpecException(name, "Invalid key value (expected failureLimit to be greater than 0)",
+      throw new SpecException(ComponentType.ROOT, null, null,
+          "Invalid key value (expected failureLimit to be greater than 0)",
           MapUtils.ofNullable("key", "failureLimit", "value", failureLimit));
     }
 
     long heartbeatInterval = root.hasPath("heartbeatInterval") ? root.getNumber("heartbeatInterval").longValue() : 10L;
     if (heartbeatInterval <= 0) {
-      throw new SpecException(name, "Invalid key value (expected heartbeatInterval to be greater than 0)",
+      throw new SpecException(ComponentType.ROOT, null, null,
+          "Invalid key value (expected heartbeatInterval to be greater than 0)",
           MapUtils.ofNullable("key", "heartbeatInterval", "value", heartbeatInterval));
     }
 
@@ -271,17 +281,17 @@ public final class Runner {
     Map<String, Publisher> publishers = buildPublishers(root);
 
     if (retrievers.isEmpty()) {
-      throw new SpecException(name, "Invalid key value (expected at least 1 retriever)",
+      throw new SpecException(ComponentType.ROOT, null, null, "Invalid key value (expected at least 1 retriever)",
           MapUtils.ofNullable("key", "retrievers"));
     }
 
     if (downloader == null) {
-      throw new SpecException(name, "Invalid key value (expected exactly 1 downloader)",
+      throw new SpecException(ComponentType.ROOT, null, null, "Invalid key value (expected exactly 1 downloader)",
           MapUtils.ofNullable("key", "downloader"));
     }
 
     if (publishers.isEmpty()) {
-      throw new SpecException(name, "Invalid key value (expected at least 1 publisher)",
+      throw new SpecException(ComponentType.ROOT, null, null, "Invalid key value (expected at least 1 publisher)",
           MapUtils.ofNullable("key", "publishers"));
     }
 
@@ -289,7 +299,7 @@ public final class Runner {
       String pipeline = retriever.getPipeline();
 
       if (pipeline != null && !pipelines.containsKey(pipeline)) {
-        throw new SpecException(name, "Retriever references unknown pipeline",
+        throw new SpecException(ComponentType.ROOT, null, null, "Retriever references unknown pipeline",
             MapUtils.ofNullable("retriever", retriever.getName(), "pipeline", pipeline));
       }
     }
@@ -440,8 +450,8 @@ public final class Runner {
     try {
       config = root.getConfig("observer");
     } catch (ConfigException.WrongType e) {
-      throw new SpecException("ROOT", "Incorrect key type (expected object)", MapUtils.ofNullable("key", "observer"),
-          e);
+      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected object)",
+          MapUtils.ofNullable("key", "observer"), e);
     }
 
     return ObserverFactory.fromConfig(config);
@@ -466,8 +476,8 @@ public final class Runner {
     try {
       configs = root.getConfigList("retrievers");
     } catch (ConfigException.WrongType e) {
-      throw new SpecException("ROOT", "Incorrect key type (expected list)", MapUtils.ofNullable("key", "retrievers"),
-          e);
+      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected list)",
+          MapUtils.ofNullable("key", "retrievers"), e);
     }
 
     for (Config config : configs) {
@@ -475,7 +485,8 @@ public final class Runner {
       String name = retriever.getName();
 
       if (retrievers.containsKey(name)) {
-        throw new SpecException("ROOT", "Duplicate retriever name", MapUtils.ofNullable("name", name));
+        throw new SpecException(ComponentType.ROOT, null, null, "Duplicate retriever name",
+            MapUtils.ofNullable("name", name));
       }
 
       retrievers.put(name, retriever);
@@ -500,7 +511,8 @@ public final class Runner {
     try {
       config = root.getConfig("history");
     } catch (ConfigException.WrongType e) {
-      throw new SpecException("ROOT", "Incorrect key type (expected object)", MapUtils.ofNullable("key", "history"), e);
+      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected object)",
+          MapUtils.ofNullable("key", "history"), e);
     }
 
     return HistoryFactory.fromConfig(config);
@@ -522,8 +534,8 @@ public final class Runner {
     try {
       config = root.getConfig("downloader");
     } catch (ConfigException.WrongType e) {
-      throw new SpecException("ROOT", "Incorrect key type (expected object)", MapUtils.ofNullable("key", "downloader"),
-          e);
+      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected object)",
+          MapUtils.ofNullable("key", "downloader"), e);
     }
 
     return DownloaderFactory.fromConfig(config);
@@ -548,7 +560,8 @@ public final class Runner {
     try {
       configs = root.getConfigList("pipelines");
     } catch (ConfigException.WrongType e) {
-      throw new SpecException("ROOT", "Incorrect key type (expected list)", MapUtils.ofNullable("key", "pipelines"), e);
+      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected list)",
+          MapUtils.ofNullable("key", "pipelines"), e);
     }
 
     for (Config config : configs) {
@@ -556,7 +569,8 @@ public final class Runner {
       String name = pipeline.getName();
 
       if (pipelines.containsKey(name)) {
-        throw new SpecException("ROOT", "Duplicate pipeline name", MapUtils.ofNullable("name", name));
+        throw new SpecException(ComponentType.ROOT, null, null, "Duplicate pipeline name",
+            MapUtils.ofNullable("name", name));
       }
 
       pipelines.put(name, pipeline);
@@ -581,7 +595,8 @@ public final class Runner {
     try {
       config = root.getConfig("stager");
     } catch (ConfigException.WrongType e) {
-      throw new SpecException("ROOT", "Incorrect key type (expected object)", MapUtils.ofNullable("key", "stager"), e);
+      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected object)",
+          MapUtils.ofNullable("key", "stager"), e);
     }
 
     return StagerFactory.fromConfig(config);
@@ -606,8 +621,8 @@ public final class Runner {
     try {
       configs = root.getConfigList("publishers");
     } catch (ConfigException.WrongType e) {
-      throw new SpecException("ROOT", "Incorrect key type (expected list)", MapUtils.ofNullable("key", "publishers"),
-          e);
+      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected list)",
+          MapUtils.ofNullable("key", "publishers"), e);
     }
 
     for (Config config : configs) {
@@ -615,7 +630,8 @@ public final class Runner {
       String name = publisher.getName();
 
       if (publishers.containsKey(name)) {
-        throw new SpecException("ROOT", "Duplicate publisher name", MapUtils.ofNullable("name", name));
+        throw new SpecException(ComponentType.ROOT, null, null, "Duplicate publisher name",
+            MapUtils.ofNullable("name", name));
       }
 
       publishers.put(name, publisher);

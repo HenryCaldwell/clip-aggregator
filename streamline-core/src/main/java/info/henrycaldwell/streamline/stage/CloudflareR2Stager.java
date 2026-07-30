@@ -168,13 +168,13 @@ public final class CloudflareR2Stager extends AbstractStager {
   @Override
   public MediaRef apply(MediaRef media, CancellationToken token) {
     if (operations == null) {
-      throw new ComponentException(name, "Stager not started");
+      throw new ComponentException(Stager.TYPE, null, name, "Stager not started");
     }
 
     Path source = media.file();
 
     if (source == null || !Files.isRegularFile(source)) {
-      throw new ComponentException(name, "Input file missing or not a regular file",
+      throw new ComponentException(Stager.TYPE, null, name, "Input file missing or not a regular file",
           MapUtils.ofNullable("sourcePath", source));
     }
 
@@ -194,15 +194,15 @@ public final class CloudflareR2Stager extends AbstractStager {
     try {
       future.get();
     } catch (CancellationException e) {
-      throw new ComponentException(name, "Canceled while uploading object to R2",
+      throw new ComponentException(Stager.TYPE, null, name, "Canceled while uploading object to R2",
           MapUtils.ofNullable("bucket", bucket, "objectKey", key, "sourcePath", source), e);
     } catch (ExecutionException e) {
-      throw new ComponentException(name, "Failed to upload object to R2",
+      throw new ComponentException(Stager.TYPE, null, name, "Failed to upload object to R2",
           MapUtils.ofNullable("bucket", bucket, "objectKey", key, "sourcePath", source), e.getCause());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       future.cancel(true);
-      throw new ComponentException(name, "Interrupted while uploading object to R2",
+      throw new ComponentException(Stager.TYPE, null, name, "Interrupted while uploading object to R2",
           MapUtils.ofNullable("bucket", bucket, "objectKey", key, "sourcePath", source), e);
     } finally {
       token.unregister(abort);
@@ -224,26 +224,26 @@ public final class CloudflareR2Stager extends AbstractStager {
   @Override
   public void clean(MediaRef media, CancellationToken token) {
     if (operations == null) {
-      throw new ComponentException(name, "Stager not started");
+      throw new ComponentException(Stager.TYPE, null, name, "Stager not started");
     }
 
     URI uri = media.uri();
 
     if (uri == null) {
-      throw new ComponentException(name, "Staged media URI missing", MapUtils.ofNullable("clipId", media.clip().id()));
+      throw new ComponentException(Stager.TYPE, null, name, "Staged media URI missing", MapUtils.ofNullable("clipId", media.clip().id()));
     }
 
     String path = uri.getPath();
 
     if (path == null || path.isBlank()) {
-      throw new ComponentException(name, "Staged media URI path missing",
+      throw new ComponentException(Stager.TYPE, null, name, "Staged media URI path missing",
           MapUtils.ofNullable("clipId", media.clip().id(), "uri", uri.toString()));
     }
 
     String key = path.startsWith("/") ? path.substring(1) : path;
 
     if (key.isBlank()) {
-      throw new ComponentException(name, "Staged media URI object key empty",
+      throw new ComponentException(Stager.TYPE, null, name, "Staged media URI object key empty",
           MapUtils.ofNullable("clipId", media.clip().id(), "uri", uri.toString()));
     }
 
@@ -259,15 +259,15 @@ public final class CloudflareR2Stager extends AbstractStager {
     try {
       future.get();
     } catch (CancellationException e) {
-      throw new ComponentException(name, "Canceled while deleting object from R2",
+      throw new ComponentException(Stager.TYPE, null, name, "Canceled while deleting object from R2",
           MapUtils.ofNullable("bucket", bucket, "objectKey", key, "uri", uri.toString()), e);
     } catch (ExecutionException e) {
-      throw new ComponentException(name, "Failed to delete object from R2",
+      throw new ComponentException(Stager.TYPE, null, name, "Failed to delete object from R2",
           MapUtils.ofNullable("bucket", bucket, "objectKey", key, "uri", uri.toString()), e.getCause());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       future.cancel(true);
-      throw new ComponentException(name, "Interrupted while deleting object from R2",
+      throw new ComponentException(Stager.TYPE, null, name, "Interrupted while deleting object from R2",
           MapUtils.ofNullable("bucket", bucket, "objectKey", key, "uri", uri.toString()), e);
     } finally {
       token.unregister(abort);
@@ -284,7 +284,7 @@ public final class CloudflareR2Stager extends AbstractStager {
   @Override
   public void purge(CancellationToken token) {
     if (operations == null) {
-      throw new ComponentException(name, "Stager not started");
+      throw new ComponentException(Stager.TYPE, null, name, "Stager not started");
     }
 
     String cursor = null;
@@ -304,15 +304,15 @@ public final class CloudflareR2Stager extends AbstractStager {
       try {
         response = listFuture.get();
       } catch (CancellationException e) {
-        throw new ComponentException(name, "Canceled while listing objects in R2",
+        throw new ComponentException(Stager.TYPE, null, name, "Canceled while listing objects in R2",
             MapUtils.ofNullable("bucket", bucket), e);
       } catch (ExecutionException e) {
-        throw new ComponentException(name, "Failed to list objects in R2",
+        throw new ComponentException(Stager.TYPE, null, name, "Failed to list objects in R2",
             MapUtils.ofNullable("bucket", bucket), e.getCause());
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         listFuture.cancel(true);
-        throw new ComponentException(name, "Interrupted while listing objects in R2",
+        throw new ComponentException(Stager.TYPE, null, name, "Interrupted while listing objects in R2",
             MapUtils.ofNullable("bucket", bucket), e);
       } finally {
         token.unregister(listAbort);
@@ -338,15 +338,15 @@ public final class CloudflareR2Stager extends AbstractStager {
         try {
           deleteFuture.get();
         } catch (CancellationException e) {
-          throw new ComponentException(name, "Canceled while deleting objects from R2",
+          throw new ComponentException(Stager.TYPE, null, name, "Canceled while deleting objects from R2",
               MapUtils.ofNullable("bucket", bucket), e);
         } catch (ExecutionException e) {
-          throw new ComponentException(name, "Failed to delete objects from R2",
+          throw new ComponentException(Stager.TYPE, null, name, "Failed to delete objects from R2",
               MapUtils.ofNullable("bucket", bucket), e.getCause());
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           deleteFuture.cancel(true);
-          throw new ComponentException(name, "Interrupted while deleting objects from R2",
+          throw new ComponentException(Stager.TYPE, null, name, "Interrupted while deleting objects from R2",
               MapUtils.ofNullable("bucket", bucket), e);
         } finally {
           token.unregister(deleteAbort);

@@ -40,7 +40,7 @@ public abstract class AbstractStager implements Stager {
         ? config.getString("name")
         : "UNNAMED_STAGER";
 
-    composite.validate(config, display);
+    composite.validate(config, Stager.TYPE, null, display);
 
     this.name = config.getString("name");
   }
@@ -88,7 +88,8 @@ public abstract class AbstractStager implements Stager {
 
     if (output == null
         || (!"http".equalsIgnoreCase(output.getScheme()) && !"https".equalsIgnoreCase(output.getScheme()))) {
-      throw new ComponentException(name, "Stager did not produce an HTTP(S) URI", MapUtils.ofNullable("uri", output));
+      throw new ComponentException(Stager.TYPE, null, name, "Stager did not produce an HTTP(S) URI",
+          MapUtils.ofNullable("uri", output));
     }
 
     try {
@@ -96,8 +97,8 @@ public abstract class AbstractStager implements Stager {
         Files.delete(source);
       }
     } catch (IOException e) {
-      throw new ComponentException(name, "Failed to delete previous file", MapUtils.ofNullable("sourcePath", source),
-          e);
+      throw new ComponentException(Stager.TYPE, null, name, "Failed to delete previous file",
+          MapUtils.ofNullable("sourcePath", source), e);
     }
 
     return result;

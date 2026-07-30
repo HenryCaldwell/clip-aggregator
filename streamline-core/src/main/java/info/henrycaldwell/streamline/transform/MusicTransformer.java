@@ -62,14 +62,16 @@ public final class MusicTransformer extends FFmpegTransformer {
 
     String mode = config.hasPath("mode") ? config.getString("mode") : "mix";
     if (!"mix".equals(mode) && !"replace".equals(mode)) {
-      throw new SpecException(name, "Invalid key value (expected mode to be one of mix, replace)",
+      throw new SpecException(Transformer.TYPE, null, name,
+          "Invalid key value (expected mode to be one of mix, replace)",
           MapUtils.ofNullable("key", "mode", "value", mode));
     }
     this.mode = mode;
 
     double volume = config.hasPath("volume") ? config.getNumber("volume").doubleValue() : 0.3;
     if (volume < 0.0) {
-      throw new SpecException(name, "Invalid key value (expected volume to be greater than or equal to 0.0)",
+      throw new SpecException(Transformer.TYPE, null, name,
+          "Invalid key value (expected volume to be greater than or equal to 0.0)",
           MapUtils.ofNullable("key", "volume", "value", volume));
     }
     this.volume = volume;
@@ -93,7 +95,7 @@ public final class MusicTransformer extends FFmpegTransformer {
     preflight(media, source, target);
 
     if (!Files.isRegularFile(Path.of(musicPath))) {
-      throw new ComponentException(name, "Music file missing or not a regular file",
+      throw new ComponentException(Transformer.TYPE, null, name, "Music file missing or not a regular file",
           MapUtils.ofNullable("musicPath", musicPath));
     }
 

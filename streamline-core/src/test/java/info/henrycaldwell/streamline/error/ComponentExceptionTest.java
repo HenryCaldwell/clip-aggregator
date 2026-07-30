@@ -16,14 +16,14 @@ public class ComponentExceptionTest {
 
     @Test
     void formatsWithComponentCategory() {
-      ComponentException ex = new ComponentException("comp", "msg");
+      ComponentException ex = new ComponentException(null, null, "name", "msg");
 
-      assertTrue(ex.getMessage().startsWith("[COMPONENT:comp] msg"));
+      assertTrue(ex.getMessage().startsWith("[COMPONENT:name] msg"));
     }
 
     @Test
     void includesDetailsWhenPresent() {
-      ComponentException ex = new ComponentException("comp", "msg", Map.of("key", "value"));
+      ComponentException ex = new ComponentException(null, null, "name", "msg", Map.of("key", "value"));
 
       assertTrue(ex.getMessage().contains("(key=value)"));
     }
@@ -35,14 +35,14 @@ public class ComponentExceptionTest {
     @Test
     void returnsCauseWhenProvided() {
       Throwable cause = new RuntimeException("cause");
-      ComponentException ex = new ComponentException("comp", "msg", null, cause);
+      ComponentException ex = new ComponentException(null, null, "name", "msg", null, cause);
 
       assertEquals(cause, ex.getCause());
     }
 
     @Test
     void returnsNullWhenNoCause() {
-      ComponentException ex = new ComponentException("comp", "msg");
+      ComponentException ex = new ComponentException(null, null, "name", "msg");
 
       assertNull(ex.getCause());
     }

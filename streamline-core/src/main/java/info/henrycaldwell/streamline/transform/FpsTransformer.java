@@ -50,7 +50,8 @@ public final class FpsTransformer extends FFmpegTransformer {
 
     int targetFps = config.hasPath("targetFps") ? config.getNumber("targetFps").intValue() : 30;
     if (targetFps <= 0) {
-      throw new SpecException(name, "Invalid key value (expected targetFps to be greater than 0)",
+      throw new SpecException(Transformer.TYPE, null, name,
+          "Invalid key value (expected targetFps to be greater than 0)",
           MapUtils.ofNullable("key", "targetFps", "value", targetFps));
     }
 

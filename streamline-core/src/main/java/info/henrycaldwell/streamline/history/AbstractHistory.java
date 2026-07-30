@@ -31,7 +31,7 @@ public abstract class AbstractHistory implements History {
         ? config.getString("name")
         : "UNNAMED_HISTORY";
 
-    composite.validate(config, display);
+    composite.validate(config, History.TYPE, null, display);
 
     this.name = config.getString("name");
   }

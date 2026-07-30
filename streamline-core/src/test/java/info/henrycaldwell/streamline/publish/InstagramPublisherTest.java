@@ -311,7 +311,7 @@ public class InstagramPublisherTest {
           accessKey = key-1
           """);
       HttpSender sender = (request, token) -> {
-        throw new ComponentException("publisher", "HTTP call failed");
+        throw new ComponentException(Publisher.TYPE, null, "publisher", "HTTP call failed");
       };
       InstagramPublisher publisher = new InstagramPublisher(config, sender);
 

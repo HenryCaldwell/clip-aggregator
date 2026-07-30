@@ -721,7 +721,7 @@ public class TwitchRetrieverTest {
           gameId = game-1
           """);
       HttpSender sender = (request, token) -> {
-        throw new ComponentException("retriever", "HTTP call failed");
+        throw new ComponentException(Retriever.TYPE, null, "retriever", "HTTP call failed");
       };
       TwitchRetriever retriever = new TwitchRetriever(config, sender);
 

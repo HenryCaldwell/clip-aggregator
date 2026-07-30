@@ -1,6 +1,7 @@
 package info.henrycaldwell.streamline.history;
 
 import info.henrycaldwell.streamline.core.ClipRef;
+import info.henrycaldwell.streamline.error.ComponentType;
 
 /**
  * Interface for tracking clips.
@@ -9,6 +10,8 @@ import info.henrycaldwell.streamline.core.ClipRef;
  * reposts.
  */
 public interface History {
+
+  ComponentType TYPE = ComponentType.HISTORY;
 
   /**
    * Initializes any underlying resources required by the history.

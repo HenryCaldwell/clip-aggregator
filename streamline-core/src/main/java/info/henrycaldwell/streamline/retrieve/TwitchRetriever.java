@@ -85,14 +85,14 @@ public final class TwitchRetriever extends AbstractRetriever {
 
     long window = config.hasPath("window") ? config.getNumber("window").longValue() : 24L;
     if (window <= 0) {
-      throw new SpecException(name, "Invalid key value (expected window to be greater than 0)",
+      throw new SpecException(Retriever.TYPE, null, name, "Invalid key value (expected window to be greater than 0)",
           MapUtils.ofNullable("key", "window", "value", window));
     }
     this.window = Duration.ofHours(window);
 
     int limit = config.hasPath("limit") ? config.getNumber("limit").intValue() : 20;
     if (limit <= 0) {
-      throw new SpecException(name, "Invalid key value (expected limit to be greater than 0)",
+      throw new SpecException(Retriever.TYPE, null, name, "Invalid key value (expected limit to be greater than 0)",
           MapUtils.ofNullable("key", "limit", "value", limit));
     }
     this.limit = limit;
@@ -102,7 +102,7 @@ public final class TwitchRetriever extends AbstractRetriever {
       String language = languages.get(i);
 
       if (language == null || language.isBlank()) {
-        throw new SpecException(name, "Invalid key value (expected languages to be non-blank strings)",
+        throw new SpecException(Retriever.TYPE, null, name, "Invalid key value (expected languages to be non-blank strings)",
             MapUtils.ofNullable("key", "languages", "value", language, "index", i));
       }
     }
@@ -113,19 +113,19 @@ public final class TwitchRetriever extends AbstractRetriever {
       String tag = tags.get(i);
 
       if (tag == null || tag.isBlank()) {
-        throw new SpecException(name, "Invalid key value (expected tags to be non-blank strings)",
+        throw new SpecException(Retriever.TYPE, null, name, "Invalid key value (expected tags to be non-blank strings)",
             MapUtils.ofNullable("key", "tags", "value", tag, "index", i));
       }
     }
     this.tags = List.copyOf(tags);
 
     if ((gameId == null) == (broadcasterId == null)) {
-      throw new SpecException(name,
+      throw new SpecException(Retriever.TYPE, null, name,
           "Invalid key combination (expected exactly one of gameId or broadcasterId)");
     }
 
     if (broadcasterId != null && !languages.isEmpty()) {
-      throw new SpecException(name, "Invalid key combination (expected languages only with gameId)");
+      throw new SpecException(Retriever.TYPE, null, name, "Invalid key combination (expected languages only with gameId)");
     }
 
     this.http = HttpClient.newHttpClient();
@@ -203,7 +203,7 @@ public final class TwitchRetriever extends AbstractRetriever {
       try {
         root = MAPPER.readTree(json);
       } catch (IOException e) {
-        throw new ComponentException(name, "Failed to parse Twitch clips",
+        throw new ComponentException(Retriever.TYPE, null, name, "Failed to parse Twitch clips",
             MapUtils.ofNullable("responseBody", json), e);
       }
 
@@ -266,15 +266,15 @@ public final class TwitchRetriever extends AbstractRetriever {
     try {
       response = future.get();
     } catch (CancellationException e) {
-      throw new ComponentException(name, "Canceled while calling Twitch Helix API",
+      throw new ComponentException(Retriever.TYPE, null, name, "Canceled while calling Twitch Helix API",
           MapUtils.ofNullable("method", method, "uri", uri.toString()), e);
     } catch (ExecutionException e) {
-      throw new ComponentException(name, "Failed to call Twitch Helix API",
+      throw new ComponentException(Retriever.TYPE, null, name, "Failed to call Twitch Helix API",
           MapUtils.ofNullable("method", method, "uri", uri.toString()), e.getCause());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       future.cancel(true);
-      throw new ComponentException(name, "Interrupted while calling Twitch Helix API",
+      throw new ComponentException(Retriever.TYPE, null, name, "Interrupted while calling Twitch Helix API",
           MapUtils.ofNullable("method", method, "uri", uri.toString()), e);
     } finally {
       token.unregister(abort);
@@ -283,7 +283,7 @@ public final class TwitchRetriever extends AbstractRetriever {
     int status = response.statusCode();
     String body = response.body();
     if (status < 200 || status >= 300) {
-      throw new ComponentException(name, "Twitch Helix API returned non-2xx status",
+      throw new ComponentException(Retriever.TYPE, null, name, "Twitch Helix API returned non-2xx status",
           MapUtils.ofNullable("method", method, "uri", uri.toString(), "statusCode", status, "responseBody", body));
     }
 

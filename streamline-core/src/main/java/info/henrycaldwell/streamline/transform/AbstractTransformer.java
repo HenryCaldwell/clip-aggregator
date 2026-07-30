@@ -39,7 +39,7 @@ public abstract class AbstractTransformer implements Transformer {
         ? config.getString("name")
         : "UNNAMED_TRANSFORMER";
 
-    composite.validate(config, display);
+    composite.validate(config, Transformer.TYPE, null, display);
 
     this.name = config.getString("name");
   }
@@ -70,12 +70,12 @@ public abstract class AbstractTransformer implements Transformer {
     Path output = result.file();
 
     if (source == null || output == null || source.equals(output)) {
-      throw new ComponentException(name, "Transformer did not produce a new output file",
+      throw new ComponentException(Transformer.TYPE, null, name, "Transformer did not produce a new output file",
           MapUtils.ofNullable("sourcePath", source, "outputPath", output));
     }
 
     if (!Files.isRegularFile(output)) {
-      throw new ComponentException(name, "Transformer produced a non-regular output file",
+      throw new ComponentException(Transformer.TYPE, null, name, "Transformer produced a non-regular output file",
           MapUtils.ofNullable("outputPath", output));
     }
 
@@ -86,7 +86,7 @@ public abstract class AbstractTransformer implements Transformer {
         Files.move(output, source, StandardCopyOption.REPLACE_EXISTING);
       }
     } catch (IOException e) {
-      throw new ComponentException(name, "Failed to replace original file",
+      throw new ComponentException(Transformer.TYPE, null, name, "Failed to replace original file",
           MapUtils.ofNullable("sourcePath", source, "outputPath", output), e);
     }
 

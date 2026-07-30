@@ -4,102 +4,147 @@ import java.util.Map;
 
 /**
  * Base class for structured runtime exceptions.
- * 
- * This class formats error messages with an optional category, component, and
- * structured detail map for consistent logging and debugging.
+ *
+ * This class formats error messages with an optional category, type, parent,
+ * name, and structured detail map for consistent logging and debugging.
  */
 public abstract class AbstractException extends RuntimeException {
 
   /**
    * Constructs an abstract exception.
-   * 
-   * @param category  A string representing the high-level error category, or
-   *                  {@code null}.
-   * @param component A string representing the component name, or {@code null}.
-   * @param message   A string representing the human-readable error message, or
-   *                  {@code null}.
+   *
+   * @param category A string representing the high-level error category, or
+   *                 {@code null}.
+   * @param type     A {@link ComponentType} representing the component type, or
+   *                 {@code null}.
+   * @param parent   A string representing the parent component name, or
+   *                 {@code null}.
+   * @param name     A string representing the component name, or {@code null}.
+   * @param message  A string representing the human-readable error message, or
+   *                 {@code null}.
    */
   protected AbstractException(
       String category,
-      String component,
+      ComponentType type,
+      String parent,
+      String name,
       String message) {
-    super(format(category, component, message, null));
+    super(format(category, type, parent, name, message, null));
   }
 
   /**
    * Constructs an abstract exception.
-   * 
-   * @param category  A string representing the high-level error category, or
-   *                  {@code null}.
-   * @param component A string representing the component name, or {@code null}.
-   * @param message   A string representing the human-readable error message, or
-   *                  {@code null}.
-   * @param details   A {@link Map} representing detail values keyed by name, or
-   *                  {@code null}.
+   *
+   * @param category A string representing the high-level error category, or
+   *                 {@code null}.
+   * @param type     A {@link ComponentType} representing the component type, or
+   *                 {@code null}.
+   * @param parent   A string representing the parent component name, or
+   *                 {@code null}.
+   * @param name     A string representing the component name, or {@code null}.
+   * @param message  A string representing the human-readable error message, or
+   *                 {@code null}.
+   * @param details  A {@link Map} representing detail values keyed by name, or
+   *                 {@code null}.
    */
   protected AbstractException(
       String category,
-      String component,
+      ComponentType type,
+      String parent,
+      String name,
       String message,
       Map<String, ?> details) {
-    super(format(category, component, message, details));
+    super(format(category, type, parent, name, message, details));
   }
 
   /**
    * Constructs an abstract exception.
-   * 
-   * @param category  A string representing the high-level error category, or
-   *                  {@code null}.
-   * @param component A string representing the component name, or {@code null}.
-   * @param message   A string representing the human-readable error message, or
-   *                  {@code null}.
-   * @param details   A {@link Map} representing detail values keyed by name, or
-   *                  {@code null}.
-   * @param cause     A {@link Throwable} representing the underlying cause, or
-   *                  {@code null}.
+   *
+   * @param category A string representing the high-level error category, or
+   *                 {@code null}.
+   * @param type     A {@link ComponentType} representing the component type, or
+   *                 {@code null}.
+   * @param parent   A string representing the parent component name, or
+   *                 {@code null}.
+   * @param name     A string representing the component name, or {@code null}.
+   * @param message  A string representing the human-readable error message, or
+   *                 {@code null}.
+   * @param details  A {@link Map} representing detail values keyed by name, or
+   *                 {@code null}.
+   * @param cause    A {@link Throwable} representing the underlying cause, or
+   *                 {@code null}.
    */
   protected AbstractException(
       String category,
-      String component,
+      ComponentType type,
+      String parent,
+      String name,
       String message,
       Map<String, ?> details,
       Throwable cause) {
-    super(format(category, component, message, details), cause);
+    super(format(category, type, parent, name, message, details), cause);
   }
 
   /**
-   * Formats an error with an optional category, component, message, and detail
-   * map.
-   * 
-   * @param category  A string representing the high-level error category, or
-   *                  {@code null}.
-   * @param component A string representing the component name, or {@code null}.
-   * @param message   A string representing the human-readable error message, or
-   *                  {@code null}.
-   * @param details   A {@link Map} representing detail values keyed by name, or
-   *                  {@code null}.
+   * Formats an error with an optional category, type, parent, name, message,
+   * and detail map.
+   *
+   * @param category A string representing the high-level error category, or
+   *                 {@code null}.
+   * @param type     A {@link ComponentType} representing the component type, or
+   *                 {@code null}.
+   * @param parent   A string representing the parent component name, or
+   *                 {@code null}.
+   * @param name     A string representing the component name, or {@code null}.
+   * @param message  A string representing the human-readable error message, or
+   *                 {@code null}.
+   * @param details  A {@link Map} representing detail values keyed by name, or
+   *                 {@code null}.
    * @return A string representing the formatted error message.
    */
   private static String format(
       String category,
-      String component,
+      ComponentType type,
+      String parent,
+      String name,
       String message,
       Map<String, ?> details) {
     StringBuilder sb = new StringBuilder();
 
-    if (category != null || component != null) {
+    boolean hasCategory = category != null && !category.isBlank();
+    boolean hasType = type != null;
+    boolean hasParent = parent != null && !parent.isBlank();
+    boolean hasName = name != null && !name.isBlank();
+
+    if (hasCategory || hasType || hasParent || hasName) {
       sb.append('[');
 
-      if (category != null && !category.isBlank()) {
+      boolean needsSeparator = false;
+
+      if (hasCategory) {
         sb.append(category);
+        needsSeparator = true;
       }
 
-      if (component != null && !component.isBlank()) {
-        if (category != null && !category.isBlank()) {
+      if (hasType) {
+        if (needsSeparator) {
           sb.append(':');
         }
 
-        sb.append(component);
+        sb.append(type.name().toLowerCase());
+        needsSeparator = true;
+      }
+
+      if (hasName) {
+        if (needsSeparator) {
+          sb.append(':');
+        }
+
+        if (hasParent) {
+          sb.append(parent).append('/');
+        }
+
+        sb.append(name);
       }
 
       sb.append("] ");

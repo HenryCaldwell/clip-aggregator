@@ -77,14 +77,14 @@ public final class InstagramPublisher extends AbstractPublisher {
 
     long timeout = config.hasPath("timeout") ? config.getNumber("timeout").longValue() : 180L;
     if (timeout <= 0) {
-      throw new SpecException(name, "Invalid key value (expected timeout to be greater than 0)",
+      throw new SpecException(Publisher.TYPE, null, name, "Invalid key value (expected timeout to be greater than 0)",
           MapUtils.ofNullable("key", "timeout", "value", timeout));
     }
     this.timeout = timeout;
 
     long interval = config.hasPath("interval") ? config.getNumber("interval").longValue() : 30L;
     if (interval <= 0) {
-      throw new SpecException(name, "Invalid key value (expected interval to be greater than 0)",
+      throw new SpecException(Publisher.TYPE, null, name, "Invalid key value (expected interval to be greater than 0)",
           MapUtils.ofNullable("key", "interval", "value", interval));
     }
     this.interval = interval;
@@ -107,7 +107,7 @@ public final class InstagramPublisher extends AbstractPublisher {
 
     if (uri == null || uri.getScheme() == null
         || (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme()))) {
-      throw new ComponentException(name, "Media URI missing or not HTTP(S)",
+      throw new ComponentException(Publisher.TYPE, null, name, "Media URI missing or not HTTP(S)",
           MapUtils.ofNullable("uri", uri, "mediaId", media.clip().id()));
     }
 
@@ -157,12 +157,13 @@ public final class InstagramPublisher extends AbstractPublisher {
     try {
       id = MAPPER.readTree(json).at("/id").asText(null);
     } catch (IOException e) {
-      throw new ComponentException(name, "Failed to parse Instagram media container id",
+      throw new ComponentException(Publisher.TYPE, null, name, "Failed to parse Instagram media container id",
           MapUtils.ofNullable("endpoint", endpoint.toString(), "responseBody", json), e);
     }
 
     if (id == null || id.isBlank()) {
-      throw new ComponentException(name, "Instagram media container creation did not return an id",
+      throw new ComponentException(Publisher.TYPE, null, name,
+          "Instagram media container creation did not return an id",
           MapUtils.ofNullable("endpoint", endpoint.toString(), "responseBody", json));
     }
 
@@ -199,12 +200,12 @@ public final class InstagramPublisher extends AbstractPublisher {
         status = MAPPER.readTree(json).at("/status_code").asText(null);
         error = MAPPER.readTree(json).at("/error_message").asText(null);
       } catch (IOException e) {
-        throw new ComponentException(name, "Failed to parse Instagram media container status",
+        throw new ComponentException(Publisher.TYPE, null, name, "Failed to parse Instagram media container status",
             MapUtils.ofNullable("containerId", containerId, "endpoint", endpoint.toString(), "responseBody", json), e);
       }
 
       if (status == null || status.isBlank()) {
-        throw new ComponentException(name, "Instagram media container status missing status code",
+        throw new ComponentException(Publisher.TYPE, null, name, "Instagram media container status missing status code",
             MapUtils.ofNullable("containerId", containerId, "endpoint", endpoint.toString(), "responseBody", json));
       }
 
@@ -213,7 +214,7 @@ public final class InstagramPublisher extends AbstractPublisher {
       }
 
       if ("ERROR".equalsIgnoreCase(status)) {
-        throw new ComponentException(name, "Instagram media container status entered error state",
+        throw new ComponentException(Publisher.TYPE, null, name, "Instagram media container status entered error state",
             MapUtils.ofNullable("containerId", containerId, "endpoint", endpoint.toString(), "responseBody", json,
                 "error", String.valueOf(error)));
       }
@@ -223,17 +224,18 @@ public final class InstagramPublisher extends AbstractPublisher {
         canceled = token.awaitCancellation(interval);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new ComponentException(name, "Interrupted while waiting for Instagram media container",
+        throw new ComponentException(Publisher.TYPE, null, name,
+            "Interrupted while waiting for Instagram media container",
             MapUtils.ofNullable("containerId", containerId), e);
       }
 
       if (canceled) {
-        throw new ComponentException(name, "Canceled while waiting for Instagram media container",
+        throw new ComponentException(Publisher.TYPE, null, name, "Canceled while waiting for Instagram media container",
             MapUtils.ofNullable("containerId", containerId));
       }
     }
 
-    throw new ComponentException(name, "Timed out while waiting for Instagram media container",
+    throw new ComponentException(Publisher.TYPE, null, name, "Timed out while waiting for Instagram media container",
         MapUtils.ofNullable("containerId", containerId));
   }
 
@@ -266,12 +268,12 @@ public final class InstagramPublisher extends AbstractPublisher {
     try {
       id = MAPPER.readTree(json).at("/id").asText(null);
     } catch (IOException e) {
-      throw new ComponentException(name, "Failed to parse Instagram media id",
+      throw new ComponentException(Publisher.TYPE, null, name, "Failed to parse Instagram media id",
           MapUtils.ofNullable("endpoint", endpoint.toString(), "responseBody", json), e);
     }
 
     if (id == null || id.isBlank()) {
-      throw new ComponentException(name, "Instagram media publish did not return an id",
+      throw new ComponentException(Publisher.TYPE, null, name, "Instagram media publish did not return an id",
           MapUtils.ofNullable("endpoint", endpoint.toString(), "responseBody", json));
     }
 
@@ -303,12 +305,12 @@ public final class InstagramPublisher extends AbstractPublisher {
     try {
       permalink = MAPPER.readTree(json).at("/permalink").asText(null);
     } catch (IOException e) {
-      throw new ComponentException(name, "Failed to parse Instagram media permalink",
+      throw new ComponentException(Publisher.TYPE, null, name, "Failed to parse Instagram media permalink",
           MapUtils.ofNullable("endpoint", endpoint.toString(), "responseBody", json), e);
     }
 
     if (permalink == null || permalink.isBlank()) {
-      throw new ComponentException(name, "Instagram media permalink did not return a permalink",
+      throw new ComponentException(Publisher.TYPE, null, name, "Instagram media permalink did not return a permalink",
           MapUtils.ofNullable("endpoint", endpoint.toString(), "responseBody", json));
     }
 
@@ -377,15 +379,15 @@ public final class InstagramPublisher extends AbstractPublisher {
     try {
       response = future.get();
     } catch (CancellationException e) {
-      throw new ComponentException(name, "Canceled while calling Instagram Graph API",
+      throw new ComponentException(Publisher.TYPE, null, name, "Canceled while calling Instagram Graph API",
           MapUtils.ofNullable("method", method, "uri", uri.toString()), e);
     } catch (ExecutionException e) {
-      throw new ComponentException(name, "Failed to call Instagram Graph API",
+      throw new ComponentException(Publisher.TYPE, null, name, "Failed to call Instagram Graph API",
           MapUtils.ofNullable("method", method, "uri", uri.toString()), e.getCause());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       future.cancel(true);
-      throw new ComponentException(name, "Interrupted while calling Instagram Graph API",
+      throw new ComponentException(Publisher.TYPE, null, name, "Interrupted while calling Instagram Graph API",
           MapUtils.ofNullable("method", method, "uri", uri.toString()), e);
     } finally {
       token.unregister(abort);
@@ -394,7 +396,7 @@ public final class InstagramPublisher extends AbstractPublisher {
     int status = response.statusCode();
     String body = response.body();
     if (status < 200 || status >= 300) {
-      throw new ComponentException(name, "Instagram Graph API returned non-2xx status",
+      throw new ComponentException(Publisher.TYPE, null, name, "Instagram Graph API returned non-2xx status",
           MapUtils.ofNullable("method", method, "uri", uri.toString(), "statusCode", status, "responseBody", body));
     }
 

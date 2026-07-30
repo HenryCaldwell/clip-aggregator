@@ -2,14 +2,17 @@ package info.henrycaldwell.streamline.stage;
 
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
+import info.henrycaldwell.streamline.error.ComponentType;
 
 /**
  * Interface for staging media.
- * 
+ *
  * This interface defines a contract for producing remote media from local
  * media.
  */
 public interface Stager {
+
+  ComponentType TYPE = ComponentType.STAGER;
 
   /**
    * Initializes any underlying resources required by the stager.
