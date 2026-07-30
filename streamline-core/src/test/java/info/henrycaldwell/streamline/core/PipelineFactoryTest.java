@@ -29,7 +29,7 @@ public class PipelineFactoryTest {
           ]
           """);
 
-      assertDoesNotThrow(() -> PipelineFactory.fromConfig(config));
+      assertDoesNotThrow(() -> PipelineFactory.fromConfig(config, 0));
     }
 
     @Test
@@ -38,9 +38,10 @@ public class PipelineFactoryTest {
           transformers = []
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=name"));
     }
 
@@ -51,9 +52,10 @@ public class PipelineFactoryTest {
           transformers = []
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=name"));
     }
 
@@ -63,9 +65,10 @@ public class PipelineFactoryTest {
           name = test_pipeline
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=transformers"));
     }
 
@@ -76,9 +79,10 @@ public class PipelineFactoryTest {
           transformers = invalid
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Incorrect key type (expected list)"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=transformers"));
     }
 
@@ -93,9 +97,10 @@ public class PipelineFactoryTest {
           ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=name"));
     }
 
@@ -111,9 +116,10 @@ public class PipelineFactoryTest {
           ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=name"));
     }
 
@@ -128,9 +134,10 @@ public class PipelineFactoryTest {
           ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=type"));
     }
 
@@ -146,9 +153,10 @@ public class PipelineFactoryTest {
           ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=type"));
     }
 
@@ -164,9 +172,10 @@ public class PipelineFactoryTest {
           ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Unknown transformer type"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("type=unknown"));
     }
   }

@@ -24,7 +24,7 @@ public class PublisherFactoryTest {
           type = no_op
           """);
 
-      assertDoesNotThrow(() -> PublisherFactory.fromConfig(config));
+      assertDoesNotThrow(() -> PublisherFactory.fromConfig(config, 0));
     }
 
     @Test
@@ -33,9 +33,10 @@ public class PublisherFactoryTest {
           type = no_op
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PublisherFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PublisherFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=name"));
     }
 
@@ -46,9 +47,10 @@ public class PublisherFactoryTest {
           type = no_op
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PublisherFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PublisherFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=name"));
     }
 
@@ -58,9 +60,10 @@ public class PublisherFactoryTest {
           name = publisher
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PublisherFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PublisherFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=type"));
     }
 
@@ -71,9 +74,10 @@ public class PublisherFactoryTest {
           type = ""
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PublisherFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PublisherFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=type"));
     }
 
@@ -84,9 +88,10 @@ public class PublisherFactoryTest {
           type = unknown
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> PublisherFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> PublisherFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Unknown publisher type"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("type=unknown"));
     }
   }

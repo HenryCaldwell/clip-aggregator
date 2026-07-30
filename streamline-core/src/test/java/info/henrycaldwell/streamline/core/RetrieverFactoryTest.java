@@ -24,7 +24,7 @@ public class RetrieverFactoryTest {
           type = no_op
           """);
 
-      assertDoesNotThrow(() -> RetrieverFactory.fromConfig(config));
+      assertDoesNotThrow(() -> RetrieverFactory.fromConfig(config, 0));
     }
 
     @Test
@@ -33,9 +33,10 @@ public class RetrieverFactoryTest {
           type = no_op
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=name"));
     }
 
@@ -46,9 +47,10 @@ public class RetrieverFactoryTest {
           type = no_op
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=name"));
     }
 
@@ -58,9 +60,10 @@ public class RetrieverFactoryTest {
           name = no_op_retriever
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=type"));
     }
 
@@ -71,9 +74,10 @@ public class RetrieverFactoryTest {
           type = ""
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("key=type"));
     }
 
@@ -84,9 +88,10 @@ public class RetrieverFactoryTest {
           type = unknown
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config));
+      SpecException exception = assertThrows(SpecException.class, () -> RetrieverFactory.fromConfig(config, 0));
 
       assertTrue(exception.getMessage().contains("Unknown retriever type"));
+      assertTrue(exception.getMessage().contains("index=0"));
       assertTrue(exception.getMessage().contains("type=unknown"));
     }
   }

@@ -410,6 +410,7 @@ public class RunnerTest {
       SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
 
       assertTrue(exception.getMessage().contains("Duplicate retriever name"));
+      assertTrue(exception.getMessage().contains("index=1"));
       assertTrue(exception.getMessage().contains("name=r"));
     }
 
@@ -428,6 +429,7 @@ public class RunnerTest {
       SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
 
       assertTrue(exception.getMessage().contains("Duplicate pipeline name"));
+      assertTrue(exception.getMessage().contains("index=1"));
       assertTrue(exception.getMessage().contains("name=p"));
     }
 
@@ -446,6 +448,7 @@ public class RunnerTest {
       SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
 
       assertTrue(exception.getMessage().contains("Duplicate publisher name"));
+      assertTrue(exception.getMessage().contains("index=1"));
       assertTrue(exception.getMessage().contains("name=p"));
     }
 

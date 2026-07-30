@@ -480,13 +480,13 @@ public final class Runner {
           MapUtils.ofNullable("key", "retrievers"), e);
     }
 
-    for (Config config : configs) {
-      Retriever retriever = RetrieverFactory.fromConfig(config);
+    for (int i = 0; i < configs.size(); i++) {
+      Retriever retriever = RetrieverFactory.fromConfig(configs.get(i), i);
       String name = retriever.getName();
 
       if (retrievers.containsKey(name)) {
-        throw new SpecException(ComponentType.ROOT, null, null, "Duplicate retriever name",
-            MapUtils.ofNullable("name", name));
+        throw new SpecException(ComponentType.RETRIEVER, null,
+            name, "Duplicate retriever name", MapUtils.ofNullable("index", i, "name", name));
       }
 
       retrievers.put(name, retriever);
@@ -564,13 +564,13 @@ public final class Runner {
           MapUtils.ofNullable("key", "pipelines"), e);
     }
 
-    for (Config config : configs) {
-      Pipeline pipeline = PipelineFactory.fromConfig(config);
+    for (int i = 0; i < configs.size(); i++) {
+      Pipeline pipeline = PipelineFactory.fromConfig(configs.get(i), i);
       String name = pipeline.getName();
 
       if (pipelines.containsKey(name)) {
-        throw new SpecException(ComponentType.ROOT, null, null, "Duplicate pipeline name",
-            MapUtils.ofNullable("name", name));
+        throw new SpecException(ComponentType.PIPELINE, null, name, "Duplicate pipeline name",
+            MapUtils.ofNullable("index", i, "name", name));
       }
 
       pipelines.put(name, pipeline);
@@ -625,13 +625,13 @@ public final class Runner {
           MapUtils.ofNullable("key", "publishers"), e);
     }
 
-    for (Config config : configs) {
-      Publisher publisher = PublisherFactory.fromConfig(config);
+    for (int i = 0; i < configs.size(); i++) {
+      Publisher publisher = PublisherFactory.fromConfig(configs.get(i), i);
       String name = publisher.getName();
 
       if (publishers.containsKey(name)) {
-        throw new SpecException(ComponentType.ROOT, null, null, "Duplicate publisher name",
-            MapUtils.ofNullable("name", name));
+        throw new SpecException(ComponentType.PUBLISHER, null, name, "Duplicate publisher name",
+            MapUtils.ofNullable("index", i, "name", name));
       }
 
       publishers.put(name, publisher);

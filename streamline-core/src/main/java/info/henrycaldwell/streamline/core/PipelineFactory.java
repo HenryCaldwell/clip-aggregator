@@ -33,21 +33,22 @@ public final class PipelineFactory {
    * Builds a pipeline from the given configuration block.
    *
    * @param config A {@link Config} representing the pipeline configuration.
+   * @param index  An integer representing the pipeline index.
    * @return A {@link Pipeline} representing the configured transformer pipeline.
    * @throws SpecException if the configuration is invalid or any transformer type
    *                       is unknown.
    */
-  public static Pipeline fromConfig(Config config) {
+  public static Pipeline fromConfig(Config config, int index) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {
       throw new SpecException(Pipeline.TYPE, null, "UNNAMED_PIPELINE", "Missing required key",
-          MapUtils.ofNullable("key", "name"));
+          MapUtils.ofNullable("index", index, "key", "name"));
     }
 
     String pipelineName = config.getString("name");
 
     if (!config.hasPath("transformers")) {
       throw new SpecException(Pipeline.TYPE, null, pipelineName, "Missing required key",
-          MapUtils.ofNullable("key", "transformers"));
+          MapUtils.ofNullable("index", index, "key", "transformers"));
     }
 
     List<? extends Config> transformers;
@@ -55,24 +56,24 @@ public final class PipelineFactory {
       transformers = config.getConfigList("transformers");
     } catch (ConfigException.WrongType e) {
       throw new SpecException(Pipeline.TYPE, null, pipelineName, "Incorrect key type (expected list)",
-          MapUtils.ofNullable("key", "transformers"), e);
+          MapUtils.ofNullable("index", index, "key", "transformers"), e);
     }
 
     List<Transformer> steps = new ArrayList<>();
 
-    for (int i = 0; i < transformers.size(); i++) {
-      Config transformerConfig = transformers.get(i);
+    for (int transformerIndex = 0; transformerIndex < transformers.size(); transformerIndex++) {
+      Config transformerConfig = transformers.get(transformerIndex);
 
       if (!transformerConfig.hasPath("name") || transformerConfig.getString("name").isBlank()) {
         throw new SpecException(Transformer.TYPE, pipelineName, "UNNAMED_TRANSFORMER", "Missing required key",
-            MapUtils.ofNullable("key", "name"));
+            MapUtils.ofNullable("index", transformerIndex, "key", "name"));
       }
 
       String transformerName = transformerConfig.getString("name");
 
       if (!transformerConfig.hasPath("type") || transformerConfig.getString("type").isBlank()) {
         throw new SpecException(Transformer.TYPE, pipelineName, transformerName, "Missing required key",
-            MapUtils.ofNullable("key", "type"));
+            MapUtils.ofNullable("index", transformerIndex, "key", "type"));
       }
 
       String type = transformerConfig.getString("type");
@@ -100,7 +101,7 @@ public final class PipelineFactory {
           steps.add(new NoOpTransformer(transformerConfig));
         }
         default -> throw new SpecException(Transformer.TYPE, pipelineName, transformerName, "Unknown transformer type",
-            MapUtils.ofNullable("type", type));
+            MapUtils.ofNullable("index", transformerIndex, "type", type));
       }
     }
 

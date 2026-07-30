@@ -23,20 +23,22 @@ public final class RetrieverFactory {
    * Builds a retriever from the given configuration block.
    *
    * @param config A {@link Config} representing the retriever configuration.
+   * @param index  An integer representing the retriever index.
    * @return A {@link Retriever} representing the configured retriever.
    * @throws SpecException if the configuration is invalid or the retriever type
    *                       is unknown.
    */
-  public static Retriever fromConfig(Config config) {
+  public static Retriever fromConfig(Config config, int index) {
     if (!config.hasPath("name") || config.getString("name").isBlank()) {
       throw new SpecException(Retriever.TYPE, null, "UNNAMED_RETRIEVER", "Missing required key",
-          MapUtils.ofNullable("key", "name"));
+          MapUtils.ofNullable("index", index, "key", "name"));
     }
 
     String name = config.getString("name");
 
     if (!config.hasPath("type") || config.getString("type").isBlank()) {
-      throw new SpecException(Retriever.TYPE, null, name, "Missing required key", MapUtils.ofNullable("key", "type"));
+      throw new SpecException(Retriever.TYPE, null, name, "Missing required key",
+          MapUtils.ofNullable("index", index, "key", "type"));
     }
 
     String type = config.getString("type");
@@ -50,7 +52,7 @@ public final class RetrieverFactory {
       }
       default ->
         throw new SpecException(Retriever.TYPE, null, name, "Unknown retriever type",
-            MapUtils.ofNullable("type", type));
+            MapUtils.ofNullable("index", index, "type", type));
     }
   }
 }
