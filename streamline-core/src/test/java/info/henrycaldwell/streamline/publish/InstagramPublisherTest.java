@@ -279,6 +279,7 @@ public class InstagramPublisherTest {
           () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Media URI missing or not HTTP(S)"));
+      assertTrue(exception.getMessage().contains("uri=null"));
       assertTrue(exception.getMessage().contains("mediaId=clip-1"));
     }
 
@@ -298,6 +299,7 @@ public class InstagramPublisherTest {
           () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Media URI missing or not HTTP(S)"));
+      assertTrue(exception.getMessage().contains("uri=ftp://cdn.example.com/video.mp4"));
       assertTrue(exception.getMessage().contains("mediaId=clip-1"));
     }
 
@@ -334,6 +336,8 @@ public class InstagramPublisherTest {
           () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to parse Instagram media container id"));
+      assertTrue(exception.getMessage().contains("endpoint=https://graph.instagram.com/v23.0/account-1/media"));
+      assertTrue(exception.getMessage().contains("responseBody=not-valid-json"));
     }
 
     @Test
@@ -352,6 +356,8 @@ public class InstagramPublisherTest {
           () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Instagram media container creation did not return an id"));
+      assertTrue(exception.getMessage().contains("endpoint=https://graph.instagram.com/v23.0/account-1/media"));
+      assertTrue(exception.getMessage().contains("responseBody={\"id\": \"\"}"));
     }
 
     @Test
@@ -374,6 +380,10 @@ public class InstagramPublisherTest {
           () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to parse Instagram media container status"));
+      assertTrue(exception.getMessage().contains("containerId=container-1"));
+      assertTrue(exception.getMessage().contains(
+          "endpoint=https://graph.instagram.com/v23.0/container-1?fields=status_code,error_message"));
+      assertTrue(exception.getMessage().contains("responseBody=not-valid-json"));
     }
 
     @Test
@@ -396,6 +406,10 @@ public class InstagramPublisherTest {
           () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Instagram media container status missing status code"));
+      assertTrue(exception.getMessage().contains("containerId=container-1"));
+      assertTrue(exception.getMessage().contains(
+          "endpoint=https://graph.instagram.com/v23.0/container-1?fields=status_code,error_message"));
+      assertTrue(exception.getMessage().contains("responseBody={}"));
     }
 
     @Test
@@ -418,6 +432,11 @@ public class InstagramPublisherTest {
           () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Instagram media container status entered error state"));
+      assertTrue(exception.getMessage().contains("containerId=container-1"));
+      assertTrue(exception.getMessage().contains(
+          "endpoint=https://graph.instagram.com/v23.0/container-1?fields=status_code,error_message"));
+      assertTrue(exception.getMessage()
+          .contains("responseBody={\"status_code\": \"ERROR\", \"error_message\": \"Video processing failed\"}"));
       assertTrue(exception.getMessage().contains("error=Video processing failed"));
     }
 
@@ -501,6 +520,8 @@ public class InstagramPublisherTest {
           () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to parse Instagram media id"));
+      assertTrue(exception.getMessage().contains("endpoint=https://graph.instagram.com/v23.0/account-1/media_publish"));
+      assertTrue(exception.getMessage().contains("responseBody=not-valid-json"));
     }
 
     @Test
@@ -524,6 +545,8 @@ public class InstagramPublisherTest {
           () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Instagram media publish did not return an id"));
+      assertTrue(exception.getMessage().contains("endpoint=https://graph.instagram.com/v23.0/account-1/media_publish"));
+      assertTrue(exception.getMessage().contains("responseBody={\"id\": \"\"}"));
     }
 
     @Test
@@ -548,6 +571,8 @@ public class InstagramPublisherTest {
           () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to parse Instagram media permalink"));
+      assertTrue(exception.getMessage().contains("endpoint=https://graph.instagram.com/v23.0/media-1?fields=permalink"));
+      assertTrue(exception.getMessage().contains("responseBody=not-valid-json"));
     }
 
     @Test
@@ -572,6 +597,8 @@ public class InstagramPublisherTest {
           () -> publisher.publish(media, new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Instagram media permalink did not return a permalink"));
+      assertTrue(exception.getMessage().contains("endpoint=https://graph.instagram.com/v23.0/media-1?fields=permalink"));
+      assertTrue(exception.getMessage().contains("responseBody={}"));
     }
   }
 }
