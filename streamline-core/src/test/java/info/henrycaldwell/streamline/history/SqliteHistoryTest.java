@@ -130,6 +130,21 @@ public class SqliteHistoryTest {
         history.stop();
       }
     }
+
+    @Test
+    void throwsWhenDatabaseCannotBeOpened() {
+      Config config = ConfigFactory.parseString("""
+          name = history
+          type = sqlite
+          databasePath = "%s"
+          """.formatted(escape(tempDir)));
+      SqliteHistory history = new SqliteHistory(config);
+
+      ComponentException exception = assertThrows(ComponentException.class, history::start);
+
+      assertTrue(exception.getMessage().contains("Failed to open SQLite database"));
+      assertTrue(exception.getMessage().contains("databasePath=" + tempDir));
+    }
   }
 
   @Nested
@@ -282,7 +297,9 @@ public class SqliteHistoryTest {
         ComponentException exception = assertThrows(ComponentException.class, () -> history.add(CLIP, "runner"));
 
         assertTrue(exception.getMessage().contains("Failed to add"));
+        assertTrue(exception.getMessage().contains("databasePath=" + database));
         assertTrue(exception.getMessage().contains("clipId=clip-1"));
+        assertTrue(exception.getMessage().contains("runner=runner"));
       } finally {
         history.stop();
       }
