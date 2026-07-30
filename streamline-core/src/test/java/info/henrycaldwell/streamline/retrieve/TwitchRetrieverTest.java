@@ -306,6 +306,8 @@ public class TwitchRetrieverTest {
 
       assertTrue(exception.getMessage().contains("Invalid key value"));
       assertTrue(exception.getMessage().contains("key=languages"));
+      assertTrue(exception.getMessage().contains("value=,"));
+      assertTrue(exception.getMessage().contains("index=0"));
     }
 
     @Test
@@ -340,6 +342,8 @@ public class TwitchRetrieverTest {
 
       assertTrue(exception.getMessage().contains("Invalid key value"));
       assertTrue(exception.getMessage().contains("key=tags"));
+      assertTrue(exception.getMessage().contains("value=,"));
+      assertTrue(exception.getMessage().contains("index=0"));
     }
 
     @Test
@@ -354,8 +358,8 @@ public class TwitchRetrieverTest {
       SpecException exception = assertThrows(SpecException.class, () -> new TwitchRetriever(config));
 
       assertTrue(exception.getMessage().contains("Invalid key combination"));
-      assertTrue(exception.getMessage().contains("gameId"));
-      assertTrue(exception.getMessage().contains("broadcasterId"));
+      assertTrue(exception.getMessage().contains("key=gameId, broadcasterId"));
+      assertTrue(exception.getMessage().contains("value=null, null"));
     }
 
     @Test
@@ -372,8 +376,8 @@ public class TwitchRetrieverTest {
       SpecException exception = assertThrows(SpecException.class, () -> new TwitchRetriever(config));
 
       assertTrue(exception.getMessage().contains("Invalid key combination"));
-      assertTrue(exception.getMessage().contains("gameId"));
-      assertTrue(exception.getMessage().contains("broadcasterId"));
+      assertTrue(exception.getMessage().contains("key=gameId, broadcasterId"));
+      assertTrue(exception.getMessage().contains("value=game-1, broadcaster-1"));
     }
 
     @Test
@@ -390,7 +394,8 @@ public class TwitchRetrieverTest {
       SpecException exception = assertThrows(SpecException.class, () -> new TwitchRetriever(config));
 
       assertTrue(exception.getMessage().contains("Invalid key combination"));
-      assertTrue(exception.getMessage().contains("languages"));
+      assertTrue(exception.getMessage().contains("key=broadcasterId, languages"));
+      assertTrue(exception.getMessage().contains("value=broadcaster-1, [en]"));
     }
 
     @Test
@@ -743,6 +748,7 @@ public class TwitchRetrieverTest {
       ComponentException exception = assertThrows(ComponentException.class, () -> retriever.fetch(new CancellationToken()));
 
       assertTrue(exception.getMessage().contains("Failed to parse Twitch clips"));
+      assertTrue(exception.getMessage().contains("responseBody=not-valid-json"));
     }
   }
 }
