@@ -87,11 +87,16 @@ public class PipelineFactoryTest {
     }
 
     @Test
-    void throwsOnMissingTransformerName() {
+    void throwsOnDuplicateTransformerName() {
       Config config = ConfigFactory.parseString("""
           name = test_pipeline
           transformers = [
             {
+              name = step
+              type = no_op
+            }
+            {
+              name = step
               type = no_op
             }
           ]
@@ -99,84 +104,9 @@ public class PipelineFactoryTest {
 
       SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
 
-      assertTrue(exception.getMessage().contains("Missing required key"));
-      assertTrue(exception.getMessage().contains("index=0"));
-      assertTrue(exception.getMessage().contains("key=name"));
-    }
-
-    @Test
-    void throwsOnBlankTransformerName() {
-      Config config = ConfigFactory.parseString("""
-          name = test_pipeline
-          transformers = [
-            {
-              name = ""
-              type = no_op
-            }
-          ]
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
-
-      assertTrue(exception.getMessage().contains("Missing required key"));
-      assertTrue(exception.getMessage().contains("index=0"));
-      assertTrue(exception.getMessage().contains("key=name"));
-    }
-
-    @Test
-    void throwsOnMissingTransformerType() {
-      Config config = ConfigFactory.parseString("""
-          name = test_pipeline
-          transformers = [
-            {
-              name = no_op_step
-            }
-          ]
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
-
-      assertTrue(exception.getMessage().contains("Missing required key"));
-      assertTrue(exception.getMessage().contains("index=0"));
-      assertTrue(exception.getMessage().contains("key=type"));
-    }
-
-    @Test
-    void throwsOnBlankTransformerType() {
-      Config config = ConfigFactory.parseString("""
-          name = test_pipeline
-          transformers = [
-            {
-              name = no_op_step
-              type = ""
-            }
-          ]
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
-
-      assertTrue(exception.getMessage().contains("Missing required key"));
-      assertTrue(exception.getMessage().contains("index=0"));
-      assertTrue(exception.getMessage().contains("key=type"));
-    }
-
-    @Test
-    void throwsOnUnknownTransformerType() {
-      Config config = ConfigFactory.parseString("""
-          name = test_pipeline
-          transformers = [
-            {
-              name = unknown_type
-              type = unknown
-            }
-          ]
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> PipelineFactory.fromConfig(config, 0));
-
-      assertTrue(exception.getMessage().contains("Unknown transformer type"));
-      assertTrue(exception.getMessage().contains("index=0"));
-      assertTrue(exception.getMessage().contains("type=unknown"));
+      assertTrue(exception.getMessage().contains("Duplicate transformer name"));
+      assertTrue(exception.getMessage().contains("index=1"));
+      assertTrue(exception.getMessage().contains("name=step"));
     }
   }
 }

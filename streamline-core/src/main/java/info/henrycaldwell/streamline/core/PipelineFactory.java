@@ -1,28 +1,23 @@
 package info.henrycaldwell.streamline.core;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 
 import info.henrycaldwell.streamline.error.SpecException;
-import info.henrycaldwell.streamline.transform.FpsTransformer;
-import info.henrycaldwell.streamline.transform.MusicTransformer;
-import info.henrycaldwell.streamline.transform.NoOpTransformer;
 import info.henrycaldwell.streamline.transform.Pipeline;
-import info.henrycaldwell.streamline.transform.TextTransformer;
-import info.henrycaldwell.streamline.transform.TitleTransformer;
 import info.henrycaldwell.streamline.transform.Transformer;
-import info.henrycaldwell.streamline.transform.VerticalBlurTransformer;
-import info.henrycaldwell.streamline.transform.WatermarkTransformer;
 import info.henrycaldwell.streamline.util.MapUtils;
 
 /**
  * Factory for constructing pipelines from configuration.
- * 
- * This class validates transformer configuration blocks and assembles them into
- * an ordered pipeline.
+ *
+ * This class validates a pipeline configuration block and assembles the
+ * configured transformers into an ordered pipeline.
  */
 public final class PipelineFactory {
 
@@ -34,7 +29,7 @@ public final class PipelineFactory {
    *
    * @param config A {@link Config} representing the pipeline configuration.
    * @param index  An integer representing the pipeline index.
-   * @return A {@link Pipeline} representing the configured transformer pipeline.
+   * @return A {@link Pipeline} representing the configured pipeline.
    * @throws SpecException if the configuration is invalid or any transformer type
    *                       is unknown.
    */
@@ -51,60 +46,28 @@ public final class PipelineFactory {
           MapUtils.ofNullable("index", index, "key", "transformers"));
     }
 
-    List<? extends Config> transformers;
+    List<? extends Config> configs;
     try {
-      transformers = config.getConfigList("transformers");
+      configs = config.getConfigList("transformers");
     } catch (ConfigException.WrongType e) {
       throw new SpecException(Pipeline.TYPE, null, pipelineName, "Incorrect key type (expected list)",
           MapUtils.ofNullable("index", index, "key", "transformers"), e);
     }
 
-    List<Transformer> steps = new ArrayList<>();
+    Map<String, Transformer> transformers = new LinkedHashMap<>();
 
-    for (int transformerIndex = 0; transformerIndex < transformers.size(); transformerIndex++) {
-      Config transformerConfig = transformers.get(transformerIndex);
+    for (int i = 0; i < configs.size(); i++) {
+      Transformer transformer = TransformerFactory.fromConfig(configs.get(i), pipelineName, i);
+      String name = transformer.getName();
 
-      if (!transformerConfig.hasPath("name") || transformerConfig.getString("name").isBlank()) {
-        throw new SpecException(Transformer.TYPE, pipelineName, "UNNAMED_TRANSFORMER", "Missing required key",
-            MapUtils.ofNullable("index", transformerIndex, "key", "name"));
+      if (transformers.containsKey(name)) {
+        throw new SpecException(Transformer.TYPE, pipelineName, name, "Duplicate transformer name",
+            MapUtils.ofNullable("index", i, "name", name));
       }
 
-      String transformerName = transformerConfig.getString("name");
-
-      if (!transformerConfig.hasPath("type") || transformerConfig.getString("type").isBlank()) {
-        throw new SpecException(Transformer.TYPE, pipelineName, transformerName, "Missing required key",
-            MapUtils.ofNullable("index", transformerIndex, "key", "type"));
-      }
-
-      String type = transformerConfig.getString("type");
-
-      switch (type) {
-        case "vertical_blur" -> {
-          steps.add(new VerticalBlurTransformer(transformerConfig));
-        }
-        case "fps" -> {
-          steps.add(new FpsTransformer(transformerConfig));
-        }
-        case "watermark" -> {
-          steps.add(new WatermarkTransformer(transformerConfig));
-        }
-        case "music" -> {
-          steps.add(new MusicTransformer(transformerConfig));
-        }
-        case "title" -> {
-          steps.add(new TitleTransformer(transformerConfig));
-        }
-        case "text" -> {
-          steps.add(new TextTransformer(transformerConfig));
-        }
-        case "no_op" -> {
-          steps.add(new NoOpTransformer(transformerConfig));
-        }
-        default -> throw new SpecException(Transformer.TYPE, pipelineName, transformerName, "Unknown transformer type",
-            MapUtils.ofNullable("index", transformerIndex, "type", type));
-      }
+      transformers.put(name, transformer);
     }
 
-    return new Pipeline(pipelineName, steps);
+    return new Pipeline(pipelineName, new ArrayList<>(transformers.values()));
   }
 }
