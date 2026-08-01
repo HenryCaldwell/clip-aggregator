@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.function.Predicate;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -420,6 +423,227 @@ public class SpecTest {
         assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
       }
     }
+
+    @Nested
+    class ConstraintChecks {
+
+      @Test
+      void throwsOnConstraintViolationForRequiredString() {
+        StringConstraint constraint = new TestStringConstraint(value -> false, "allowed");
+        Spec spec = Spec.builder()
+            .requiredString(constraint, "name")
+            .build();
+
+        Config config = ConfigFactory.parseString("name = c");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("allowed"));
+        assertTrue(exception.getMessage().contains("key=name"));
+        assertTrue(exception.getMessage().contains("value=c"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForRequiredNumber() {
+        NumberConstraint constraint = new TestNumberConstraint(value -> false, "positive");
+        Spec spec = Spec.builder()
+            .requiredNumber(constraint, "count")
+            .build();
+
+        Config config = ConfigFactory.parseString("count = 0");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("positive"));
+        assertTrue(exception.getMessage().contains("key=count"));
+        assertTrue(exception.getMessage().contains("value=0"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForRequiredBoolean() {
+        BooleanConstraint constraint = new TestBooleanConstraint(value -> false, "true");
+        Spec spec = Spec.builder()
+            .requiredBoolean(constraint, "enabled")
+            .build();
+
+        Config config = ConfigFactory.parseString("enabled = false");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("true"));
+        assertTrue(exception.getMessage().contains("key=enabled"));
+        assertTrue(exception.getMessage().contains("value=false"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForRequiredStringList() {
+        StringListConstraint constraint = new TestStringListConstraint(value -> false, "allowed");
+        Spec spec = Spec.builder()
+            .requiredStringList(constraint, "tags")
+            .build();
+
+        Config config = ConfigFactory.parseString("tags = [\"a\", \"\", \"c\"]");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("allowed"));
+        assertTrue(exception.getMessage().contains("key=tags"));
+        assertTrue(exception.getMessage().contains("value=[a, , c]"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForRequiredNumberList() {
+        NumberListConstraint constraint = new TestNumberListConstraint(value -> false, "positive");
+        Spec spec = Spec.builder()
+            .requiredNumberList(constraint, "counts")
+            .build();
+
+        Config config = ConfigFactory.parseString("counts = [1, 0, 3]");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("positive"));
+        assertTrue(exception.getMessage().contains("key=counts"));
+        assertTrue(exception.getMessage().contains("value=[1, 0, 3]"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForRequiredBooleanList() {
+        BooleanListConstraint constraint = new TestBooleanListConstraint(value -> false, "true");
+        Spec spec = Spec.builder()
+            .requiredBooleanList(constraint, "flags")
+            .build();
+
+        Config config = ConfigFactory.parseString("flags = [true, false, true]");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("true"));
+        assertTrue(exception.getMessage().contains("key=flags"));
+        assertTrue(exception.getMessage().contains("value=[true, false, true]"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForOptionalString() {
+        StringConstraint constraint = new TestStringConstraint(value -> false, "allowed");
+        Spec spec = Spec.builder()
+            .optionalString(constraint, "name")
+            .build();
+
+        Config config = ConfigFactory.parseString("name = c");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("allowed"));
+        assertTrue(exception.getMessage().contains("key=name"));
+        assertTrue(exception.getMessage().contains("value=c"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForOptionalNumber() {
+        NumberConstraint constraint = new TestNumberConstraint(value -> false, "positive");
+        Spec spec = Spec.builder()
+            .optionalNumber(constraint, "count")
+            .build();
+
+        Config config = ConfigFactory.parseString("count = 0");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("positive"));
+        assertTrue(exception.getMessage().contains("key=count"));
+        assertTrue(exception.getMessage().contains("value=0"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForOptionalBoolean() {
+        BooleanConstraint constraint = new TestBooleanConstraint(value -> false, "true");
+        Spec spec = Spec.builder()
+            .optionalBoolean(constraint, "enabled")
+            .build();
+
+        Config config = ConfigFactory.parseString("enabled = false");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("true"));
+        assertTrue(exception.getMessage().contains("key=enabled"));
+        assertTrue(exception.getMessage().contains("value=false"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForOptionalStringList() {
+        StringListConstraint constraint = new TestStringListConstraint(value -> false, "allowed");
+        Spec spec = Spec.builder()
+            .optionalStringList(constraint, "tags")
+            .build();
+
+        Config config = ConfigFactory.parseString("tags = [\"a\", \"\", \"c\"]");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("allowed"));
+        assertTrue(exception.getMessage().contains("key=tags"));
+        assertTrue(exception.getMessage().contains("value=[a, , c]"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForOptionalNumberList() {
+        NumberListConstraint constraint = new TestNumberListConstraint(value -> false, "positive");
+        Spec spec = Spec.builder()
+            .optionalNumberList(constraint, "counts")
+            .build();
+
+        Config config = ConfigFactory.parseString("counts = [1, 0, 3]");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("positive"));
+        assertTrue(exception.getMessage().contains("key=counts"));
+        assertTrue(exception.getMessage().contains("value=[1, 0, 3]"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForOptionalBooleanList() {
+        BooleanListConstraint constraint = new TestBooleanListConstraint(value -> false, "true");
+        Spec spec = Spec.builder()
+            .optionalBooleanList(constraint, "flags")
+            .build();
+
+        Config config = ConfigFactory.parseString("flags = [true, false, true]");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("true"));
+        assertTrue(exception.getMessage().contains("key=flags"));
+        assertTrue(exception.getMessage().contains("value=[true, false, true]"));
+      }
+
+      @Test
+      void doesNotThrowWhenAllConstraintsPass() {
+        Spec spec = Spec.builder()
+            .requiredNumber(new TestNumberConstraint(value -> true, "positive"), "count")
+            .requiredString(new TestStringConstraint(value -> true, "allowed"), "name")
+            .requiredNumberList(new TestNumberListConstraint(value -> true, "positive"), "counts")
+            .build();
+
+        Config config = ConfigFactory.parseString("count = 1, name = \"hi\", counts = [1, 2, 3]");
+
+        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+      }
+    }
   }
 
   @Nested
@@ -498,6 +722,132 @@ public class SpecTest {
       Config config = ConfigFactory.parseString("");
 
       assertDoesNotThrow(() -> union.validate(config, ComponentType.ROOT, null, "test"));
+    }
+  }
+
+  private static final class TestStringConstraint implements StringConstraint {
+
+    private final Predicate<String> predicate;
+    private final String description;
+
+    private TestStringConstraint(Predicate<String> predicate, String description) {
+      this.predicate = predicate;
+      this.description = description;
+    }
+
+    @Override
+    public boolean test(String value) {
+      return predicate.test(value);
+    }
+
+    @Override
+    public String describe() {
+      return description;
+    }
+  }
+
+  private static final class TestNumberConstraint implements NumberConstraint {
+
+    private final Predicate<Number> predicate;
+    private final String description;
+
+    private TestNumberConstraint(Predicate<Number> predicate, String description) {
+      this.predicate = predicate;
+      this.description = description;
+    }
+
+    @Override
+    public boolean test(Number value) {
+      return predicate.test(value);
+    }
+
+    @Override
+    public String describe() {
+      return description;
+    }
+  }
+
+  private static final class TestBooleanConstraint implements BooleanConstraint {
+
+    private final Predicate<Boolean> predicate;
+    private final String description;
+
+    private TestBooleanConstraint(Predicate<Boolean> predicate, String description) {
+      this.predicate = predicate;
+      this.description = description;
+    }
+
+    @Override
+    public boolean test(Boolean value) {
+      return predicate.test(value);
+    }
+
+    @Override
+    public String describe() {
+      return description;
+    }
+  }
+
+  private static final class TestStringListConstraint implements StringListConstraint {
+
+    private final Predicate<List<String>> predicate;
+    private final String description;
+
+    private TestStringListConstraint(Predicate<List<String>> predicate, String description) {
+      this.predicate = predicate;
+      this.description = description;
+    }
+
+    @Override
+    public boolean test(List<String> value) {
+      return predicate.test(value);
+    }
+
+    @Override
+    public String describe() {
+      return description;
+    }
+  }
+
+  private static final class TestNumberListConstraint implements NumberListConstraint {
+
+    private final Predicate<List<Number>> predicate;
+    private final String description;
+
+    private TestNumberListConstraint(Predicate<List<Number>> predicate, String description) {
+      this.predicate = predicate;
+      this.description = description;
+    }
+
+    @Override
+    public boolean test(List<Number> value) {
+      return predicate.test(value);
+    }
+
+    @Override
+    public String describe() {
+      return description;
+    }
+  }
+
+  private static final class TestBooleanListConstraint implements BooleanListConstraint {
+
+    private final Predicate<List<Boolean>> predicate;
+    private final String description;
+
+    private TestBooleanListConstraint(Predicate<List<Boolean>> predicate, String description) {
+      this.predicate = predicate;
+      this.description = description;
+    }
+
+    @Override
+    public boolean test(List<Boolean> value) {
+      return predicate.test(value);
+    }
+
+    @Override
+    public String describe() {
+      return description;
     }
   }
 }
