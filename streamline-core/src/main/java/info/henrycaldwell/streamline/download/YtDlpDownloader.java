@@ -7,13 +7,13 @@ import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.NumberConstraint;
 import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.Cancellable;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
-import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.util.MapUtils;
 
 /**
@@ -26,7 +26,7 @@ public final class YtDlpDownloader extends AbstractDownloader {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("ytDlpPath")
-      .optionalNumber("timeout")
+      .optionalNumber(NumberConstraint.greaterThan(0), "timeout")
       .build();
 
   private final String ytDlpPath;
@@ -56,12 +56,7 @@ public final class YtDlpDownloader extends AbstractDownloader {
 
     this.ytDlpPath = config.getString("ytDlpPath");
 
-    long timeout = config.hasPath("timeout") ? config.getNumber("timeout").longValue() : 180L;
-    if (timeout <= 0) {
-      throw new SpecException(Downloader.TYPE, null, name, "Invalid key value (expected timeout to be greater than 0)",
-          MapUtils.ofNullable("key", "timeout", "value", timeout));
-    }
-    this.timeout = timeout;
+    this.timeout = config.hasPath("timeout") ? config.getNumber("timeout").longValue() : 180L;
 
     this.factory = factory != null ? factory : this::defaultCreate;
   }
