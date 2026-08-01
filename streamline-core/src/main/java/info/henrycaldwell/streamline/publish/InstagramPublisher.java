@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.NumberConstraint;
 import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.Cancellable;
 import info.henrycaldwell.streamline.core.CancellationToken;
@@ -34,7 +35,7 @@ public final class InstagramPublisher extends AbstractPublisher {
   public static final Spec SPEC = Spec.builder()
       .requiredString("accountId", "accessKey")
       .optionalString("captionText")
-      .optionalNumber("timeout", "interval")
+      .optionalNumber(NumberConstraint.greaterThan(0), "timeout", "interval")
       .build();
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -75,19 +76,8 @@ public final class InstagramPublisher extends AbstractPublisher {
     this.accessKey = config.getString("accessKey");
     this.captionText = config.hasPath("captionText") ? config.getString("captionText") : null;
 
-    long timeout = config.hasPath("timeout") ? config.getNumber("timeout").longValue() : 180L;
-    if (timeout <= 0) {
-      throw new SpecException(Publisher.TYPE, null, name, "Invalid key value (expected timeout to be greater than 0)",
-          MapUtils.ofNullable("key", "timeout", "value", timeout));
-    }
-    this.timeout = timeout;
-
-    long interval = config.hasPath("interval") ? config.getNumber("interval").longValue() : 30L;
-    if (interval <= 0) {
-      throw new SpecException(Publisher.TYPE, null, name, "Invalid key value (expected interval to be greater than 0)",
-          MapUtils.ofNullable("key", "interval", "value", interval));
-    }
-    this.interval = interval;
+    this.timeout = config.hasPath("timeout") ? config.getNumber("timeout").longValue() : 180L;
+    this.interval = config.hasPath("interval") ? config.getNumber("interval").longValue() : 30L;
 
     this.sender = sender != null ? sender : this::defaultSend;
   }
