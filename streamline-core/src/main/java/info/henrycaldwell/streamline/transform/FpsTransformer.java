@@ -4,11 +4,11 @@ import java.nio.file.Path;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.NumberConstraint;
 import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.SpecException;
-import info.henrycaldwell.streamline.util.MapUtils;
 import info.henrycaldwell.streamline.util.PathUtils;
 
 /**
@@ -21,7 +21,7 @@ import info.henrycaldwell.streamline.util.PathUtils;
 public final class FpsTransformer extends FFmpegTransformer {
 
   public static final Spec SPEC = Spec.builder()
-      .optionalNumber("targetFps")
+      .optionalNumber(NumberConstraint.greaterThan(0), "targetFps")
       .build();
 
   private final int targetFps;
@@ -48,14 +48,7 @@ public final class FpsTransformer extends FFmpegTransformer {
   FpsTransformer(Config config, ProcessFactory factory) {
     super(config, SPEC, factory);
 
-    int targetFps = config.hasPath("targetFps") ? config.getNumber("targetFps").intValue() : 30;
-    if (targetFps <= 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected targetFps to be greater than 0)",
-          MapUtils.ofNullable("key", "targetFps", "value", targetFps));
-    }
-
-    this.targetFps = targetFps;
+    this.targetFps = config.hasPath("targetFps") ? config.getNumber("targetFps").intValue() : 30;
   }
 
   /**
