@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.NumberConstraint;
 import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.Cancellable;
 import info.henrycaldwell.streamline.core.CancellationToken;
@@ -26,7 +27,7 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
 
   protected static final Spec FFMPEG_SPEC = Spec.builder()
       .requiredString("ffmpegPath")
-      .optionalNumber("timeout")
+      .optionalNumber(NumberConstraint.greaterThan(0), "timeout")
       .build();
 
   protected final String ffmpegPath;
@@ -59,13 +60,7 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
     super(config, Spec.union(FFMPEG_SPEC, spec));
 
     this.ffmpegPath = config.getString("ffmpegPath");
-
-    long timeout = config.hasPath("timeout") ? config.getNumber("timeout").longValue() : 180L;
-    if (timeout <= 0) {
-      throw new SpecException(Transformer.TYPE, null, name, "Invalid key value (expected timeout to be greater than 0)",
-          MapUtils.ofNullable("key", "timeout", "value", timeout));
-    }
-    this.timeout = timeout;
+    this.timeout = config.hasPath("timeout") ? config.getNumber("timeout").longValue() : 180L;
 
     this.factory = factory != null ? factory : ProcessBuilder::start;
   }
