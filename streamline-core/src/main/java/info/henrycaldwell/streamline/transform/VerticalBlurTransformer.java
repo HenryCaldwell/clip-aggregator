@@ -4,11 +4,11 @@ import java.nio.file.Path;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.NumberConstraint;
 import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.SpecException;
-import info.henrycaldwell.streamline.util.MapUtils;
 import info.henrycaldwell.streamline.util.PathUtils;
 
 /**
@@ -21,11 +21,12 @@ import info.henrycaldwell.streamline.util.PathUtils;
 public final class VerticalBlurTransformer extends FFmpegTransformer {
 
   public static final Spec SPEC = Spec.builder()
-      .optionalNumber("targetWidth", "targetHeight", "blurSigma", "blurSteps")
+      .optionalNumber(NumberConstraint.greaterThan(0), "targetWidth", "targetHeight", "blurSigma", "blurSteps")
       .build();
 
   private final int targetWidth;
   private final int targetHeight;
+
   private final double blurSigma;
   private final int blurSteps;
 
@@ -52,37 +53,11 @@ public final class VerticalBlurTransformer extends FFmpegTransformer {
   VerticalBlurTransformer(Config config, ProcessFactory factory) {
     super(config, SPEC, factory);
 
-    int targetWidth = config.hasPath("targetWidth") ? config.getNumber("targetWidth").intValue() : 1080;
-    if (targetWidth <= 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected targetWidth to be greater than 0)",
-          MapUtils.ofNullable("key", "targetWidth", "value", targetWidth));
-    }
-    this.targetWidth = targetWidth;
+    this.targetWidth = config.hasPath("targetWidth") ? config.getNumber("targetWidth").intValue() : 1080;
+    this.targetHeight = config.hasPath("targetHeight") ? config.getNumber("targetHeight").intValue() : 1920;
 
-    int targetHeight = config.hasPath("targetHeight") ? config.getNumber("targetHeight").intValue() : 1920;
-    if (targetHeight <= 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected targetHeight to be greater than 0)",
-          MapUtils.ofNullable("key", "targetHeight", "value", targetHeight));
-    }
-    this.targetHeight = targetHeight;
-
-    double blurSigma = config.hasPath("blurSigma") ? config.getNumber("blurSigma").doubleValue() : 40.0;
-    if (blurSigma <= 0.0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected blurSigma to be greater than 0)",
-          MapUtils.ofNullable("key", "blurSigma", "value", blurSigma));
-    }
-    this.blurSigma = blurSigma;
-
-    int blurSteps = config.hasPath("blurSteps") ? config.getNumber("blurSteps").intValue() : 2;
-    if (blurSteps <= 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected blurSteps to be greater than 0)",
-          MapUtils.ofNullable("key", "blurSteps", "value", blurSteps));
-    }
-    this.blurSteps = blurSteps;
+    this.blurSigma = config.hasPath("blurSigma") ? config.getNumber("blurSigma").doubleValue() : 40.0;
+    this.blurSteps = config.hasPath("blurSteps") ? config.getNumber("blurSteps").intValue() : 2;
   }
 
   /**

@@ -178,7 +178,7 @@ public class VerticalBlurTransformerTest {
 
       assertTrue(exception.getMessage().contains("Invalid key value"));
       assertTrue(exception.getMessage().contains("key=blurSigma"));
-      assertTrue(exception.getMessage().contains("value=0.0"));
+      assertTrue(exception.getMessage().contains("value=0"));
     }
 
     @Test
