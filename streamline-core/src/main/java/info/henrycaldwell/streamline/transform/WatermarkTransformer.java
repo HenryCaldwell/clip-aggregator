@@ -4,11 +4,14 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.NumberConstraint;
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.config.StringConstraint;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
@@ -29,9 +32,12 @@ public final class WatermarkTransformer extends FFmpegTransformer {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("fontPath")
-      .optionalString("logoPath", "position", "fontColor", "borderColor")
-      .optionalNumber("fontSize", "textOpacity", "textBorderWidth", "textOffsetX", "textOffsetY",
-          "logoHeight", "logoOpacity", "logoOffsetX", "logoOffsetY")
+      .optionalString(StringConstraint.oneOf(List.of("upper_center", "lower_center", "center")), "position")
+      .optionalString("logoPath", "fontColor", "borderColor")
+      .optionalNumber(NumberConstraint.greaterThan(0), "fontSize", "logoHeight")
+      .optionalNumber(NumberConstraint.between(0, 1), "textOpacity", "logoOpacity")
+      .optionalNumber(NumberConstraint.atLeast(0), "textBorderWidth")
+      .optionalNumber("textOffsetX", "textOffsetY", "logoOffsetX", "logoOffsetY")
       .build();
 
   private record PositionExpr(String x, String y) {
@@ -48,9 +54,10 @@ public final class WatermarkTransformer extends FFmpegTransformer {
       "center", new PositionExpr("(W-overlay_w)/2", "(H-overlay_h)/2"));
 
   private final String fontPath;
-
   private final String logoPath;
+
   private final String position;
+
   private final String fontColor;
   private final String borderColor;
 
@@ -89,60 +96,18 @@ public final class WatermarkTransformer extends FFmpegTransformer {
     this.fontPath = config.getString("fontPath");
     this.logoPath = config.hasPath("logoPath") ? config.getString("logoPath") : null;
 
-    String position = config.hasPath("position") ? config.getString("position") : "lower_center";
-    if (!TEXT_POS.containsKey(position)) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected position to be one of upper_center, lower_center, center)",
-          MapUtils.ofNullable("key", "position", "value", position));
-    }
-    this.position = position;
+    this.position = config.hasPath("position") ? config.getString("position") : "lower_center";
 
     this.fontColor = config.hasPath("fontColor") ? config.getString("fontColor") : "white";
     this.borderColor = config.hasPath("borderColor") ? config.getString("borderColor") : "black";
 
-    int fontSize = config.hasPath("fontSize") ? config.getNumber("fontSize").intValue() : 70;
-    if (fontSize <= 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected fontSize to be greater than 0)",
-          MapUtils.ofNullable("key", "fontSize", "value", fontSize));
-    }
-    this.fontSize = fontSize;
-
-    double textOpacity = config.hasPath("textOpacity") ? config.getNumber("textOpacity").doubleValue() : 0.75;
-    if (textOpacity < 0.0 || textOpacity > 1.0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected textOpacity to be between 0.0 and 1.0)",
-          MapUtils.ofNullable("key", "textOpacity", "value", textOpacity));
-    }
-    this.textOpacity = textOpacity;
-
-    int textBorderWidth = config.hasPath("textBorderWidth") ? config.getNumber("textBorderWidth").intValue() : 3;
-    if (textBorderWidth < 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected textBorderWidth to be greater than or equal to 0)",
-          MapUtils.ofNullable("key", "textBorderWidth", "value", textBorderWidth));
-    }
-    this.textBorderWidth = textBorderWidth;
-
+    this.fontSize = config.hasPath("fontSize") ? config.getNumber("fontSize").intValue() : 70;
+    this.textOpacity = config.hasPath("textOpacity") ? config.getNumber("textOpacity").doubleValue() : 0.75;
+    this.textBorderWidth = config.hasPath("textBorderWidth") ? config.getNumber("textBorderWidth").intValue() : 3;
     this.textOffsetX = config.hasPath("textOffsetX") ? config.getNumber("textOffsetX").intValue() : 0;
     this.textOffsetY = config.hasPath("textOffsetY") ? config.getNumber("textOffsetY").intValue() : 0;
-
-    int logoHeight = config.hasPath("logoHeight") ? config.getNumber("logoHeight").intValue() : 200;
-    if (logoHeight <= 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected logoHeight to be greater than 0)",
-          MapUtils.ofNullable("key", "logoHeight", "value", logoHeight));
-    }
-    this.logoHeight = logoHeight;
-
-    double logoOpacity = config.hasPath("logoOpacity") ? config.getNumber("logoOpacity").doubleValue() : 0.3;
-    if (logoOpacity < 0.0 || logoOpacity > 1.0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected logoOpacity to be between 0.0 and 1.0)",
-          MapUtils.ofNullable("key", "logoOpacity", "value", logoOpacity));
-    }
-    this.logoOpacity = logoOpacity;
-
+    this.logoHeight = config.hasPath("logoHeight") ? config.getNumber("logoHeight").intValue() : 200;
+    this.logoOpacity = config.hasPath("logoOpacity") ? config.getNumber("logoOpacity").doubleValue() : 0.3;
     this.logoOffsetX = config.hasPath("logoOffsetX") ? config.getNumber("logoOffsetX").intValue() : 0;
     this.logoOffsetY = config.hasPath("logoOffsetY") ? config.getNumber("logoOffsetY").intValue() : 0;
   }
