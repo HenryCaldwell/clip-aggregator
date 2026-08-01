@@ -5,11 +5,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.NumberConstraint;
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.config.StringConstraint;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
@@ -31,10 +34,15 @@ public final class TitleTransformer extends FFmpegTransformer {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("fontPath")
-      .optionalString("position", "textAlign", "fontColor", "borderColor", "boxColor")
-      .requiredNumber("targetWidth")
-      .optionalNumber("fontSize", "textOpacity", "textBorderWidth", "textOffsetX", "textOffsetY", "lineSpacing",
-          "maxLines", "boxOpacity", "boxBorderWidth")
+      .optionalString(StringConstraint.oneOf(List.of("top_left", "top_right", "bottom_left", "bottom_right",
+          "top_center", "bottom_center", "center")), "position")
+      .optionalString(StringConstraint.oneOf(List.of("left", "center", "right")), "textAlign")
+      .optionalString("fontColor", "borderColor", "boxColor")
+      .requiredNumber(NumberConstraint.greaterThan(0), "targetWidth")
+      .optionalNumber(NumberConstraint.greaterThan(0), "fontSize", "maxLines")
+      .optionalNumber(NumberConstraint.between(0, 1), "textOpacity", "boxOpacity")
+      .optionalNumber(NumberConstraint.atLeast(0), "textBorderWidth", "boxBorderWidth")
+      .optionalNumber("textOffsetX", "textOffsetY", "lineSpacing")
       .build();
 
   private record PositionExpr(String x, String y) {
@@ -93,13 +101,7 @@ public final class TitleTransformer extends FFmpegTransformer {
 
     this.fontPath = config.getString("fontPath");
 
-    String position = config.hasPath("position") ? config.getString("position") : "center";
-    if (!POS.containsKey(position)) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected position to be one of top_left, top_right, bottom_left, bottom_right, top_center, bottom_center, center)",
-          MapUtils.ofNullable("key", "position", "value", position));
-    }
-    this.position = position;
+    this.position = config.hasPath("position") ? config.getString("position") : "center";
 
     String rawAlign = config.hasPath("textAlign") ? config.getString("textAlign") : "center";
     String textAlign;
@@ -114,9 +116,7 @@ public final class TitleTransformer extends FFmpegTransformer {
         textAlign = "R";
         break;
       default:
-        throw new SpecException(Transformer.TYPE, null, name,
-            "Invalid key value (expected textAlign to be one of left, center, right)",
-            MapUtils.ofNullable("key", "textAlign", "value", rawAlign));
+        throw new IllegalStateException(rawAlign);
     }
     this.textAlign = textAlign;
 
@@ -124,65 +124,17 @@ public final class TitleTransformer extends FFmpegTransformer {
     this.borderColor = config.hasPath("borderColor") ? config.getString("borderColor") : "black";
     this.boxColor = config.hasPath("boxColor") ? config.getString("boxColor") : "black";
 
-    int targetWidth = config.getNumber("targetWidth").intValue();
-    if (targetWidth <= 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected targetWidth to be greater than 0)",
-          MapUtils.ofNullable("key", "targetWidth", "value", targetWidth));
-    }
-    this.targetWidth = targetWidth;
+    this.targetWidth = config.getNumber("targetWidth").intValue();
 
-    int fontSize = config.hasPath("fontSize") ? config.getNumber("fontSize").intValue() : 70;
-    if (fontSize <= 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected fontSize to be greater than 0)",
-          MapUtils.ofNullable("key", "fontSize", "value", fontSize));
-    }
-    this.fontSize = fontSize;
-
-    double textOpacity = config.hasPath("textOpacity") ? config.getNumber("textOpacity").doubleValue() : 0.75;
-    if (textOpacity < 0.0 || textOpacity > 1.0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected textOpacity to be between 0.0 and 1.0)",
-          MapUtils.ofNullable("key", "textOpacity", "value", textOpacity));
-    }
-    this.textOpacity = textOpacity;
-
-    int textBorderWidth = config.hasPath("textBorderWidth") ? config.getNumber("textBorderWidth").intValue() : 3;
-    if (textBorderWidth < 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected textBorderWidth to be greater than or equal to 0)",
-          MapUtils.ofNullable("key", "textBorderWidth", "value", textBorderWidth));
-    }
-    this.textBorderWidth = textBorderWidth;
-
+    this.fontSize = config.hasPath("fontSize") ? config.getNumber("fontSize").intValue() : 70;
+    this.textOpacity = config.hasPath("textOpacity") ? config.getNumber("textOpacity").doubleValue() : 0.75;
+    this.textBorderWidth = config.hasPath("textBorderWidth") ? config.getNumber("textBorderWidth").intValue() : 3;
     this.textOffsetX = config.hasPath("textOffsetX") ? config.getNumber("textOffsetX").intValue() : 0;
     this.textOffsetY = config.hasPath("textOffsetY") ? config.getNumber("textOffsetY").intValue() : 0;
     this.lineSpacing = config.hasPath("lineSpacing") ? config.getNumber("lineSpacing").intValue() : 10;
-
-    int maxLines = config.hasPath("maxLines") ? config.getNumber("maxLines").intValue() : 4;
-    if (maxLines <= 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected maxLines to be greater than 0)",
-          MapUtils.ofNullable("key", "maxLines", "value", maxLines));
-    }
-    this.maxLines = maxLines;
-
-    double boxOpacity = config.hasPath("boxOpacity") ? config.getNumber("boxOpacity").doubleValue() : 0.0;
-    if (boxOpacity < 0.0 || boxOpacity > 1.0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected boxOpacity to be between 0.0 and 1.0)",
-          MapUtils.ofNullable("key", "boxOpacity", "value", boxOpacity));
-    }
-    this.boxOpacity = boxOpacity;
-
-    int boxBorderWidth = config.hasPath("boxBorderWidth") ? config.getNumber("boxBorderWidth").intValue() : 0;
-    if (boxBorderWidth < 0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected boxBorderWidth to be greater than or equal to 0)",
-          MapUtils.ofNullable("key", "boxBorderWidth", "value", boxBorderWidth));
-    }
-    this.boxBorderWidth = boxBorderWidth;
+    this.maxLines = config.hasPath("maxLines") ? config.getNumber("maxLines").intValue() : 4;
+    this.boxOpacity = config.hasPath("boxOpacity") ? config.getNumber("boxOpacity").doubleValue() : 0.0;
+    this.boxBorderWidth = config.hasPath("boxBorderWidth") ? config.getNumber("boxBorderWidth").intValue() : 0;
   }
 
   /**
