@@ -2,10 +2,13 @@ package info.henrycaldwell.streamline.transform;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.NumberConstraint;
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.config.StringConstraint;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
@@ -23,8 +26,8 @@ public final class MusicTransformer extends FFmpegTransformer {
 
   public static final Spec SPEC = Spec.builder()
       .requiredString("musicPath")
-      .optionalString("mode")
-      .optionalNumber("volume")
+      .optionalString(StringConstraint.oneOf(List.of("mix", "replace")), "mode")
+      .optionalNumber(NumberConstraint.atLeast(0), "volume")
       .optionalBoolean("loop")
       .build();
 
@@ -60,21 +63,9 @@ public final class MusicTransformer extends FFmpegTransformer {
 
     this.musicPath = config.getString("musicPath");
 
-    String mode = config.hasPath("mode") ? config.getString("mode") : "mix";
-    if (!"mix".equals(mode) && !"replace".equals(mode)) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected mode to be one of mix, replace)",
-          MapUtils.ofNullable("key", "mode", "value", mode));
-    }
-    this.mode = mode;
+    this.mode = config.hasPath("mode") ? config.getString("mode") : "mix";
 
-    double volume = config.hasPath("volume") ? config.getNumber("volume").doubleValue() : 0.3;
-    if (volume < 0.0) {
-      throw new SpecException(Transformer.TYPE, null, name,
-          "Invalid key value (expected volume to be greater than or equal to 0.0)",
-          MapUtils.ofNullable("key", "volume", "value", volume));
-    }
-    this.volume = volume;
+    this.volume = config.hasPath("volume") ? config.getNumber("volume").doubleValue() : 0.3;
 
     this.loop = config.hasPath("loop") ? config.getBoolean("loop") : true;
   }
