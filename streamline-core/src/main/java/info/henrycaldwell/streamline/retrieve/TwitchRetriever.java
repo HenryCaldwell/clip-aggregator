@@ -18,7 +18,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.NumberConstraint;
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.config.StringConstraint;
+import info.henrycaldwell.streamline.config.StringListConstraint;
 import info.henrycaldwell.streamline.core.Cancellable;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
@@ -37,8 +40,8 @@ public final class TwitchRetriever extends AbstractRetriever {
   public static final Spec SPEC = Spec.builder()
       .requiredString("clientId", "accessKey")
       .optionalString("gameId", "broadcasterId")
-      .optionalNumber("window", "limit")
-      .optionalStringList("languages", "tags")
+      .optionalNumber(NumberConstraint.greaterThan(0), "window", "limit")
+      .optionalStringList(StringListConstraint.each(StringConstraint.nonBlank()), "languages", "tags")
       .build();
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -80,40 +83,14 @@ public final class TwitchRetriever extends AbstractRetriever {
 
     this.clientId = config.getString("clientId");
     this.accessKey = config.getString("accessKey");
+
     this.gameId = config.hasPath("gameId") ? config.getString("gameId") : null;
     this.broadcasterId = config.hasPath("broadcasterId") ? config.getString("broadcasterId") : null;
 
-    long window = config.hasPath("window") ? config.getNumber("window").longValue() : 24L;
-    if (window <= 0) {
-      throw new SpecException(Retriever.TYPE, null, name, "Invalid key value (expected window to be greater than 0)",
-          MapUtils.ofNullable("key", "window", "value", window));
-    }
-    this.window = Duration.ofHours(window);
-
-    int limit = config.hasPath("limit") ? config.getNumber("limit").intValue() : 20;
-    if (limit <= 0) {
-      throw new SpecException(Retriever.TYPE, null, name, "Invalid key value (expected limit to be greater than 0)",
-          MapUtils.ofNullable("key", "limit", "value", limit));
-    }
-    this.limit = limit;
-
-    List<String> languages = config.hasPath("languages") ? config.getStringList("languages") : List.of();
-    for (String language : languages) {
-      if (language == null || language.isBlank()) {
-        throw new SpecException(Retriever.TYPE, null, name, "Invalid key value (expected languages to be non-blank strings)",
-            MapUtils.ofNullable("key", "languages", "value", language));
-      }
-    }
-    this.languages = List.copyOf(languages);
-
-    List<String> tags = config.hasPath("tags") ? config.getStringList("tags") : List.of();
-    for (String tag : tags) {
-      if (tag == null || tag.isBlank()) {
-        throw new SpecException(Retriever.TYPE, null, name, "Invalid key value (expected tags to be non-blank strings)",
-            MapUtils.ofNullable("key", "tags", "value", tag));
-      }
-    }
-    this.tags = List.copyOf(tags);
+    this.window = Duration.ofHours(config.hasPath("window") ? config.getNumber("window").longValue() : 24L);
+    this.limit = config.hasPath("limit") ? config.getNumber("limit").intValue() : 20;
+    this.languages = config.hasPath("languages") ? List.copyOf(config.getStringList("languages")) : List.of();
+    this.tags = config.hasPath("tags") ? List.copyOf(config.getStringList("tags")) : List.of();
 
     if ((gameId == null) == (broadcasterId == null)) {
       throw new SpecException(Retriever.TYPE, null, name,

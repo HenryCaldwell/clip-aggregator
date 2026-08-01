@@ -306,7 +306,7 @@ public class TwitchRetrieverTest {
 
       assertTrue(exception.getMessage().contains("Invalid key value"));
       assertTrue(exception.getMessage().contains("key=languages"));
-      assertTrue(exception.getMessage().contains("value=)"));
+      assertTrue(exception.getMessage().contains("value=[]"));
     }
 
     @Test
@@ -341,7 +341,7 @@ public class TwitchRetrieverTest {
 
       assertTrue(exception.getMessage().contains("Invalid key value"));
       assertTrue(exception.getMessage().contains("key=tags"));
-      assertTrue(exception.getMessage().contains("value=)"));
+      assertTrue(exception.getMessage().contains("value=[]"));
     }
 
     @Test
