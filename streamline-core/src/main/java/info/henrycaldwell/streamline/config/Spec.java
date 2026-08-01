@@ -1,6 +1,8 @@
 package info.henrycaldwell.streamline.config;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -17,7 +19,7 @@ import info.henrycaldwell.streamline.util.MapUtils;
  * 
  * This class records required and optional keys by primitive type and list type
  * and validates configuration blocks for unknown keys, missing required keys,
- * and type mismatches.
+ * type mismatches, and value constraints.
  */
 public final class Spec {
 
@@ -33,6 +35,13 @@ public final class Spec {
   private final Set<String> optionalNumberLists = new LinkedHashSet<>();
   private final Set<String> requiredBooleanLists = new LinkedHashSet<>();
   private final Set<String> optionalBooleanLists = new LinkedHashSet<>();
+
+  private final Map<String, StringConstraint> stringConstraints = new LinkedHashMap<>();
+  private final Map<String, NumberConstraint> numberConstraints = new LinkedHashMap<>();
+  private final Map<String, BooleanConstraint> booleanConstraints = new LinkedHashMap<>();
+  private final Map<String, StringListConstraint> stringListConstraints = new LinkedHashMap<>();
+  private final Map<String, NumberListConstraint> numberListConstraints = new LinkedHashMap<>();
+  private final Map<String, BooleanListConstraint> booleanListConstraints = new LinkedHashMap<>();
 
   /**
    * Creates a new builder for constructing a spec.
@@ -65,6 +74,13 @@ public final class Spec {
       composite.optionalNumberLists.addAll(spec.optionalNumberLists);
       composite.requiredBooleanLists.addAll(spec.requiredBooleanLists);
       composite.optionalBooleanLists.addAll(spec.optionalBooleanLists);
+
+      composite.stringConstraints.putAll(spec.stringConstraints);
+      composite.numberConstraints.putAll(spec.numberConstraints);
+      composite.booleanConstraints.putAll(spec.booleanConstraints);
+      composite.stringListConstraints.putAll(spec.stringListConstraints);
+      composite.numberListConstraints.putAll(spec.numberListConstraints);
+      composite.booleanListConstraints.putAll(spec.booleanListConstraints);
     }
 
     return composite;
@@ -179,6 +195,72 @@ public final class Spec {
   }
 
   /**
+   * Attaches a value constraint to a string key in this spec.
+   *
+   * @param param      A string representing the key name.
+   * @param constraint A {@link StringConstraint} representing the value
+   *                   constraint.
+   */
+  private void constrainString(String param, StringConstraint constraint) {
+    stringConstraints.put(param, constraint);
+  }
+
+  /**
+   * Attaches a value constraint to a number key in this spec.
+   *
+   * @param param      A string representing the key name.
+   * @param constraint A {@link NumberConstraint} representing the value
+   *                   constraint.
+   */
+  private void constrainNumber(String param, NumberConstraint constraint) {
+    numberConstraints.put(param, constraint);
+  }
+
+  /**
+   * Attaches a value constraint to a boolean key in this spec.
+   *
+   * @param param      A string representing the key name.
+   * @param constraint A {@link BooleanConstraint} representing the value
+   *                   constraint.
+   */
+  private void constrainBoolean(String param, BooleanConstraint constraint) {
+    booleanConstraints.put(param, constraint);
+  }
+
+  /**
+   * Attaches a value constraint to a string list key in this spec.
+   *
+   * @param param      A string representing the key name.
+   * @param constraint A {@link StringListConstraint} representing the value
+   *                   constraint.
+   */
+  private void constrainStringList(String param, StringListConstraint constraint) {
+    stringListConstraints.put(param, constraint);
+  }
+
+  /**
+   * Attaches a value constraint to a number list key in this spec.
+   *
+   * @param param      A string representing the key name.
+   * @param constraint A {@link NumberListConstraint} representing the value
+   *                   constraint.
+   */
+  private void constrainNumberList(String param, NumberListConstraint constraint) {
+    numberListConstraints.put(param, constraint);
+  }
+
+  /**
+   * Attaches a value constraint to a boolean list key in this spec.
+   *
+   * @param param      A string representing the key name.
+   * @param constraint A {@link BooleanListConstraint} representing the value
+   *                   constraint.
+   */
+  private void constrainBooleanList(String param, BooleanListConstraint constraint) {
+    booleanListConstraints.put(param, constraint);
+  }
+
+  /**
    * Validates a configuration block against this spec.
    *
    * @param config A {@link Config} representing the block to validate.
@@ -227,124 +309,258 @@ public final class Spec {
     }
 
     for (String key : requiredStrings) {
+      String value;
+
       try {
-        if (config.getString(key).isBlank()) {
-          throw new SpecException(type, parent, name, "Missing required key", MapUtils.ofNullable("key", key));
-        }
+        value = config.getString(key);
       } catch (ConfigException.WrongType e) {
         throw new SpecException(type, parent, name, "Incorrect key type (expected string)",
             MapUtils.ofNullable("key", key), e);
       }
+
+      if (value.isBlank()) {
+        throw new SpecException(type, parent, name, "Missing required key", MapUtils.ofNullable("key", key));
+      }
+
+      StringConstraint constraint = stringConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
+      }
     }
 
     for (String key : requiredNumbers) {
+      Number value;
+
       try {
-        config.getNumber(key);
+        value = config.getNumber(key);
       } catch (ConfigException.WrongType e) {
         throw new SpecException(type, parent, name, "Incorrect key type (expected number)",
             MapUtils.ofNullable("key", key), e);
       }
+
+      NumberConstraint constraint = numberConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
+      }
     }
 
     for (String key : requiredBooleans) {
+      Boolean value;
+
       try {
-        config.getBoolean(key);
+        value = config.getBoolean(key);
       } catch (ConfigException.WrongType e) {
         throw new SpecException(type, parent, name, "Incorrect key type (expected boolean)",
             MapUtils.ofNullable("key", key), e);
       }
+
+      BooleanConstraint constraint = booleanConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
+      }
     }
 
     for (String key : requiredStringLists) {
+      List<String> value;
+
       try {
-        config.getStringList(key);
+        value = config.getStringList(key);
       } catch (ConfigException.WrongType e) {
         throw new SpecException(type, parent, name, "Incorrect key type (expected list<string>)",
             MapUtils.ofNullable("key", key), e);
       }
+
+      StringListConstraint constraint = stringListConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
+      }
     }
 
     for (String key : requiredNumberLists) {
+      List<Number> value;
+
       try {
-        config.getNumberList(key);
+        value = config.getNumberList(key).stream().map(n -> (Number) n).toList();
       } catch (ConfigException.WrongType e) {
         throw new SpecException(type, parent, name, "Incorrect key type (expected list<number>)",
             MapUtils.ofNullable("key", key), e);
       }
+
+      NumberListConstraint constraint = numberListConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
+      }
     }
 
     for (String key : requiredBooleanLists) {
+      List<Boolean> value;
+
       try {
-        config.getBooleanList(key);
+        value = config.getBooleanList(key);
       } catch (ConfigException.WrongType e) {
         throw new SpecException(type, parent, name, "Incorrect key type (expected list<boolean>)",
             MapUtils.ofNullable("key", key), e);
       }
+
+      BooleanListConstraint constraint = booleanListConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
+      }
     }
 
     for (String key : optionalStrings) {
-      if (config.hasPath(key)) {
-        try {
-          config.getString(key);
-        } catch (ConfigException.WrongType e) {
-          throw new SpecException(type, parent, name, "Incorrect key type (expected string)",
-              MapUtils.ofNullable("key", key), e);
-        }
+      if (!config.hasPath(key)) {
+        continue;
+      }
+
+      String value;
+
+      try {
+        value = config.getString(key);
+      } catch (ConfigException.WrongType e) {
+        throw new SpecException(type, parent, name, "Incorrect key type (expected string)",
+            MapUtils.ofNullable("key", key), e);
+      }
+
+      StringConstraint constraint = stringConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
       }
     }
 
     for (String key : optionalNumbers) {
-      if (config.hasPath(key)) {
-        try {
-          config.getNumber(key);
-        } catch (ConfigException.WrongType e) {
-          throw new SpecException(type, parent, name, "Incorrect key type (expected number)",
-              MapUtils.ofNullable("key", key), e);
-        }
+      if (!config.hasPath(key)) {
+        continue;
+      }
+
+      Number value;
+
+      try {
+        value = config.getNumber(key);
+      } catch (ConfigException.WrongType e) {
+        throw new SpecException(type, parent, name, "Incorrect key type (expected number)",
+            MapUtils.ofNullable("key", key), e);
+      }
+
+      NumberConstraint constraint = numberConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
       }
     }
 
     for (String key : optionalBooleans) {
-      if (config.hasPath(key)) {
-        try {
-          config.getBoolean(key);
-        } catch (ConfigException.WrongType e) {
-          throw new SpecException(type, parent, name, "Incorrect key type (expected boolean)",
-              MapUtils.ofNullable("key", key), e);
-        }
+      if (!config.hasPath(key)) {
+        continue;
+      }
+
+      Boolean value;
+
+      try {
+        value = config.getBoolean(key);
+      } catch (ConfigException.WrongType e) {
+        throw new SpecException(type, parent, name, "Incorrect key type (expected boolean)",
+            MapUtils.ofNullable("key", key), e);
+      }
+
+      BooleanConstraint constraint = booleanConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
       }
     }
 
     for (String key : optionalStringLists) {
-      if (config.hasPath(key)) {
-        try {
-          config.getStringList(key);
-        } catch (ConfigException.WrongType e) {
-          throw new SpecException(type, parent, name, "Incorrect key type (expected list<string>)",
-              MapUtils.ofNullable("key", key), e);
-        }
+      if (!config.hasPath(key)) {
+        continue;
+      }
+
+      List<String> value;
+
+      try {
+        value = config.getStringList(key);
+      } catch (ConfigException.WrongType e) {
+        throw new SpecException(type, parent, name, "Incorrect key type (expected list<string>)",
+            MapUtils.ofNullable("key", key), e);
+      }
+
+      StringListConstraint constraint = stringListConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
       }
     }
 
     for (String key : optionalNumberLists) {
-      if (config.hasPath(key)) {
-        try {
-          config.getNumberList(key);
-        } catch (ConfigException.WrongType e) {
-          throw new SpecException(type, parent, name, "Incorrect key type (expected list<number>)",
-              MapUtils.ofNullable("key", key), e);
-        }
+      if (!config.hasPath(key)) {
+        continue;
+      }
+
+      List<Number> value;
+
+      try {
+        value = config.getNumberList(key).stream().map(n -> (Number) n).toList();
+      } catch (ConfigException.WrongType e) {
+        throw new SpecException(type, parent, name, "Incorrect key type (expected list<number>)",
+            MapUtils.ofNullable("key", key), e);
+      }
+
+      NumberListConstraint constraint = numberListConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
       }
     }
 
     for (String key : optionalBooleanLists) {
-      if (config.hasPath(key)) {
-        try {
-          config.getBooleanList(key);
-        } catch (ConfigException.WrongType e) {
-          throw new SpecException(type, parent, name, "Incorrect key type (expected list<boolean>)",
-              MapUtils.ofNullable("key", key), e);
-        }
+      if (!config.hasPath(key)) {
+        continue;
+      }
+
+      List<Boolean> value;
+
+      try {
+        value = config.getBooleanList(key);
+      } catch (ConfigException.WrongType e) {
+        throw new SpecException(type, parent, name, "Incorrect key type (expected list<boolean>)",
+            MapUtils.ofNullable("key", key), e);
+      }
+
+      BooleanListConstraint constraint = booleanListConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        throw new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            MapUtils.ofNullable("key", key, "value", value));
       }
     }
   }
@@ -374,6 +590,23 @@ public final class Spec {
     }
 
     /**
+     * Adds one or more required string keys with a value constraint to the spec.
+     *
+     * @param constraint A {@link StringConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredString(StringConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addRequiredString(param);
+        spec.constrainString(param, constraint);
+      }
+
+      return this;
+    }
+
+    /**
      * Adds one or more optional string keys to the spec.
      *
      * @param params An array of strings representing key names.
@@ -382,6 +615,23 @@ public final class Spec {
     public SpecBuilder optionalString(String... params) {
       for (String param : params) {
         spec.addOptionalString(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional string keys with a value constraint to the spec.
+     *
+     * @param constraint A {@link StringConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalString(StringConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addOptionalString(param);
+        spec.constrainString(param, constraint);
       }
 
       return this;
@@ -402,6 +652,23 @@ public final class Spec {
     }
 
     /**
+     * Adds one or more required number keys with a value constraint to the spec.
+     *
+     * @param constraint A {@link NumberConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredNumber(NumberConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addRequiredNumber(param);
+        spec.constrainNumber(param, constraint);
+      }
+
+      return this;
+    }
+
+    /**
      * Adds one or more optional number keys to the spec.
      *
      * @param params An array of strings representing key names.
@@ -410,6 +677,23 @@ public final class Spec {
     public SpecBuilder optionalNumber(String... params) {
       for (String param : params) {
         spec.addOptionalNumber(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional number keys with a value constraint to the spec.
+     *
+     * @param constraint A {@link NumberConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalNumber(NumberConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addOptionalNumber(param);
+        spec.constrainNumber(param, constraint);
       }
 
       return this;
@@ -430,6 +714,23 @@ public final class Spec {
     }
 
     /**
+     * Adds one or more required boolean keys with a value constraint to the spec.
+     *
+     * @param constraint A {@link BooleanConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredBoolean(BooleanConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addRequiredBoolean(param);
+        spec.constrainBoolean(param, constraint);
+      }
+
+      return this;
+    }
+
+    /**
      * Adds one or more optional boolean keys to the spec.
      *
      * @param params An array of strings representing key names.
@@ -438,6 +739,23 @@ public final class Spec {
     public SpecBuilder optionalBoolean(String... params) {
       for (String param : params) {
         spec.addOptionalBoolean(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional boolean keys with a value constraint to the spec.
+     *
+     * @param constraint A {@link BooleanConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalBoolean(BooleanConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addOptionalBoolean(param);
+        spec.constrainBoolean(param, constraint);
       }
 
       return this;
@@ -458,6 +776,24 @@ public final class Spec {
     }
 
     /**
+     * Adds one or more required string list keys with a value constraint to the
+     * spec.
+     *
+     * @param constraint A {@link StringListConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredStringList(StringListConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addRequiredStringList(param);
+        spec.constrainStringList(param, constraint);
+      }
+
+      return this;
+    }
+
+    /**
      * Adds one or more optional string list keys to the spec.
      *
      * @param params An array of strings representing key names.
@@ -466,6 +802,24 @@ public final class Spec {
     public SpecBuilder optionalStringList(String... params) {
       for (String param : params) {
         spec.addOptionalStringList(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional string list keys with a value constraint to the
+     * spec.
+     *
+     * @param constraint A {@link StringListConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalStringList(StringListConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addOptionalStringList(param);
+        spec.constrainStringList(param, constraint);
       }
 
       return this;
@@ -486,6 +840,24 @@ public final class Spec {
     }
 
     /**
+     * Adds one or more required number list keys with a value constraint to the
+     * spec.
+     *
+     * @param constraint A {@link NumberListConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredNumberList(NumberListConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addRequiredNumberList(param);
+        spec.constrainNumberList(param, constraint);
+      }
+
+      return this;
+    }
+
+    /**
      * Adds one or more optional number list keys to the spec.
      * 
      * @param params An array of strings representing key names.
@@ -494,6 +866,24 @@ public final class Spec {
     public SpecBuilder optionalNumberList(String... params) {
       for (String param : params) {
         spec.addOptionalNumberList(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional number list keys with a value constraint to the
+     * spec.
+     *
+     * @param constraint A {@link NumberListConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalNumberList(NumberListConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addOptionalNumberList(param);
+        spec.constrainNumberList(param, constraint);
       }
 
       return this;
@@ -514,6 +904,24 @@ public final class Spec {
     }
 
     /**
+     * Adds one or more required boolean list keys with a value constraint to the
+     * spec.
+     *
+     * @param constraint A {@link BooleanListConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredBooleanList(BooleanListConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addRequiredBooleanList(param);
+        spec.constrainBooleanList(param, constraint);
+      }
+
+      return this;
+    }
+
+    /**
      * Adds one or more optional boolean list keys to the spec.
      * 
      * @param params An array of strings representing key names.
@@ -522,6 +930,24 @@ public final class Spec {
     public SpecBuilder optionalBooleanList(String... params) {
       for (String param : params) {
         spec.addOptionalBooleanList(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional boolean list keys with a value constraint to the
+     * spec.
+     *
+     * @param constraint A {@link BooleanListConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalBooleanList(BooleanListConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addOptionalBooleanList(param);
+        spec.constrainBooleanList(param, constraint);
       }
 
       return this;
