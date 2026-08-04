@@ -9,7 +9,7 @@ import java.util.Map;
  * as an observer, retriever, history, downloader, transformer, stager, or
  * publisher.
  */
-public class ComponentException extends AbstractException {
+public final class ComponentException extends AbstractException {
 
   /**
    * Constructs a ComponentException.
