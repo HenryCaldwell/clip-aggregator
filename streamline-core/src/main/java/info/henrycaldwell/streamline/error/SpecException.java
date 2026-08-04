@@ -8,7 +8,7 @@ import java.util.Map;
  * This class reports failures related to configuration structure, required
  * fields, and type mismatches detected during validation.
  */
-public class SpecException extends AbstractException {
+public final class SpecException extends AbstractException {
 
   /**
    * Constructs a SpecException.
