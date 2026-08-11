@@ -42,6 +42,8 @@ public final class TwitchRetriever extends AbstractRetriever {
       .optionalString("gameId", "broadcasterId")
       .optionalNumber(NumberConstraint.greaterThan(0), "window", "limit")
       .optionalStringList(StringListConstraint.each(StringConstraint.nonBlank()), "languages", "tags")
+      .exactlyOne("gameId", "broadcasterId")
+      .mutuallyExclusive("languages", "broadcasterId")
       .build();
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -91,18 +93,6 @@ public final class TwitchRetriever extends AbstractRetriever {
     this.limit = config.hasPath("limit") ? config.getNumber("limit").intValue() : 20;
     this.languages = config.hasPath("languages") ? List.copyOf(config.getStringList("languages")) : List.of();
     this.tags = config.hasPath("tags") ? List.copyOf(config.getStringList("tags")) : List.of();
-
-    if ((gameId == null) == (broadcasterId == null)) {
-      throw new SpecException(Retriever.TYPE, null, name,
-          "Invalid key combination (expected exactly one of gameId or broadcasterId)",
-          MapUtils.ofNullable("key", "gameId, broadcasterId", "value", gameId + ", " + broadcasterId));
-    }
-
-    if (broadcasterId != null && !languages.isEmpty()) {
-      throw new SpecException(Retriever.TYPE, null, name,
-          "Invalid key combination (expected languages only with gameId)",
-          MapUtils.ofNullable("key", "broadcasterId, languages", "value", broadcasterId + ", " + languages));
-    }
 
     this.http = HttpClient.newHttpClient();
     this.sender = sender != null ? sender : this::defaultSend;

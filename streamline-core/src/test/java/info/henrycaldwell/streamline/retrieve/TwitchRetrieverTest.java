@@ -355,9 +355,8 @@ public class TwitchRetrieverTest {
 
       SpecException exception = assertThrows(SpecException.class, () -> new TwitchRetriever(config));
 
-      assertTrue(exception.getMessage().contains("Invalid key combination"));
-      assertTrue(exception.getMessage().contains("key=gameId, broadcasterId"));
-      assertTrue(exception.getMessage().contains("value=null, null"));
+      assertTrue(exception.getMessage().contains("Invalid key combination (expected exactly one of gameId, broadcasterId)"));
+      assertTrue(exception.getMessage().contains("count=0"));
     }
 
     @Test
@@ -373,9 +372,8 @@ public class TwitchRetrieverTest {
 
       SpecException exception = assertThrows(SpecException.class, () -> new TwitchRetriever(config));
 
-      assertTrue(exception.getMessage().contains("Invalid key combination"));
-      assertTrue(exception.getMessage().contains("key=gameId, broadcasterId"));
-      assertTrue(exception.getMessage().contains("value=game-1, broadcaster-1"));
+      assertTrue(exception.getMessage().contains("Invalid key combination (expected exactly one of gameId, broadcasterId)"));
+      assertTrue(exception.getMessage().contains("count=2"));
     }
 
     @Test
@@ -391,9 +389,8 @@ public class TwitchRetrieverTest {
 
       SpecException exception = assertThrows(SpecException.class, () -> new TwitchRetriever(config));
 
-      assertTrue(exception.getMessage().contains("Invalid key combination"));
-      assertTrue(exception.getMessage().contains("key=broadcasterId, languages"));
-      assertTrue(exception.getMessage().contains("value=broadcaster-1, [en]"));
+      assertTrue(exception.getMessage().contains("Invalid key combination (expected at most one of languages, broadcasterId)"));
+      assertTrue(exception.getMessage().contains("count=2"));
     }
 
     @Test
