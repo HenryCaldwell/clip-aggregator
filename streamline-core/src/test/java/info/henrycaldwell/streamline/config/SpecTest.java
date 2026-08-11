@@ -1,7 +1,5 @@
 package info.henrycaldwell.streamline.config;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -32,7 +30,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("name = test, unknown = value");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Unknown configuration key"));
         assertTrue(exception.getMessage().contains("key=unknown"));
@@ -46,7 +44,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("name = test");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
     }
 
@@ -61,7 +59,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Missing required key"));
         assertTrue(exception.getMessage().contains("key=name"));
@@ -75,7 +73,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("name = \"\"");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Missing required key"));
         assertTrue(exception.getMessage().contains("key=name"));
@@ -89,7 +87,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Missing required key"));
         assertTrue(exception.getMessage().contains("key=count"));
@@ -103,7 +101,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Missing required key"));
         assertTrue(exception.getMessage().contains("key=enabled"));
@@ -117,7 +115,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Missing required key"));
         assertTrue(exception.getMessage().contains("key=tags"));
@@ -131,7 +129,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Missing required key"));
         assertTrue(exception.getMessage().contains("key=counts"));
@@ -145,7 +143,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Missing required key"));
         assertTrue(exception.getMessage().contains("key=flags"));
@@ -159,7 +157,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("name = [1, 2, 3]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected string)"));
         assertTrue(exception.getMessage().contains("key=name"));
@@ -173,7 +171,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("count = [1, 2, 3]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected number)"));
         assertTrue(exception.getMessage().contains("key=count"));
@@ -187,7 +185,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("enabled = [1, 2, 3]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected boolean)"));
         assertTrue(exception.getMessage().contains("key=enabled"));
@@ -201,7 +199,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("tags = 123");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected list<string>)"));
         assertTrue(exception.getMessage().contains("key=tags"));
@@ -215,7 +213,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("counts = 123");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected list<number>)"));
         assertTrue(exception.getMessage().contains("key=counts"));
@@ -229,7 +227,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("flags = 123");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected list<boolean>)"));
         assertTrue(exception.getMessage().contains("key=flags"));
@@ -249,7 +247,7 @@ public class SpecTest {
         Config config = ConfigFactory.parseString(
             "name = test, count = 1, enabled = true, tags = [a, b], counts = [1, 2], flags = [true, false]");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
     }
 
@@ -264,7 +262,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -275,7 +273,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -286,7 +284,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -297,7 +295,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -308,7 +306,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -319,7 +317,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -330,7 +328,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("name = [1, 2, 3]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected string)"));
         assertTrue(exception.getMessage().contains("key=name"));
@@ -344,7 +342,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("count = [1, 2, 3]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected number)"));
         assertTrue(exception.getMessage().contains("key=count"));
@@ -358,7 +356,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("enabled = [1, 2, 3]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected boolean)"));
         assertTrue(exception.getMessage().contains("key=enabled"));
@@ -372,7 +370,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("tags = 123");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected list<string>)"));
         assertTrue(exception.getMessage().contains("key=tags"));
@@ -386,7 +384,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("counts = 123");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected list<number>)"));
         assertTrue(exception.getMessage().contains("key=counts"));
@@ -400,7 +398,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("flags = 123");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Incorrect key type (expected list<boolean>)"));
         assertTrue(exception.getMessage().contains("key=flags"));
@@ -420,7 +418,7 @@ public class SpecTest {
         Config config = ConfigFactory.parseString(
             "name = test, count = 1, enabled = true, tags = [a, b], counts = [1, 2], flags = [true, false]");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
     }
 
@@ -436,7 +434,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key combination (expected exactly one of a, b)"));
         assertTrue(exception.getMessage().contains("count=0"));
@@ -451,7 +449,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("a = 1, b = 2");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key combination (expected exactly one of a, b)"));
         assertTrue(exception.getMessage().contains("count=2"));
@@ -466,7 +464,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("a = 1");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -478,7 +476,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key combination (expected at least one of a, b)"));
         assertTrue(exception.getMessage().contains("count=0"));
@@ -493,7 +491,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("a = 1");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -505,7 +503,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("a = 1, b = 2");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -517,7 +515,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("a = 1");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key combination (expected all or none of a, b)"));
         assertTrue(exception.getMessage().contains("count=1"));
@@ -532,7 +530,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -544,7 +542,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("a = 1, b = 2");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -556,7 +554,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("a = 1, b = 2");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key combination (expected at most one of a, b)"));
         assertTrue(exception.getMessage().contains("count=2"));
@@ -571,7 +569,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
 
       @Test
@@ -583,7 +581,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("a = 1");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
     }
 
@@ -599,7 +597,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("name = c");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("allowed"));
@@ -616,7 +614,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("count = 0");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("positive"));
@@ -633,7 +631,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("enabled = false");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("true"));
@@ -650,7 +648,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("tags = [\"a\", \"\", \"c\"]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("allowed"));
@@ -667,7 +665,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("counts = [1, 0, 3]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("positive"));
@@ -684,7 +682,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("flags = [true, false, true]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("true"));
@@ -701,7 +699,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("name = c");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("allowed"));
@@ -718,7 +716,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("count = 0");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("positive"));
@@ -735,7 +733,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("enabled = false");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("true"));
@@ -752,7 +750,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("tags = [\"a\", \"\", \"c\"]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("allowed"));
@@ -769,7 +767,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("counts = [1, 0, 3]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("positive"));
@@ -786,7 +784,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("flags = [true, false, true]");
 
-        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
 
         assertTrue(exception.getMessage().contains("Invalid key value"));
         assertTrue(exception.getMessage().contains("true"));
@@ -804,7 +802,7 @@ public class SpecTest {
 
         Config config = ConfigFactory.parseString("count = 1, name = \"hi\", counts = [1, 2, 3]");
 
-        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
     }
   }
@@ -828,14 +826,14 @@ public class SpecTest {
       Config specBConfig = ConfigFactory.parseString("count = 1");
       Config combinedConfig = ConfigFactory.parseString("name = test, count = 1");
 
-      SpecException missingCount = assertThrows(SpecException.class, () -> union.validate(specAConfig, ComponentType.ROOT, null, "test"));
-      SpecException missingName = assertThrows(SpecException.class, () -> union.validate(specBConfig, ComponentType.ROOT, null, "test"));
+      SpecException missingCount = union.validate(specAConfig, ComponentType.ROOT, null, "test").get(0);
+      SpecException missingName = union.validate(specBConfig, ComponentType.ROOT, null, "test").get(0);
 
       assertTrue(missingCount.getMessage().contains("Missing required key"));
       assertTrue(missingCount.getMessage().contains("key=count"));
       assertTrue(missingName.getMessage().contains("Missing required key"));
       assertTrue(missingName.getMessage().contains("key=name"));
-      assertDoesNotThrow(() -> union.validate(combinedConfig, ComponentType.ROOT, null, "test"));
+      assertTrue(union.validate(combinedConfig, ComponentType.ROOT, null, "test").isEmpty());
     }
 
     @Test
@@ -852,7 +850,7 @@ public class SpecTest {
 
       Config config = ConfigFactory.parseString("name = test, count = 1");
 
-      assertDoesNotThrow(() -> union.validate(config, ComponentType.ROOT, null, "test"));
+      assertTrue(union.validate(config, ComponentType.ROOT, null, "test").isEmpty());
     }
 
     @Test
@@ -869,7 +867,7 @@ public class SpecTest {
 
       Config config = ConfigFactory.parseString("name = test, count = 1, unknown = value");
 
-      SpecException exception = assertThrows(SpecException.class, () -> union.validate(config, ComponentType.ROOT, null, "test"));
+      SpecException exception = union.validate(config, ComponentType.ROOT, null, "test").get(0);
 
       assertTrue(exception.getMessage().contains("Unknown configuration key"));
       assertTrue(exception.getMessage().contains("key=unknown"));
@@ -884,7 +882,7 @@ public class SpecTest {
 
       Config config = ConfigFactory.parseString("");
 
-      assertDoesNotThrow(() -> union.validate(config, ComponentType.ROOT, null, "test"));
+      assertTrue(union.validate(config, ComponentType.ROOT, null, "test").isEmpty());
     }
 
     @Test
@@ -905,12 +903,12 @@ public class SpecTest {
       Config specAViolation = ConfigFactory.parseString("a = 1, b = 2, c = 3");
       Config specBViolation = ConfigFactory.parseString("a = 1, c = 3, d = 4");
 
-      SpecException exactlyOneViolation = assertThrows(SpecException.class, () -> union.validate(specAViolation, ComponentType.ROOT, null, "test"));
-      SpecException mutuallyExclusiveViolation = assertThrows(SpecException.class, () -> union.validate(specBViolation, ComponentType.ROOT, null, "test"));
+      SpecException exactlyOneViolation = union.validate(specAViolation, ComponentType.ROOT, null, "test").get(0);
+      SpecException mutuallyExclusiveViolation = union.validate(specBViolation, ComponentType.ROOT, null, "test").get(0);
 
       assertTrue(exactlyOneViolation.getMessage().contains("Invalid key combination (expected exactly one of a, b)"));
       assertTrue(mutuallyExclusiveViolation.getMessage().contains("Invalid key combination (expected at most one of c, d)"));
-      assertDoesNotThrow(() -> union.validate(valid, ComponentType.ROOT, null, "test"));
+      assertTrue(union.validate(valid, ComponentType.ROOT, null, "test").isEmpty());
     }
   }
 

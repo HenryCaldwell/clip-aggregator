@@ -1,8 +1,11 @@
 package info.henrycaldwell.streamline.history;
 
+import java.util.List;
+
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.error.SpecException;
 
 /**
  * Base class for histories that parses common configuration.
@@ -31,7 +34,11 @@ public abstract class AbstractHistory implements History {
         ? config.getString("name")
         : "UNNAMED_HISTORY";
 
-    composite.validate(config, History.TYPE, null, display);
+    List<SpecException> exceptions = composite.validate(config, History.TYPE, null, display);
+
+    if (!exceptions.isEmpty()) {
+      throw exceptions.get(0);
+    }
 
     this.name = config.getString("name");
   }

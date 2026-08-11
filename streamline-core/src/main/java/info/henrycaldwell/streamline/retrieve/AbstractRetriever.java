@@ -1,8 +1,11 @@
 package info.henrycaldwell.streamline.retrieve;
 
+import java.util.List;
+
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.error.SpecException;
 
 /**
  * Base class for retrievers that parses common configuration.
@@ -34,7 +37,11 @@ public abstract class AbstractRetriever implements Retriever {
         ? config.getString("name")
         : "UNNAMED_RETRIEVER";
 
-    composite.validate(config, Retriever.TYPE, null, display);
+    List<SpecException> exceptions = composite.validate(config, Retriever.TYPE, null, display);
+
+    if (!exceptions.isEmpty()) {
+      throw exceptions.get(0);
+    }
 
     this.name = config.getString("name");
     this.pipeline = config.hasPath("pipeline") && !config.getString("pipeline").isBlank()

@@ -1,8 +1,11 @@
 package info.henrycaldwell.streamline.publish;
 
+import java.util.List;
+
 import com.typesafe.config.Config;
 
 import info.henrycaldwell.streamline.config.Spec;
+import info.henrycaldwell.streamline.error.SpecException;
 
 /**
  * Base class for publishers that parses common configuration.
@@ -30,7 +33,11 @@ public abstract class AbstractPublisher implements Publisher {
         ? config.getString("name")
         : "UNNAMED_PUBLISHER";
 
-    composite.validate(config, Publisher.TYPE, null, display);
+    List<SpecException> exceptions = composite.validate(config, Publisher.TYPE, null, display);
+
+    if (!exceptions.isEmpty()) {
+      throw exceptions.get(0);
+    }
 
     this.name = config.getString("name");
   }

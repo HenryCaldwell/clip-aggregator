@@ -1,6 +1,7 @@
 package info.henrycaldwell.streamline.config;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -315,11 +316,15 @@ public final class Spec {
    * @param parent A string representing the parent component name, or
    *               {@code null}.
    * @param name   A string representing a display name.
-   * @throws SpecException if validation fails at any step.
+   * @return A {@link List} of {@link SpecException} representing the accumulated
+   *         validation exceptions, or an empty list if validation passes.
    */
-  public void validate(Config config, ComponentType type, String parent, String name) {
+  public List<SpecException> validate(Config config, ComponentType type, String parent, String name) {
+    List<SpecException> exceptions = new ArrayList<>();
+
     Set<String> legal = new LinkedHashSet<>();
     Set<String> required = new LinkedHashSet<>();
+    Set<String> failed = new HashSet<>();
 
     legal.addAll(requiredStrings);
     legal.addAll(optionalStrings);
@@ -345,131 +350,164 @@ public final class Spec {
       String key = entry.getKey();
 
       if (!legal.contains(key)) {
-        throw new SpecException(type, parent, name, "Unknown configuration key", MapUtils.ofNullable("key", key));
+        exceptions
+            .add(new SpecException(type, parent, name, "Unknown configuration key", MapUtils.ofNullable("key", key)));
       }
     }
 
     for (String key : required) {
       if (!config.hasPath(key)) {
-        throw new SpecException(type, parent, name, "Missing required key", MapUtils.ofNullable("key", key));
+        exceptions.add(new SpecException(type, parent, name, "Missing required key", MapUtils.ofNullable("key", key)));
+        failed.add(key);
       }
     }
 
     for (String key : requiredStrings) {
+      if (failed.contains(key)) {
+        continue;
+      }
+
       String value;
 
       try {
         value = config.getString(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected string)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected string)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       if (value.isBlank()) {
-        throw new SpecException(type, parent, name, "Missing required key", MapUtils.ofNullable("key", key));
+        exceptions.add(new SpecException(type, parent, name, "Missing required key", MapUtils.ofNullable("key", key)));
+        continue;
       }
 
       StringConstraint constraint = stringConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
     for (String key : requiredNumbers) {
+      if (failed.contains(key)) {
+        continue;
+      }
+
       Number value;
 
       try {
         value = config.getNumber(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected number)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected number)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       NumberConstraint constraint = numberConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
     for (String key : requiredBooleans) {
+      if (failed.contains(key)) {
+        continue;
+      }
+
       Boolean value;
 
       try {
         value = config.getBoolean(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected boolean)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected boolean)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       BooleanConstraint constraint = booleanConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
     for (String key : requiredStringLists) {
+      if (failed.contains(key)) {
+        continue;
+      }
+
       List<String> value;
 
       try {
         value = config.getStringList(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected list<string>)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected list<string>)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       StringListConstraint constraint = stringListConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
     for (String key : requiredNumberLists) {
+      if (failed.contains(key)) {
+        continue;
+      }
+
       List<Number> value;
 
       try {
         value = config.getNumberList(key).stream().map(n -> (Number) n).toList();
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected list<number>)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected list<number>)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       NumberListConstraint constraint = numberListConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
     for (String key : requiredBooleanLists) {
+      if (failed.contains(key)) {
+        continue;
+      }
+
       List<Boolean> value;
 
       try {
         value = config.getBooleanList(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected list<boolean>)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected list<boolean>)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       BooleanListConstraint constraint = booleanListConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
@@ -483,16 +521,17 @@ public final class Spec {
       try {
         value = config.getString(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected string)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected string)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       StringConstraint constraint = stringConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
@@ -506,16 +545,17 @@ public final class Spec {
       try {
         value = config.getNumber(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected number)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected number)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       NumberConstraint constraint = numberConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
@@ -529,16 +569,17 @@ public final class Spec {
       try {
         value = config.getBoolean(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected boolean)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected boolean)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       BooleanConstraint constraint = booleanConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
@@ -552,16 +593,17 @@ public final class Spec {
       try {
         value = config.getStringList(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected list<string>)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected list<string>)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       StringListConstraint constraint = stringListConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
@@ -575,16 +617,17 @@ public final class Spec {
       try {
         value = config.getNumberList(key).stream().map(n -> (Number) n).toList();
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected list<number>)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected list<number>)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       NumberListConstraint constraint = numberListConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
@@ -598,16 +641,17 @@ public final class Spec {
       try {
         value = config.getBooleanList(key);
       } catch (ConfigException.WrongType e) {
-        throw new SpecException(type, parent, name, "Incorrect key type (expected list<boolean>)",
-            MapUtils.ofNullable("key", key), e);
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected list<boolean>)",
+            MapUtils.ofNullable("key", key), e));
+        continue;
       }
 
       BooleanListConstraint constraint = booleanListConstraints.get(key);
 
       if (constraint != null && !constraint.test(value)) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
-            MapUtils.ofNullable("key", key, "value", value));
+            MapUtils.ofNullable("key", key, "value", value)));
       }
     }
 
@@ -615,9 +659,9 @@ public final class Spec {
       long count = keys.stream().filter(config::hasPath).count();
 
       if (count != 1) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key combination (expected exactly one of " + String.join(", ", keys) + ")",
-            MapUtils.ofNullable("keys", keys, "count", count));
+            MapUtils.ofNullable("keys", keys, "count", count)));
       }
     }
 
@@ -625,9 +669,9 @@ public final class Spec {
       long count = keys.stream().filter(config::hasPath).count();
 
       if (count < 1) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key combination (expected at least one of " + String.join(", ", keys) + ")",
-            MapUtils.ofNullable("keys", keys, "count", count));
+            MapUtils.ofNullable("keys", keys, "count", count)));
       }
     }
 
@@ -635,9 +679,9 @@ public final class Spec {
       long count = keys.stream().filter(config::hasPath).count();
 
       if (count != 0 && count != keys.size()) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key combination (expected all or none of " + String.join(", ", keys) + ")",
-            MapUtils.ofNullable("keys", keys, "count", count));
+            MapUtils.ofNullable("keys", keys, "count", count)));
       }
     }
 
@@ -645,11 +689,13 @@ public final class Spec {
       long count = keys.stream().filter(config::hasPath).count();
 
       if (count > 1) {
-        throw new SpecException(type, parent, name,
+        exceptions.add(new SpecException(type, parent, name,
             "Invalid key combination (expected at most one of " + String.join(", ", keys) + ")",
-            MapUtils.ofNullable("keys", keys, "count", count));
+            MapUtils.ofNullable("keys", keys, "count", count)));
       }
     }
+
+    return exceptions;
   }
 
   /**

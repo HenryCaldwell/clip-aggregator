@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
 import com.typesafe.config.Config;
 
@@ -11,6 +12,7 @@ import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
+import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.util.MapUtils;
 
 /**
@@ -39,7 +41,11 @@ public abstract class AbstractTransformer implements Transformer {
         ? config.getString("name")
         : "UNNAMED_TRANSFORMER";
 
-    composite.validate(config, Transformer.TYPE, null, display);
+    List<SpecException> exceptions = composite.validate(config, Transformer.TYPE, null, display);
+
+    if (!exceptions.isEmpty()) {
+      throw exceptions.get(0);
+    }
 
     this.name = config.getString("name");
   }
