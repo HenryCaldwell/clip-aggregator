@@ -33,7 +33,7 @@ public class SpecExceptionTest {
   class GetCause {
 
     @Test
-    void returnsCauseWhenProvided() {
+    void returnsConfiguredCause() {
       Throwable cause = new RuntimeException("cause");
       SpecException ex = new SpecException(null, null, "name", "msg", null, cause);
 
@@ -41,7 +41,7 @@ public class SpecExceptionTest {
     }
 
     @Test
-    void returnsNullWhenNoCause() {
+    void returnsNullWhenCauseIsMissing() {
       SpecException ex = new SpecException(null, null, "name", "msg");
 
       assertNull(ex.getCause());

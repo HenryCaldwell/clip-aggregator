@@ -33,7 +33,7 @@ public class ComponentExceptionTest {
   class GetCause {
 
     @Test
-    void returnsCauseWhenProvided() {
+    void returnsConfiguredCause() {
       Throwable cause = new RuntimeException("cause");
       ComponentException ex = new ComponentException(null, null, "name", "msg", null, cause);
 
@@ -41,7 +41,7 @@ public class ComponentExceptionTest {
     }
 
     @Test
-    void returnsNullWhenNoCause() {
+    void returnsNullWhenCauseIsMissing() {
       ComponentException ex = new ComponentException(null, null, "name", "msg");
 
       assertNull(ex.getCause());

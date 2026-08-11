@@ -153,7 +153,7 @@ public class AbstractExceptionTest {
   class GetCause {
 
     @Test
-    void returnsCauseWhenProvided() {
+    void returnsConfiguredCause() {
       Throwable cause = new RuntimeException("cause");
       TestException ex = new TestException("CAT", null, null, "name", "msg", null, cause);
 
@@ -161,10 +161,100 @@ public class AbstractExceptionTest {
     }
 
     @Test
-    void returnsNullWhenNoCause() {
+    void returnsNullWhenCauseIsMissing() {
       TestException ex = new TestException("CAT", null, null, "name", "msg");
 
       assertNull(ex.getCause());
+    }
+  }
+
+  @Nested
+  class GetCategory {
+
+    @Test
+    void returnsConfiguredCategory() {
+      TestException ex = new TestException("CAT", null, null, "name", "msg");
+
+      assertEquals("CAT", ex.getCategory());
+    }
+
+    @Test
+    void returnsNullWhenCategoryIsMissing() {
+      TestException ex = new TestException(null, null, null, "name", "msg");
+
+      assertNull(ex.getCategory());
+    }
+  }
+
+  @Nested
+  class GetType {
+
+    @Test
+    void returnsConfiguredType() {
+      TestException ex = new TestException("CAT", ComponentType.RETRIEVER, null, "name", "msg");
+
+      assertEquals(ComponentType.RETRIEVER, ex.getType());
+    }
+
+    @Test
+    void returnsNullWhenTypeIsMissing() {
+      TestException ex = new TestException("CAT", null, null, "name", "msg");
+
+      assertNull(ex.getType());
+    }
+  }
+
+  @Nested
+  class GetParent {
+
+    @Test
+    void returnsConfiguredParent() {
+      TestException ex = new TestException("CAT", null, "parent", "name", "msg");
+
+      assertEquals("parent", ex.getParent());
+    }
+
+    @Test
+    void returnsNullWhenParentIsMissing() {
+      TestException ex = new TestException("CAT", null, null, "name", "msg");
+
+      assertNull(ex.getParent());
+    }
+  }
+
+  @Nested
+  class GetName {
+
+    @Test
+    void returnsConfiguredName() {
+      TestException ex = new TestException("CAT", null, null, "name", "msg");
+
+      assertEquals("name", ex.getName());
+    }
+
+    @Test
+    void returnsNullWhenNameIsMissing() {
+      TestException ex = new TestException("CAT", null, null, null, "msg");
+
+      assertNull(ex.getName());
+    }
+  }
+
+  @Nested
+  class GetDetails {
+
+    @Test
+    void returnsConfiguredDetails() {
+      TestException ex = new TestException("CAT", null, null, "name", "msg", Map.of("key", "value"));
+
+      assertEquals(Map.of("key", "value"), ex.getDetails());
+    }
+
+    @Test
+    void returnsNullWhenDetailsAreMissing() {
+      TestException ex = new TestException("CAT", null, null, "name", "msg");
+
+      assertNull(ex.getDetails());
     }
   }
 
