@@ -425,6 +425,169 @@ public class SpecTest {
     }
 
     @Nested
+    class KeyGroups {
+
+      @Test
+      void throwsOnEmptyGroupForExactlyOne() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .exactlyOne("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key combination (expected exactly one of a, b)"));
+        assertTrue(exception.getMessage().contains("count=0"));
+      }
+
+      @Test
+      void throwsOnMultipleKeysForExactlyOne() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .exactlyOne("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("a = 1, b = 2");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key combination (expected exactly one of a, b)"));
+        assertTrue(exception.getMessage().contains("count=2"));
+      }
+
+      @Test
+      void doesNotThrowOnSingleKeyForExactlyOne() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .exactlyOne("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("a = 1");
+
+        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+      }
+
+      @Test
+      void throwsOnEmptyGroupForAtLeastOne() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .atLeastOne("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key combination (expected at least one of a, b)"));
+        assertTrue(exception.getMessage().contains("count=0"));
+      }
+
+      @Test
+      void doesNotThrowOnSingleKeyForAtLeastOne() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .atLeastOne("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("a = 1");
+
+        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+      }
+
+      @Test
+      void doesNotThrowOnAllKeysForAtLeastOne() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .atLeastOne("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("a = 1, b = 2");
+
+        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+      }
+
+      @Test
+      void throwsOnPartialGroupForMutuallyInclusive() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .mutuallyInclusive("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("a = 1");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key combination (expected all or none of a, b)"));
+        assertTrue(exception.getMessage().contains("count=1"));
+      }
+
+      @Test
+      void doesNotThrowOnEmptyGroupForMutuallyInclusive() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .mutuallyInclusive("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("");
+
+        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+      }
+
+      @Test
+      void doesNotThrowOnAllKeysForMutuallyInclusive() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .mutuallyInclusive("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("a = 1, b = 2");
+
+        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+      }
+
+      @Test
+      void throwsOnMultipleKeysForMutuallyExclusive() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .mutuallyExclusive("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("a = 1, b = 2");
+
+        SpecException exception = assertThrows(SpecException.class, () -> spec.validate(config, ComponentType.ROOT, null, "test"));
+
+        assertTrue(exception.getMessage().contains("Invalid key combination (expected at most one of a, b)"));
+        assertTrue(exception.getMessage().contains("count=2"));
+      }
+
+      @Test
+      void doesNotThrowOnEmptyGroupForMutuallyExclusive() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .mutuallyExclusive("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("");
+
+        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+      }
+
+      @Test
+      void doesNotThrowOnSingleKeyForMutuallyExclusive() {
+        Spec spec = Spec.builder()
+            .optionalString("a", "b")
+            .mutuallyExclusive("a", "b")
+            .build();
+
+        Config config = ConfigFactory.parseString("a = 1");
+
+        assertDoesNotThrow(() -> spec.validate(config, ComponentType.ROOT, null, "test"));
+      }
+    }
+
+    @Nested
     class ConstraintChecks {
 
       @Test
@@ -722,6 +885,32 @@ public class SpecTest {
       Config config = ConfigFactory.parseString("");
 
       assertDoesNotThrow(() -> union.validate(config, ComponentType.ROOT, null, "test"));
+    }
+
+    @Test
+    void keyGroupsFromBothSpecsAreEnforced() {
+      Spec specA = Spec.builder()
+          .optionalString("a", "b")
+          .exactlyOne("a", "b")
+          .build();
+
+      Spec specB = Spec.builder()
+          .optionalString("c", "d")
+          .mutuallyExclusive("c", "d")
+          .build();
+
+      Spec union = Spec.union(specA, specB);
+
+      Config valid = ConfigFactory.parseString("a = 1");
+      Config specAViolation = ConfigFactory.parseString("a = 1, b = 2, c = 3");
+      Config specBViolation = ConfigFactory.parseString("a = 1, c = 3, d = 4");
+
+      SpecException exactlyOneViolation = assertThrows(SpecException.class, () -> union.validate(specAViolation, ComponentType.ROOT, null, "test"));
+      SpecException mutuallyExclusiveViolation = assertThrows(SpecException.class, () -> union.validate(specBViolation, ComponentType.ROOT, null, "test"));
+
+      assertTrue(exactlyOneViolation.getMessage().contains("Invalid key combination (expected exactly one of a, b)"));
+      assertTrue(mutuallyExclusiveViolation.getMessage().contains("Invalid key combination (expected at most one of c, d)"));
+      assertDoesNotThrow(() -> union.validate(valid, ComponentType.ROOT, null, "test"));
     }
   }
 
