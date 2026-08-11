@@ -1,5 +1,6 @@
 package info.henrycaldwell.streamline.config;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -35,6 +36,11 @@ public final class Spec {
   private final Set<String> optionalNumberLists = new LinkedHashSet<>();
   private final Set<String> requiredBooleanLists = new LinkedHashSet<>();
   private final Set<String> optionalBooleanLists = new LinkedHashSet<>();
+
+  private final List<List<String>> exactlyOneGroups = new ArrayList<>();
+  private final List<List<String>> atLeastOneGroups = new ArrayList<>();
+  private final List<List<String>> mutuallyInclusiveGroups = new ArrayList<>();
+  private final List<List<String>> mutuallyExclusiveGroups = new ArrayList<>();
 
   private final Map<String, StringConstraint> stringConstraints = new LinkedHashMap<>();
   private final Map<String, NumberConstraint> numberConstraints = new LinkedHashMap<>();
@@ -74,6 +80,11 @@ public final class Spec {
       composite.optionalNumberLists.addAll(spec.optionalNumberLists);
       composite.requiredBooleanLists.addAll(spec.requiredBooleanLists);
       composite.optionalBooleanLists.addAll(spec.optionalBooleanLists);
+
+      composite.exactlyOneGroups.addAll(spec.exactlyOneGroups);
+      composite.atLeastOneGroups.addAll(spec.atLeastOneGroups);
+      composite.mutuallyInclusiveGroups.addAll(spec.mutuallyInclusiveGroups);
+      composite.mutuallyExclusiveGroups.addAll(spec.mutuallyExclusiveGroups);
 
       composite.stringConstraints.putAll(spec.stringConstraints);
       composite.numberConstraints.putAll(spec.numberConstraints);
@@ -192,6 +203,42 @@ public final class Spec {
    */
   private void addOptionalBooleanList(String param) {
     optionalBooleanLists.add(param);
+  }
+
+  /**
+   * Adds an exactly-one key group to this spec.
+   *
+   * @param keys A {@link List} of strings representing the group keys.
+   */
+  private void addExactlyOneGroup(List<String> keys) {
+    exactlyOneGroups.add(keys);
+  }
+
+  /**
+   * Adds an at-least-one key group to this spec.
+   *
+   * @param keys A {@link List} of strings representing the group keys.
+   */
+  private void addAtLeastOneGroup(List<String> keys) {
+    atLeastOneGroups.add(keys);
+  }
+
+  /**
+   * Adds a mutually inclusive key group to this spec.
+   *
+   * @param keys A {@link List} of strings representing the group keys.
+   */
+  private void addMutuallyInclusiveGroup(List<String> keys) {
+    mutuallyInclusiveGroups.add(keys);
+  }
+
+  /**
+   * Adds a mutually exclusive key group to this spec.
+   *
+   * @param keys A {@link List} of strings representing the group keys.
+   */
+  private void addMutuallyExclusiveGroup(List<String> keys) {
+    mutuallyExclusiveGroups.add(keys);
   }
 
   /**
@@ -561,6 +608,46 @@ public final class Spec {
         throw new SpecException(type, parent, name,
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
             MapUtils.ofNullable("key", key, "value", value));
+      }
+    }
+
+    for (List<String> keys : exactlyOneGroups) {
+      long count = keys.stream().filter(config::hasPath).count();
+
+      if (count != 1) {
+        throw new SpecException(type, parent, name,
+            "Invalid key combination (expected exactly one of " + String.join(", ", keys) + ")",
+            MapUtils.ofNullable("keys", keys, "count", count));
+      }
+    }
+
+    for (List<String> keys : atLeastOneGroups) {
+      long count = keys.stream().filter(config::hasPath).count();
+
+      if (count < 1) {
+        throw new SpecException(type, parent, name,
+            "Invalid key combination (expected at least one of " + String.join(", ", keys) + ")",
+            MapUtils.ofNullable("keys", keys, "count", count));
+      }
+    }
+
+    for (List<String> keys : mutuallyInclusiveGroups) {
+      long count = keys.stream().filter(config::hasPath).count();
+
+      if (count != 0 && count != keys.size()) {
+        throw new SpecException(type, parent, name,
+            "Invalid key combination (expected all or none of " + String.join(", ", keys) + ")",
+            MapUtils.ofNullable("keys", keys, "count", count));
+      }
+    }
+
+    for (List<String> keys : mutuallyExclusiveGroups) {
+      long count = keys.stream().filter(config::hasPath).count();
+
+      if (count > 1) {
+        throw new SpecException(type, parent, name,
+            "Invalid key combination (expected at most one of " + String.join(", ", keys) + ")",
+            MapUtils.ofNullable("keys", keys, "count", count));
       }
     }
   }
@@ -950,6 +1037,50 @@ public final class Spec {
         spec.constrainBooleanList(param, constraint);
       }
 
+      return this;
+    }
+
+    /**
+     * Adds an exactly-one key group to the spec.
+     *
+     * @param keys An array of strings representing the group keys.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder exactlyOne(String... keys) {
+      spec.addExactlyOneGroup(List.of(keys));
+      return this;
+    }
+
+    /**
+     * Adds an at-least-one key group to the spec.
+     *
+     * @param keys An array of strings representing the group keys.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder atLeastOne(String... keys) {
+      spec.addAtLeastOneGroup(List.of(keys));
+      return this;
+    }
+
+    /**
+     * Adds a mutually inclusive key group to the spec.
+     *
+     * @param keys An array of strings representing the group keys.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder mutuallyInclusive(String... keys) {
+      spec.addMutuallyInclusiveGroup(List.of(keys));
+      return this;
+    }
+
+    /**
+     * Adds a mutually exclusive key group to the spec.
+     *
+     * @param keys An array of strings representing the group keys.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder mutuallyExclusive(String... keys) {
+      spec.addMutuallyExclusiveGroup(List.of(keys));
       return this;
     }
 
