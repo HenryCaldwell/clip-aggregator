@@ -10,7 +10,6 @@ import java.util.Set;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
-import com.typesafe.config.ConfigValue;
 
 import info.henrycaldwell.streamline.error.ComponentType;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -31,12 +30,16 @@ public final class Spec {
   private final Set<String> optionalNumbers = new LinkedHashSet<>();
   private final Set<String> requiredBooleans = new LinkedHashSet<>();
   private final Set<String> optionalBooleans = new LinkedHashSet<>();
+  private final Set<String> requiredObjects = new LinkedHashSet<>();
+  private final Set<String> optionalObjects = new LinkedHashSet<>();
   private final Set<String> requiredStringLists = new LinkedHashSet<>();
   private final Set<String> optionalStringLists = new LinkedHashSet<>();
   private final Set<String> requiredNumberLists = new LinkedHashSet<>();
   private final Set<String> optionalNumberLists = new LinkedHashSet<>();
   private final Set<String> requiredBooleanLists = new LinkedHashSet<>();
   private final Set<String> optionalBooleanLists = new LinkedHashSet<>();
+  private final Set<String> requiredObjectLists = new LinkedHashSet<>();
+  private final Set<String> optionalObjectLists = new LinkedHashSet<>();
 
   private final List<List<String>> exactlyOneGroups = new ArrayList<>();
   private final List<List<String>> atLeastOneGroups = new ArrayList<>();
@@ -75,12 +78,16 @@ public final class Spec {
       composite.optionalNumbers.addAll(spec.optionalNumbers);
       composite.requiredBooleans.addAll(spec.requiredBooleans);
       composite.optionalBooleans.addAll(spec.optionalBooleans);
+      composite.requiredObjects.addAll(spec.requiredObjects);
+      composite.optionalObjects.addAll(spec.optionalObjects);
       composite.requiredStringLists.addAll(spec.requiredStringLists);
       composite.optionalStringLists.addAll(spec.optionalStringLists);
       composite.requiredNumberLists.addAll(spec.requiredNumberLists);
       composite.optionalNumberLists.addAll(spec.optionalNumberLists);
       composite.requiredBooleanLists.addAll(spec.requiredBooleanLists);
       composite.optionalBooleanLists.addAll(spec.optionalBooleanLists);
+      composite.requiredObjectLists.addAll(spec.requiredObjectLists);
+      composite.optionalObjectLists.addAll(spec.optionalObjectLists);
 
       composite.exactlyOneGroups.addAll(spec.exactlyOneGroups);
       composite.atLeastOneGroups.addAll(spec.atLeastOneGroups);
@@ -153,6 +160,24 @@ public final class Spec {
   }
 
   /**
+   * Adds a single required object key to this spec.
+   *
+   * @param param A string representing the key name.
+   */
+  private void addRequiredObject(String param) {
+    requiredObjects.add(param);
+  }
+
+  /**
+   * Adds a single optional object key to this spec.
+   *
+   * @param param A string representing the key name.
+   */
+  private void addOptionalObject(String param) {
+    optionalObjects.add(param);
+  }
+
+  /**
    * Adds a single required string list key to this spec.
    *
    * @param param A string representing the key name.
@@ -204,6 +229,24 @@ public final class Spec {
    */
   private void addOptionalBooleanList(String param) {
     optionalBooleanLists.add(param);
+  }
+
+  /**
+   * Adds a single required object list key to this spec.
+   *
+   * @param param A string representing the key name.
+   */
+  private void addRequiredObjectList(String param) {
+    requiredObjectLists.add(param);
+  }
+
+  /**
+   * Adds a single optional object list key to this spec.
+   *
+   * @param param A string representing the key name.
+   */
+  private void addOptionalObjectList(String param) {
+    optionalObjectLists.add(param);
   }
 
   /**
@@ -349,23 +392,27 @@ public final class Spec {
     legal.addAll(optionalNumbers);
     legal.addAll(requiredBooleans);
     legal.addAll(optionalBooleans);
+    legal.addAll(requiredObjects);
+    legal.addAll(optionalObjects);
     legal.addAll(requiredStringLists);
     legal.addAll(optionalStringLists);
     legal.addAll(requiredNumberLists);
     legal.addAll(optionalNumberLists);
     legal.addAll(requiredBooleanLists);
     legal.addAll(optionalBooleanLists);
+    legal.addAll(requiredObjectLists);
+    legal.addAll(optionalObjectLists);
 
     required.addAll(requiredStrings);
     required.addAll(requiredNumbers);
     required.addAll(requiredBooleans);
+    required.addAll(requiredObjects);
     required.addAll(requiredStringLists);
     required.addAll(requiredNumberLists);
     required.addAll(requiredBooleanLists);
+    required.addAll(requiredObjectLists);
 
-    for (Map.Entry<String, ConfigValue> entry : config.entrySet()) {
-      String key = entry.getKey();
-
+    for (String key : config.root().keySet()) {
       if (!legal.contains(key)) {
         exceptions.add(new SpecException(type, parent, name, "Unknown configuration key",
             index >= 0 ? MapUtils.ofNullable("index", index, "key", key) : MapUtils.ofNullable("key", key)));
@@ -461,6 +508,19 @@ public final class Spec {
       }
     }
 
+    for (String key : requiredObjects) {
+      if (failed.contains(key)) {
+        continue;
+      }
+
+      try {
+        config.getObject(key);
+      } catch (ConfigException.WrongType e) {
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected object)",
+            index >= 0 ? MapUtils.ofNullable("index", index, "key", key) : MapUtils.ofNullable("key", key), e));
+      }
+    }
+
     for (String key : requiredStringLists) {
       if (failed.contains(key)) {
         continue;
@@ -533,6 +593,19 @@ public final class Spec {
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
             index >= 0 ? MapUtils.ofNullable("index", index, "key", key, "value", value)
                 : MapUtils.ofNullable("key", key, "value", value)));
+      }
+    }
+
+    for (String key : requiredObjectLists) {
+      if (failed.contains(key)) {
+        continue;
+      }
+
+      try {
+        config.getConfigList(key);
+      } catch (ConfigException.WrongType e) {
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected list<object>)",
+            index >= 0 ? MapUtils.ofNullable("index", index, "key", key) : MapUtils.ofNullable("key", key), e));
       }
     }
 
@@ -611,6 +684,19 @@ public final class Spec {
       }
     }
 
+    for (String key : optionalObjects) {
+      if (!config.hasPath(key)) {
+        continue;
+      }
+
+      try {
+        config.getObject(key);
+      } catch (ConfigException.WrongType e) {
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected object)",
+            index >= 0 ? MapUtils.ofNullable("index", index, "key", key) : MapUtils.ofNullable("key", key), e));
+      }
+    }
+
     for (String key : optionalStringLists) {
       if (!config.hasPath(key)) {
         continue;
@@ -683,6 +769,19 @@ public final class Spec {
             "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
             index >= 0 ? MapUtils.ofNullable("index", index, "key", key, "value", value)
                 : MapUtils.ofNullable("key", key, "value", value)));
+      }
+    }
+
+    for (String key : optionalObjectLists) {
+      if (!config.hasPath(key)) {
+        continue;
+      }
+
+      try {
+        config.getConfigList(key);
+      } catch (ConfigException.WrongType e) {
+        exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected list<object>)",
+            index >= 0 ? MapUtils.ofNullable("index", index, "key", key) : MapUtils.ofNullable("key", key), e));
       }
     }
 
@@ -930,6 +1029,34 @@ public final class Spec {
     }
 
     /**
+     * Adds one or more required object keys to the spec.
+     *
+     * @param params An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredObject(String... params) {
+      for (String param : params) {
+        spec.addRequiredObject(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional object keys to the spec.
+     *
+     * @param params An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalObject(String... params) {
+      for (String param : params) {
+        spec.addOptionalObject(param);
+      }
+
+      return this;
+    }
+
+    /**
      * Adds one or more required string list keys to the spec.
      *
      * @param params An array of strings representing key names.
@@ -1116,6 +1243,34 @@ public final class Spec {
       for (String param : params) {
         spec.addOptionalBooleanList(param);
         spec.constrainBooleanList(param, constraint);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more required object list keys to the spec.
+     *
+     * @param params An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredObjectList(String... params) {
+      for (String param : params) {
+        spec.addRequiredObjectList(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional object list keys to the spec.
+     *
+     * @param params An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalObjectList(String... params) {
+      for (String param : params) {
+        spec.addOptionalObjectList(param);
       }
 
       return this;

@@ -108,6 +108,20 @@ public class SpecTest {
       }
 
       @Test
+      void throwsOnMissingRequiredObject() {
+        Spec spec = Spec.builder()
+            .requiredObject("nested")
+            .build();
+
+        Config config = ConfigFactory.parseString("");
+
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
+
+        assertTrue(exception.getMessage().contains("Missing required key"));
+        assertTrue(exception.getMessage().contains("key=nested"));
+      }
+
+      @Test
       void throwsOnMissingRequiredStringList() {
         Spec spec = Spec.builder()
             .requiredStringList("tags")
@@ -147,6 +161,20 @@ public class SpecTest {
 
         assertTrue(exception.getMessage().contains("Missing required key"));
         assertTrue(exception.getMessage().contains("key=flags"));
+      }
+
+      @Test
+      void throwsOnMissingRequiredObjectList() {
+        Spec spec = Spec.builder()
+            .requiredObjectList("items")
+            .build();
+
+        Config config = ConfigFactory.parseString("");
+
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
+
+        assertTrue(exception.getMessage().contains("Missing required key"));
+        assertTrue(exception.getMessage().contains("key=items"));
       }
 
       @Test
@@ -192,6 +220,20 @@ public class SpecTest {
       }
 
       @Test
+      void throwsOnWrongTypeForRequiredObject() {
+        Spec spec = Spec.builder()
+            .requiredObject("nested")
+            .build();
+
+        Config config = ConfigFactory.parseString("nested = [1, 2, 3]");
+
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected object)"));
+        assertTrue(exception.getMessage().contains("key=nested"));
+      }
+
+      @Test
       void throwsOnWrongTypeForRequiredStringList() {
         Spec spec = Spec.builder()
             .requiredStringList("tags")
@@ -234,18 +276,34 @@ public class SpecTest {
       }
 
       @Test
+      void throwsOnWrongTypeForRequiredObjectList() {
+        Spec spec = Spec.builder()
+            .requiredObjectList("items")
+            .build();
+
+        Config config = ConfigFactory.parseString("items = 123");
+
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected list<object>)"));
+        assertTrue(exception.getMessage().contains("key=items"));
+      }
+
+      @Test
       void doesNotThrowWhenAllRequiredKeysPresentWithCorrectTypes() {
         Spec spec = Spec.builder()
             .requiredString("name")
             .requiredNumber("count")
             .requiredBoolean("enabled")
+            .requiredObject("nested")
             .requiredStringList("tags")
             .requiredNumberList("counts")
             .requiredBooleanList("flags")
+            .requiredObjectList("items")
             .build();
 
         Config config = ConfigFactory.parseString(
-            "name = test, count = 1, enabled = true, tags = [a, b], counts = [1, 2], flags = [true, false]");
+            "name = test, count = 1, enabled = true, nested = {x = 1}, tags = [a, b], counts = [1, 2], flags = [true, false], items = [{a = 1}]");
 
         assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
@@ -288,6 +346,17 @@ public class SpecTest {
       }
 
       @Test
+      void doesNotThrowWhenOptionalObjectMissing() {
+        Spec spec = Spec.builder()
+            .optionalObject("nested")
+            .build();
+
+        Config config = ConfigFactory.parseString("");
+
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
+      }
+
+      @Test
       void doesNotThrowWhenOptionalStringListMissing() {
         Spec spec = Spec.builder()
             .optionalStringList("tags")
@@ -313,6 +382,17 @@ public class SpecTest {
       void doesNotThrowWhenOptionalBooleanListMissing() {
         Spec spec = Spec.builder()
             .optionalBooleanList("flags")
+            .build();
+
+        Config config = ConfigFactory.parseString("");
+
+        assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
+      }
+
+      @Test
+      void doesNotThrowWhenOptionalObjectListMissing() {
+        Spec spec = Spec.builder()
+            .optionalObjectList("items")
             .build();
 
         Config config = ConfigFactory.parseString("");
@@ -363,6 +443,20 @@ public class SpecTest {
       }
 
       @Test
+      void throwsOnWrongTypeForOptionalObject() {
+        Spec spec = Spec.builder()
+            .optionalObject("nested")
+            .build();
+
+        Config config = ConfigFactory.parseString("nested = [1, 2, 3]");
+
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected object)"));
+        assertTrue(exception.getMessage().contains("key=nested"));
+      }
+
+      @Test
       void throwsOnWrongTypeForOptionalStringList() {
         Spec spec = Spec.builder()
             .optionalStringList("tags")
@@ -405,18 +499,34 @@ public class SpecTest {
       }
 
       @Test
+      void throwsOnWrongTypeForOptionalObjectList() {
+        Spec spec = Spec.builder()
+            .optionalObjectList("items")
+            .build();
+
+        Config config = ConfigFactory.parseString("items = 123");
+
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
+
+        assertTrue(exception.getMessage().contains("Incorrect key type (expected list<object>)"));
+        assertTrue(exception.getMessage().contains("key=items"));
+      }
+
+      @Test
       void doesNotThrowWhenAllOptionalKeysPresentWithCorrectTypes() {
         Spec spec = Spec.builder()
             .optionalString("name")
             .optionalNumber("count")
             .optionalBoolean("enabled")
+            .optionalObject("nested")
             .optionalStringList("tags")
             .optionalNumberList("counts")
             .optionalBooleanList("flags")
+            .optionalObjectList("items")
             .build();
 
         Config config = ConfigFactory.parseString(
-            "name = test, count = 1, enabled = true, tags = [a, b], counts = [1, 2], flags = [true, false]");
+            "name = test, count = 1, enabled = true, nested = {x = 1}, tags = [a, b], counts = [1, 2], flags = [true, false], items = [{a = 1}]");
 
         assertTrue(spec.validate(config, ComponentType.ROOT, null, "test").isEmpty());
       }
@@ -904,10 +1014,12 @@ public class SpecTest {
       Config specBViolation = ConfigFactory.parseString("a = 1, c = 3, d = 4");
 
       SpecException exactlyOneViolation = union.validate(specAViolation, ComponentType.ROOT, null, "test").get(0);
-      SpecException mutuallyExclusiveViolation = union.validate(specBViolation, ComponentType.ROOT, null, "test").get(0);
+      SpecException mutuallyExclusiveViolation = union.validate(specBViolation, ComponentType.ROOT, null, "test")
+          .get(0);
 
       assertTrue(exactlyOneViolation.getMessage().contains("Invalid key combination (expected exactly one of a, b)"));
-      assertTrue(mutuallyExclusiveViolation.getMessage().contains("Invalid key combination (expected at most one of c, d)"));
+      assertTrue(
+          mutuallyExclusiveViolation.getMessage().contains("Invalid key combination (expected at most one of c, d)"));
       assertTrue(union.validate(valid, ComponentType.ROOT, null, "test").isEmpty());
     }
   }
