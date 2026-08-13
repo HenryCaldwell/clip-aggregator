@@ -49,9 +49,11 @@ public final class Spec {
   private final Map<String, StringConstraint> stringConstraints = new LinkedHashMap<>();
   private final Map<String, NumberConstraint> numberConstraints = new LinkedHashMap<>();
   private final Map<String, BooleanConstraint> booleanConstraints = new LinkedHashMap<>();
+  private final Map<String, ObjectConstraint> objectConstraints = new LinkedHashMap<>();
   private final Map<String, StringListConstraint> stringListConstraints = new LinkedHashMap<>();
   private final Map<String, NumberListConstraint> numberListConstraints = new LinkedHashMap<>();
   private final Map<String, BooleanListConstraint> booleanListConstraints = new LinkedHashMap<>();
+  private final Map<String, ObjectListConstraint> objectListConstraints = new LinkedHashMap<>();
 
   /**
    * Creates a new builder for constructing a spec.
@@ -97,9 +99,11 @@ public final class Spec {
       composite.stringConstraints.putAll(spec.stringConstraints);
       composite.numberConstraints.putAll(spec.numberConstraints);
       composite.booleanConstraints.putAll(spec.booleanConstraints);
+      composite.objectConstraints.putAll(spec.objectConstraints);
       composite.stringListConstraints.putAll(spec.stringListConstraints);
       composite.numberListConstraints.putAll(spec.numberListConstraints);
       composite.booleanListConstraints.putAll(spec.booleanListConstraints);
+      composite.objectListConstraints.putAll(spec.objectListConstraints);
     }
 
     return composite;
@@ -319,6 +323,17 @@ public final class Spec {
   }
 
   /**
+   * Attaches a value constraint to an object key in this spec.
+   *
+   * @param param      A string representing the key name.
+   * @param constraint An {@link ObjectConstraint} representing the value
+   *                   constraint.
+   */
+  private void constrainObject(String param, ObjectConstraint constraint) {
+    objectConstraints.put(param, constraint);
+  }
+
+  /**
    * Attaches a value constraint to a string list key in this spec.
    *
    * @param param      A string representing the key name.
@@ -349,6 +364,17 @@ public final class Spec {
    */
   private void constrainBooleanList(String param, BooleanListConstraint constraint) {
     booleanListConstraints.put(param, constraint);
+  }
+
+  /**
+   * Attaches a value constraint to an object list key in this spec.
+   *
+   * @param param      A string representing the key name.
+   * @param constraint An {@link ObjectListConstraint} representing the value
+   *                   constraint.
+   */
+  private void constrainObjectList(String param, ObjectListConstraint constraint) {
+    objectListConstraints.put(param, constraint);
   }
 
   /**
@@ -513,11 +539,23 @@ public final class Spec {
         continue;
       }
 
+      Config value;
+
       try {
-        config.getObject(key);
+        value = config.getConfig(key);
       } catch (ConfigException.WrongType e) {
         exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected object)",
             index >= 0 ? MapUtils.ofNullable("index", index, "key", key) : MapUtils.ofNullable("key", key), e));
+        continue;
+      }
+
+      ObjectConstraint constraint = objectConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        exceptions.add(new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            index >= 0 ? MapUtils.ofNullable("index", index, "key", key)
+                : MapUtils.ofNullable("key", key)));
       }
     }
 
@@ -601,11 +639,23 @@ public final class Spec {
         continue;
       }
 
+      List<? extends Config> value;
+
       try {
-        config.getConfigList(key);
+        value = config.getConfigList(key);
       } catch (ConfigException.WrongType e) {
         exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected list<object>)",
             index >= 0 ? MapUtils.ofNullable("index", index, "key", key) : MapUtils.ofNullable("key", key), e));
+        continue;
+      }
+
+      ObjectListConstraint constraint = objectListConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        exceptions.add(new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            index >= 0 ? MapUtils.ofNullable("index", index, "key", key)
+                : MapUtils.ofNullable("key", key)));
       }
     }
 
@@ -689,11 +739,23 @@ public final class Spec {
         continue;
       }
 
+      Config value;
+
       try {
-        config.getObject(key);
+        value = config.getConfig(key);
       } catch (ConfigException.WrongType e) {
         exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected object)",
             index >= 0 ? MapUtils.ofNullable("index", index, "key", key) : MapUtils.ofNullable("key", key), e));
+        continue;
+      }
+
+      ObjectConstraint constraint = objectConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        exceptions.add(new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            index >= 0 ? MapUtils.ofNullable("index", index, "key", key)
+                : MapUtils.ofNullable("key", key)));
       }
     }
 
@@ -777,11 +839,23 @@ public final class Spec {
         continue;
       }
 
+      List<? extends Config> value;
+
       try {
-        config.getConfigList(key);
+        value = config.getConfigList(key);
       } catch (ConfigException.WrongType e) {
         exceptions.add(new SpecException(type, parent, name, "Incorrect key type (expected list<object>)",
             index >= 0 ? MapUtils.ofNullable("index", index, "key", key) : MapUtils.ofNullable("key", key), e));
+        continue;
+      }
+
+      ObjectListConstraint constraint = objectListConstraints.get(key);
+
+      if (constraint != null && !constraint.test(value)) {
+        exceptions.add(new SpecException(type, parent, name,
+            "Invalid key value (expected " + key + " to be " + constraint.describe() + ")",
+            index >= 0 ? MapUtils.ofNullable("index", index, "key", key)
+                : MapUtils.ofNullable("key", key)));
       }
     }
 
@@ -1043,6 +1117,23 @@ public final class Spec {
     }
 
     /**
+     * Adds one or more required object keys with a value constraint to the spec.
+     *
+     * @param constraint An {@link ObjectConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredObject(ObjectConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addRequiredObject(param);
+        spec.constrainObject(param, constraint);
+      }
+
+      return this;
+    }
+
+    /**
      * Adds one or more optional object keys to the spec.
      *
      * @param params An array of strings representing key names.
@@ -1051,6 +1142,23 @@ public final class Spec {
     public SpecBuilder optionalObject(String... params) {
       for (String param : params) {
         spec.addOptionalObject(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional object keys with a value constraint to the spec.
+     *
+     * @param constraint An {@link ObjectConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalObject(ObjectConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addOptionalObject(param);
+        spec.constrainObject(param, constraint);
       }
 
       return this;
@@ -1263,6 +1371,24 @@ public final class Spec {
     }
 
     /**
+     * Adds one or more required object list keys with a value constraint to the
+     * spec.
+     *
+     * @param constraint An {@link ObjectListConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder requiredObjectList(ObjectListConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addRequiredObjectList(param);
+        spec.constrainObjectList(param, constraint);
+      }
+
+      return this;
+    }
+
+    /**
      * Adds one or more optional object list keys to the spec.
      *
      * @param params An array of strings representing key names.
@@ -1271,6 +1397,24 @@ public final class Spec {
     public SpecBuilder optionalObjectList(String... params) {
       for (String param : params) {
         spec.addOptionalObjectList(param);
+      }
+
+      return this;
+    }
+
+    /**
+     * Adds one or more optional object list keys with a value constraint to the
+     * spec.
+     *
+     * @param constraint An {@link ObjectListConstraint} representing the value
+     *                   constraint.
+     * @param params     An array of strings representing key names.
+     * @return A {@link SpecBuilder} for chaining additional keys.
+     */
+    public SpecBuilder optionalObjectList(ObjectListConstraint constraint, String... params) {
+      for (String param : params) {
+        spec.addOptionalObjectList(param);
+        spec.constrainObjectList(param, constraint);
       }
 
       return this;
