@@ -15,7 +15,7 @@ import info.henrycaldwell.streamline.error.SpecException;
  */
 public abstract class AbstractHistory implements History {
 
-  protected static final Spec BASE_SPEC = Spec.builder()
+  public static final Spec BASE_SPEC = Spec.builder()
       .requiredString("name", "type")
       .build();
 
@@ -30,11 +30,11 @@ public abstract class AbstractHistory implements History {
   protected AbstractHistory(Config config, Spec spec) {
     Spec composite = Spec.union(BASE_SPEC, spec);
 
-    String display = config.hasPath("name") && !config.getString("name").isBlank()
+    String name = config.hasPath("name") && !config.getString("name").isBlank()
         ? config.getString("name")
         : "UNNAMED_HISTORY";
 
-    List<SpecException> exceptions = composite.validate(config, History.TYPE, null, display);
+    List<SpecException> exceptions = composite.validate(config, History.TYPE, null, name);
 
     if (!exceptions.isEmpty()) {
       throw exceptions.get(0);

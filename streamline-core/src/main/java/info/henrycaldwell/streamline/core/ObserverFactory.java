@@ -1,8 +1,14 @@
 package info.henrycaldwell.streamline.core;
 
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.error.SpecException;
+import info.henrycaldwell.streamline.observe.AbstractObserver;
 import info.henrycaldwell.streamline.observe.NoOpObserver;
 import info.henrycaldwell.streamline.observe.Observer;
 import info.henrycaldwell.streamline.observe.SqliteObserver;
@@ -16,7 +22,36 @@ import info.henrycaldwell.streamline.util.MapUtils;
  */
 public final class ObserverFactory {
 
+  private static final Map<String, Entry> REGISTRY = Map.of(
+      "sqlite", new Entry(SqliteObserver.SPEC, SqliteObserver::new),
+      "no_op", new Entry(NoOpObserver.SPEC, NoOpObserver::new));
+
   private ObserverFactory() {
+  }
+
+  /**
+   * Validates an observer configuration block.
+   *
+   * @param config A {@link Config} representing the observer configuration.
+   * @return A {@link List} of {@link SpecException} representing the accumulated
+   *         validation exceptions, or an empty list if validation passes.
+   */
+  public static List<SpecException> validate(Config config) {
+    String name = config.hasPath("name") && !config.getString("name").isBlank() ? config.getString("name")
+        : "UNNAMED_OBSERVER";
+    String type = config.hasPath("type") && !config.getString("type").isBlank() ? config.getString("type") : null;
+
+    Entry entry = type != null ? REGISTRY.get(type) : null;
+    Spec composite = entry != null ? Spec.union(AbstractObserver.BASE_SPEC, entry.spec()) : AbstractObserver.BASE_SPEC;
+
+    List<SpecException> exceptions = composite.validate(config, Observer.TYPE, null, name);
+
+    if (type != null && entry == null) {
+      exceptions.add(new SpecException(Observer.TYPE, null, name, "Unknown observer type",
+          MapUtils.ofNullable("type", type)));
+    }
+
+    return exceptions;
   }
 
   /**
@@ -28,28 +63,15 @@ public final class ObserverFactory {
    *                       unknown.
    */
   public static Observer fromConfig(Config config) {
-    if (!config.hasPath("name") || config.getString("name").isBlank()) {
-      throw new SpecException(Observer.TYPE, null, "UNNAMED_OBSERVER", "Missing required key",
-          MapUtils.ofNullable("key", "name"));
+    List<SpecException> exceptions = validate(config);
+
+    if (!exceptions.isEmpty()) {
+      throw exceptions.get(0);
     }
 
-    String name = config.getString("name");
+    return REGISTRY.get(config.getString("type")).factory().apply(config);
+  }
 
-    if (!config.hasPath("type") || config.getString("type").isBlank()) {
-      throw new SpecException(Observer.TYPE, null, name, "Missing required key", MapUtils.ofNullable("key", "type"));
-    }
-
-    String type = config.getString("type");
-
-    switch (type) {
-      case "sqlite" -> {
-        return new SqliteObserver(config);
-      }
-      case "no_op" -> {
-        return new NoOpObserver(config);
-      }
-      default ->
-        throw new SpecException(Observer.TYPE, null, name, "Unknown observer type", MapUtils.ofNullable("type", type));
-    }
+  private record Entry(Spec spec, Function<Config, Observer> factory) {
   }
 }

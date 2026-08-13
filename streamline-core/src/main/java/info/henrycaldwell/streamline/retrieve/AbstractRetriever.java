@@ -15,7 +15,7 @@ import info.henrycaldwell.streamline.error.SpecException;
  */
 public abstract class AbstractRetriever implements Retriever {
 
-  protected static final Spec BASE_SPEC = Spec.builder()
+  public static final Spec BASE_SPEC = Spec.builder()
       .requiredString("name", "type")
       .optionalString("pipeline")
       .build();
@@ -33,11 +33,11 @@ public abstract class AbstractRetriever implements Retriever {
   protected AbstractRetriever(Config config, Spec spec) {
     Spec composite = Spec.union(BASE_SPEC, spec);
 
-    String display = config.hasPath("name") && !config.getString("name").isBlank()
+    String name = config.hasPath("name") && !config.getString("name").isBlank()
         ? config.getString("name")
         : "UNNAMED_RETRIEVER";
 
-    List<SpecException> exceptions = composite.validate(config, Retriever.TYPE, null, display);
+    List<SpecException> exceptions = composite.validate(config, Retriever.TYPE, null, name);
 
     if (!exceptions.isEmpty()) {
       throw exceptions.get(0);

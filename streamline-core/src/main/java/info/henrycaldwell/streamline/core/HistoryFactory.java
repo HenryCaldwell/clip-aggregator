@@ -1,8 +1,14 @@
 package info.henrycaldwell.streamline.core;
 
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.error.SpecException;
+import info.henrycaldwell.streamline.history.AbstractHistory;
 import info.henrycaldwell.streamline.history.History;
 import info.henrycaldwell.streamline.history.NoOpHistory;
 import info.henrycaldwell.streamline.history.SqliteHistory;
@@ -16,7 +22,36 @@ import info.henrycaldwell.streamline.util.MapUtils;
  */
 public final class HistoryFactory {
 
+  private static final Map<String, Entry> REGISTRY = Map.of(
+      "sqlite", new Entry(SqliteHistory.SPEC, SqliteHistory::new),
+      "no_op", new Entry(NoOpHistory.SPEC, NoOpHistory::new));
+
   private HistoryFactory() {
+  }
+
+  /**
+   * Validates a history configuration block.
+   *
+   * @param config A {@link Config} representing the history configuration.
+   * @return A {@link List} of {@link SpecException} representing the accumulated
+   *         validation exceptions, or an empty list if validation passes.
+   */
+  public static List<SpecException> validate(Config config) {
+    String name = config.hasPath("name") && !config.getString("name").isBlank() ? config.getString("name")
+        : "UNNAMED_HISTORY";
+    String type = config.hasPath("type") && !config.getString("type").isBlank() ? config.getString("type") : null;
+
+    Entry entry = type != null ? REGISTRY.get(type) : null;
+    Spec composite = entry != null ? Spec.union(AbstractHistory.BASE_SPEC, entry.spec()) : AbstractHistory.BASE_SPEC;
+
+    List<SpecException> exceptions = composite.validate(config, History.TYPE, null, name);
+
+    if (type != null && entry == null) {
+      exceptions.add(new SpecException(History.TYPE, null, name, "Unknown history type",
+          MapUtils.ofNullable("type", type)));
+    }
+
+    return exceptions;
   }
 
   /**
@@ -28,28 +63,15 @@ public final class HistoryFactory {
    *                       unknown.
    */
   public static History fromConfig(Config config) {
-    if (!config.hasPath("name") || config.getString("name").isBlank()) {
-      throw new SpecException(History.TYPE, null, "UNNAMED_HISTORY", "Missing required key",
-          MapUtils.ofNullable("key", "name"));
+    List<SpecException> exceptions = validate(config);
+
+    if (!exceptions.isEmpty()) {
+      throw exceptions.get(0);
     }
 
-    String name = config.getString("name");
+    return REGISTRY.get(config.getString("type")).factory().apply(config);
+  }
 
-    if (!config.hasPath("type") || config.getString("type").isBlank()) {
-      throw new SpecException(History.TYPE, null, name, "Missing required key", MapUtils.ofNullable("key", "type"));
-    }
-
-    String type = config.getString("type");
-
-    switch (type) {
-      case "sqlite" -> {
-        return new SqliteHistory(config);
-      }
-      case "no_op" -> {
-        return new NoOpHistory(config);
-      }
-      default ->
-        throw new SpecException(History.TYPE, null, name, "Unknown history type", MapUtils.ofNullable("type", type));
-    }
+  private record Entry(Spec spec, Function<Config, History> factory) {
   }
 }

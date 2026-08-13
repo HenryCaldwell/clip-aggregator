@@ -21,7 +21,7 @@ import info.henrycaldwell.streamline.util.MapUtils;
  */
 public final class SqliteHistory extends AbstractHistory {
 
-  private static final Spec SPEC = Spec.builder()
+  public static final Spec SPEC = Spec.builder()
       .requiredString("databasePath")
       .build();
 

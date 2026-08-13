@@ -1,8 +1,14 @@
 package info.henrycaldwell.streamline.core;
 
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
 import com.typesafe.config.Config;
 
+import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.error.SpecException;
+import info.henrycaldwell.streamline.stage.AbstractStager;
 import info.henrycaldwell.streamline.stage.AwsS3Stager;
 import info.henrycaldwell.streamline.stage.CloudflareR2Stager;
 import info.henrycaldwell.streamline.stage.NoOpStager;
@@ -17,7 +23,37 @@ import info.henrycaldwell.streamline.util.MapUtils;
  */
 public final class StagerFactory {
 
+  private static final Map<String, Entry> REGISTRY = Map.of(
+      "cloudflare-r2", new Entry(CloudflareR2Stager.SPEC, CloudflareR2Stager::new),
+      "aws-s3", new Entry(AwsS3Stager.SPEC, AwsS3Stager::new),
+      "no_op", new Entry(NoOpStager.SPEC, NoOpStager::new));
+
   private StagerFactory() {
+  }
+
+  /**
+   * Validates a stager configuration block.
+   *
+   * @param config A {@link Config} representing the stager configuration.
+   * @return A {@link List} of {@link SpecException} representing the accumulated
+   *         validation exceptions, or an empty list if validation passes.
+   */
+  public static List<SpecException> validate(Config config) {
+    String name = config.hasPath("name") && !config.getString("name").isBlank() ? config.getString("name")
+        : "UNNAMED_STAGER";
+    String type = config.hasPath("type") && !config.getString("type").isBlank() ? config.getString("type") : null;
+
+    Entry entry = type != null ? REGISTRY.get(type) : null;
+    Spec composite = entry != null ? Spec.union(AbstractStager.BASE_SPEC, entry.spec()) : AbstractStager.BASE_SPEC;
+
+    List<SpecException> exceptions = composite.validate(config, Stager.TYPE, null, name);
+
+    if (type != null && entry == null) {
+      exceptions.add(new SpecException(Stager.TYPE, null, name, "Unknown stager type",
+          MapUtils.ofNullable("type", type)));
+    }
+
+    return exceptions;
   }
 
   /**
@@ -29,31 +65,15 @@ public final class StagerFactory {
    *                       unknown.
    */
   public static Stager fromConfig(Config config) {
-    if (!config.hasPath("name") || config.getString("name").isBlank()) {
-      throw new SpecException(Stager.TYPE, null, "UNNAMED_STAGER", "Missing required key",
-          MapUtils.ofNullable("key", "name"));
+    List<SpecException> exceptions = validate(config);
+
+    if (!exceptions.isEmpty()) {
+      throw exceptions.get(0);
     }
 
-    String name = config.getString("name");
+    return REGISTRY.get(config.getString("type")).factory().apply(config);
+  }
 
-    if (!config.hasPath("type") || config.getString("type").isBlank()) {
-      throw new SpecException(Stager.TYPE, null, name, "Missing required key", MapUtils.ofNullable("key", "type"));
-    }
-
-    String type = config.getString("type");
-
-    switch (type) {
-      case "cloudflare-r2" -> {
-        return new CloudflareR2Stager(config);
-      }
-      case "aws-s3" -> {
-        return new AwsS3Stager(config);
-      }
-      case "no_op" -> {
-        return new NoOpStager(config);
-      }
-      default ->
-        throw new SpecException(Stager.TYPE, null, name, "Unknown stager type", MapUtils.ofNullable("type", type));
-    }
+  private record Entry(Spec spec, Function<Config, Stager> factory) {
   }
 }

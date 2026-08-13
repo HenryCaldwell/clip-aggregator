@@ -2,6 +2,7 @@ package info.henrycaldwell.streamline.transform;
 
 import java.util.List;
 
+import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
@@ -19,6 +20,11 @@ import info.henrycaldwell.streamline.observe.PipelineStage;
 public final class Pipeline {
 
   public static final ComponentType TYPE = ComponentType.PIPELINE;
+
+  public static final Spec BASE_SPEC = Spec.builder()
+      .requiredString("name")
+      .requiredObjectList("transformers")
+      .build();
 
   private final String name;
   private final List<Transformer> transformers;
