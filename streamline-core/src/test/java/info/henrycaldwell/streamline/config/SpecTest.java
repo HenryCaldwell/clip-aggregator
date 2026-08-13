@@ -750,6 +750,22 @@ public class SpecTest {
       }
 
       @Test
+      void throwsOnConstraintViolationForRequiredObject() {
+        ObjectConstraint constraint = new TestObjectConstraint(value -> false, "has key a");
+        Spec spec = Spec.builder()
+            .requiredObject(constraint, "nested")
+            .build();
+
+        Config config = ConfigFactory.parseString("nested = { x = 1 }");
+
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("has key a"));
+        assertTrue(exception.getMessage().contains("key=nested"));
+      }
+
+      @Test
       void throwsOnConstraintViolationForRequiredStringList() {
         StringListConstraint constraint = new TestStringListConstraint(value -> false, "allowed");
         Spec spec = Spec.builder()
@@ -798,6 +814,22 @@ public class SpecTest {
         assertTrue(exception.getMessage().contains("true"));
         assertTrue(exception.getMessage().contains("key=flags"));
         assertTrue(exception.getMessage().contains("value=[true, false, true]"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForRequiredObjectList() {
+        ObjectListConstraint constraint = new TestObjectListConstraint(value -> false, "non-empty");
+        Spec spec = Spec.builder()
+            .requiredObjectList(constraint, "items")
+            .build();
+
+        Config config = ConfigFactory.parseString("items = []");
+
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("non-empty"));
+        assertTrue(exception.getMessage().contains("key=items"));
       }
 
       @Test
@@ -852,6 +884,22 @@ public class SpecTest {
       }
 
       @Test
+      void throwsOnConstraintViolationForOptionalObject() {
+        ObjectConstraint constraint = new TestObjectConstraint(value -> false, "has key a");
+        Spec spec = Spec.builder()
+            .optionalObject(constraint, "nested")
+            .build();
+
+        Config config = ConfigFactory.parseString("nested = { x = 1 }");
+
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("has key a"));
+        assertTrue(exception.getMessage().contains("key=nested"));
+      }
+
+      @Test
       void throwsOnConstraintViolationForOptionalStringList() {
         StringListConstraint constraint = new TestStringListConstraint(value -> false, "allowed");
         Spec spec = Spec.builder()
@@ -900,6 +948,22 @@ public class SpecTest {
         assertTrue(exception.getMessage().contains("true"));
         assertTrue(exception.getMessage().contains("key=flags"));
         assertTrue(exception.getMessage().contains("value=[true, false, true]"));
+      }
+
+      @Test
+      void throwsOnConstraintViolationForOptionalObjectList() {
+        ObjectListConstraint constraint = new TestObjectListConstraint(value -> false, "non-empty");
+        Spec spec = Spec.builder()
+            .optionalObjectList(constraint, "items")
+            .build();
+
+        Config config = ConfigFactory.parseString("items = []");
+
+        SpecException exception = spec.validate(config, ComponentType.ROOT, null, "test").get(0);
+
+        assertTrue(exception.getMessage().contains("Invalid key value"));
+        assertTrue(exception.getMessage().contains("non-empty"));
+        assertTrue(exception.getMessage().contains("key=items"));
       }
 
       @Test
@@ -1141,6 +1205,48 @@ public class SpecTest {
 
     @Override
     public boolean test(List<Boolean> value) {
+      return predicate.test(value);
+    }
+
+    @Override
+    public String describe() {
+      return description;
+    }
+  }
+
+  private static final class TestObjectConstraint implements ObjectConstraint {
+
+    private final Predicate<Config> predicate;
+    private final String description;
+
+    private TestObjectConstraint(Predicate<Config> predicate, String description) {
+      this.predicate = predicate;
+      this.description = description;
+    }
+
+    @Override
+    public boolean test(Config value) {
+      return predicate.test(value);
+    }
+
+    @Override
+    public String describe() {
+      return description;
+    }
+  }
+
+  private static final class TestObjectListConstraint implements ObjectListConstraint {
+
+    private final Predicate<List<? extends Config>> predicate;
+    private final String description;
+
+    private TestObjectListConstraint(Predicate<List<? extends Config>> predicate, String description) {
+      this.predicate = predicate;
+      this.description = description;
+    }
+
+    @Override
+    public boolean test(List<? extends Config> value) {
       return predicate.test(value);
     }
 
