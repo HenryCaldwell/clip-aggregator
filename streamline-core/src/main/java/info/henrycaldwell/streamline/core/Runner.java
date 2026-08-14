@@ -19,10 +19,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigRenderOptions;
 
+import info.henrycaldwell.streamline.config.NumberConstraint;
+import info.henrycaldwell.streamline.config.ObjectListConstraint;
+import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.download.Downloader;
 import info.henrycaldwell.streamline.error.ComponentType;
 import info.henrycaldwell.streamline.error.SpecException;
@@ -48,6 +50,17 @@ public final class Runner {
 
   private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
 
+  private static final Spec ROOT_SPEC = Spec.builder()
+      .requiredString("name", "workDir")
+      .requiredNumber(NumberConstraint.greaterThan(0), "posts")
+      .optionalNumber(NumberConstraint.greaterThan(0),
+          "preparationThreads", "publisherThreads", "failureLimit", "heartbeatInterval")
+      .requiredObject("downloader")
+      .optionalObject("stager", "history", "observer")
+      .requiredObjectList(ObjectListConstraint.nonEmpty(), "retrievers", "publishers")
+      .optionalObjectList("pipelines")
+      .build();
+
   private Runner() {
   }
 
@@ -55,8 +68,8 @@ public final class Runner {
    * Entry point for running a single media run.
    *
    * @param args An array of strings representing CLI arguments.
-   * @throws IllegalArgumentException if the arguments are invalid or the config
-   *                                  file does not exist or is not a file.
+   * @throws SpecException if the arguments are invalid or the config file does
+   *                       not exist or is not a regular file.
    */
   public static void main(String[] args) {
     if (args.length != 1) {
@@ -206,94 +219,32 @@ public final class Runner {
    *
    * @param root A {@link Config} representing the root configuration.
    * @return A {@link RunnerContext} representing the assembled components.
-   * @throws IllegalArgumentException if required configuration is missing,
-   *                                  invalid, or cross-references do not resolve.
+   * @throws SpecException if the root configuration violates the root spec or a
+   *                       cross-references do not resolve.
    */
   private static RunnerContext buildContext(Config root) {
-    if (!root.hasPath("name") || root.getString("name").isBlank()) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Missing required key",
-          MapUtils.ofNullable("key", "name"));
+    List<SpecException> exceptions = ROOT_SPEC.validate(root, ComponentType.ROOT, null, null);
+    if (!exceptions.isEmpty()) {
+      throw exceptions.get(0);
     }
 
     String name = root.getString("name");
-
-    if (!root.hasPath("posts")) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Missing required key",
-          MapUtils.ofNullable("key", "posts"));
-    }
-
-    int posts;
-    try {
-      posts = root.getInt("posts");
-    } catch (ConfigException.WrongType e) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected number)",
-          MapUtils.ofNullable("key", "posts"), e);
-    }
-
-    if (posts <= 0) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Invalid key value (expected posts to be greater than 0)",
-          MapUtils.ofNullable("key", "posts", "value", posts));
-    }
-
-    if (!root.hasPath("workDir") || root.getString("workDir").isBlank()) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Missing required key",
-          MapUtils.ofNullable("key", "workDir"));
-    }
-
+    int posts = root.getInt("posts");
     Path workDir = Paths.get(root.getString("workDir"));
-
     int preparationThreads = root.hasPath("preparationThreads") ? root.getInt("preparationThreads") : 1;
-    if (preparationThreads <= 0) {
-      throw new SpecException(ComponentType.ROOT, null, null,
-          "Invalid key value (expected preparationThreads to be greater than 0)",
-          MapUtils.ofNullable("key", "preparationThreads", "value", preparationThreads));
-    }
-
     int publisherThreads = root.hasPath("publisherThreads") ? root.getInt("publisherThreads") : 1;
-    if (publisherThreads <= 0) {
-      throw new SpecException(ComponentType.ROOT, null, null,
-          "Invalid key value (expected publisherThreads to be greater than 0)",
-          MapUtils.ofNullable("key", "publisherThreads", "value", publisherThreads));
-    }
-
     int failureLimit = root.hasPath("failureLimit") ? root.getInt("failureLimit") : 3;
-    if (failureLimit <= 0) {
-      throw new SpecException(ComponentType.ROOT, null, null,
-          "Invalid key value (expected failureLimit to be greater than 0)",
-          MapUtils.ofNullable("key", "failureLimit", "value", failureLimit));
-    }
-
     long heartbeatInterval = root.hasPath("heartbeatInterval") ? root.getNumber("heartbeatInterval").longValue() : 10L;
-    if (heartbeatInterval <= 0) {
-      throw new SpecException(ComponentType.ROOT, null, null,
-          "Invalid key value (expected heartbeatInterval to be greater than 0)",
-          MapUtils.ofNullable("key", "heartbeatInterval", "value", heartbeatInterval));
-    }
 
     String configJson = root.root().render(ConfigRenderOptions.concise());
 
-    Observer observer = buildObserver(root);
+    Observer observer = root.hasPath("observer") ? ObserverFactory.fromConfig(root.getConfig("observer")) : null;
     Map<String, Retriever> retrievers = buildRetrievers(root);
-    History history = buildHistory(root);
-    Downloader downloader = buildDownloader(root);
+    History history = root.hasPath("history") ? HistoryFactory.fromConfig(root.getConfig("history")) : null;
+    Downloader downloader = DownloaderFactory.fromConfig(root.getConfig("downloader"));
     Map<String, Pipeline> pipelines = buildPipelines(root);
-    Stager stager = buildStager(root);
+    Stager stager = root.hasPath("stager") ? StagerFactory.fromConfig(root.getConfig("stager")) : null;
     Map<String, Publisher> publishers = buildPublishers(root);
-
-    if (retrievers.isEmpty()) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Invalid key value (expected at least 1 retriever)",
-          MapUtils.ofNullable("key", "retrievers"));
-    }
-
-    if (downloader == null) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Invalid key value (expected exactly 1 downloader)",
-          MapUtils.ofNullable("key", "downloader"));
-    }
-
-    if (publishers.isEmpty()) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Invalid key value (expected at least 1 publisher)",
-          MapUtils.ofNullable("key", "publishers"));
-    }
 
     for (Retriever retriever : retrievers.values()) {
       String pipeline = retriever.getPipeline();
@@ -435,50 +386,16 @@ public final class Runner {
   }
 
   /**
-   * Builds the observer from the observer configuration block.
-   * 
-   * @param config A {@link Config} representing the root configuration.
-   * @return An {@link Observer} representing the observer, or {@code null}.
-   * @throws IllegalArgumentException if the config type is invalid.
-   */
-  private static Observer buildObserver(Config root) {
-    if (!root.hasPath("observer")) {
-      return null;
-    }
-
-    Config config;
-    try {
-      config = root.getConfig("observer");
-    } catch (ConfigException.WrongType e) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected object)",
-          MapUtils.ofNullable("key", "observer"), e);
-    }
-
-    return ObserverFactory.fromConfig(config);
-  }
-
-  /**
    * Builds retrievers from the retrievers configuration list.
-   * 
-   * @param config A {@link Config} representing the root configuration.
+   *
+   * @param root A {@link Config} representing the root configuration.
    * @return A {@link LinkedHashMap} representing retrievers keyed by name.
-   * @throws IllegalArgumentException if the config type is invalid or names
-   *                                  collide.
+   * @throws SpecException if a retriever configuration is invalid or retriever
+   *                       names collide.
    */
   private static Map<String, Retriever> buildRetrievers(Config root) {
     Map<String, Retriever> retrievers = new LinkedHashMap<>();
-
-    if (!root.hasPath("retrievers")) {
-      return retrievers;
-    }
-
-    List<? extends Config> configs;
-    try {
-      configs = root.getConfigList("retrievers");
-    } catch (ConfigException.WrongType e) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected list)",
-          MapUtils.ofNullable("key", "retrievers"), e);
-    }
+    List<? extends Config> configs = root.getConfigList("retrievers");
 
     for (int i = 0; i < configs.size(); i++) {
       Retriever retriever = RetrieverFactory.fromConfig(configs.get(i), i);
@@ -496,58 +413,12 @@ public final class Runner {
   }
 
   /**
-   * Builds the history from the history configuration block.
-   * 
-   * @param config A {@link Config} representing the root configuration.
-   * @return A {@link History} representing the history, or {@code null}.
-   * @throws IllegalArgumentException if the config type is invalid.
-   */
-  private static History buildHistory(Config root) {
-    if (!root.hasPath("history")) {
-      return null;
-    }
-
-    Config config;
-    try {
-      config = root.getConfig("history");
-    } catch (ConfigException.WrongType e) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected object)",
-          MapUtils.ofNullable("key", "history"), e);
-    }
-
-    return HistoryFactory.fromConfig(config);
-  }
-
-  /**
-   * Builds the downloader from the downloader configuration block.
-   * 
-   * @param config A {@link Config} representing the root configuration.
-   * @return A {@link Downloader} representing the downloader, or {@code null}.
-   * @throws IllegalArgumentException if the config type is invalid.
-   */
-  private static Downloader buildDownloader(Config root) {
-    if (!root.hasPath("downloader")) {
-      return null;
-    }
-
-    Config config;
-    try {
-      config = root.getConfig("downloader");
-    } catch (ConfigException.WrongType e) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected object)",
-          MapUtils.ofNullable("key", "downloader"), e);
-    }
-
-    return DownloaderFactory.fromConfig(config);
-  }
-
-  /**
    * Builds pipelines from the pipelines configuration list.
-   * 
-   * @param config A {@link Config} representing the root configuration.
+   *
+   * @param root A {@link Config} representing the root configuration.
    * @return A {@link LinkedHashMap} representing pipelines keyed by name.
-   * @throws IllegalArgumentException if the config type is invalid or names
-   *                                  collide.
+   * @throws SpecException if a pipeline configuration is invalid or pipeline
+   *                       names collide.
    */
   private static Map<String, Pipeline> buildPipelines(Config root) {
     Map<String, Pipeline> pipelines = new LinkedHashMap<>();
@@ -556,13 +427,7 @@ public final class Runner {
       return pipelines;
     }
 
-    List<? extends Config> configs;
-    try {
-      configs = root.getConfigList("pipelines");
-    } catch (ConfigException.WrongType e) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected list)",
-          MapUtils.ofNullable("key", "pipelines"), e);
-    }
+    List<? extends Config> configs = root.getConfigList("pipelines");
 
     for (int i = 0; i < configs.size(); i++) {
       Pipeline pipeline = PipelineFactory.fromConfig(configs.get(i), i);
@@ -580,50 +445,16 @@ public final class Runner {
   }
 
   /**
-   * Builds the stager from the stager configuration block.
-   * 
-   * @param config A {@link Config} representing the root configuration.
-   * @return A {@link Stager} representing the stager, or {@code null}.
-   * @throws IllegalArgumentException if the config type is invalid.
-   */
-  private static Stager buildStager(Config root) {
-    if (!root.hasPath("stager")) {
-      return null;
-    }
-
-    Config config;
-    try {
-      config = root.getConfig("stager");
-    } catch (ConfigException.WrongType e) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected object)",
-          MapUtils.ofNullable("key", "stager"), e);
-    }
-
-    return StagerFactory.fromConfig(config);
-  }
-
-  /**
    * Builds publishers from the publishers configuration list.
-   * 
-   * @param config A {@link Config} representing the root configuration.
+   *
+   * @param root A {@link Config} representing the root configuration.
    * @return A {@link LinkedHashMap} representing publishers keyed by name.
-   * @throws IllegalArgumentException if the config type is invalid or names
-   *                                  collide.
+   * @throws SpecException if a publisher configuration is invalid or publisher
+   *                       names collide.
    */
   private static Map<String, Publisher> buildPublishers(Config root) {
     Map<String, Publisher> publishers = new LinkedHashMap<>();
-
-    if (!root.hasPath("publishers")) {
-      return publishers;
-    }
-
-    List<? extends Config> configs;
-    try {
-      configs = root.getConfigList("publishers");
-    } catch (ConfigException.WrongType e) {
-      throw new SpecException(ComponentType.ROOT, null, null, "Incorrect key type (expected list)",
-          MapUtils.ofNullable("key", "publishers"), e);
-    }
+    List<? extends Config> configs = root.getConfigList("publishers");
 
     for (int i = 0; i < configs.size(); i++) {
       Publisher publisher = PublisherFactory.fromConfig(configs.get(i), i);
