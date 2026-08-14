@@ -563,9 +563,10 @@ public class RunnerTest {
 
       SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
 
-      assertTrue(exception.getMessage().contains("Retriever references unknown pipeline"));
-      assertTrue(exception.getMessage().contains("retriever=test_retriever"));
-      assertTrue(exception.getMessage().contains("pipeline=nonexistent"));
+      assertTrue(exception.getMessage().contains("References unknown pipeline"));
+      assertTrue(exception.getMessage().contains("test_retriever"));
+      assertTrue(exception.getMessage().contains("key=pipeline"));
+      assertTrue(exception.getMessage().contains("value=nonexistent"));
     }
   }
 

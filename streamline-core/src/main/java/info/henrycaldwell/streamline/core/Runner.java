@@ -6,6 +6,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigRenderOptions;
 
@@ -215,45 +217,160 @@ public final class Runner {
   }
 
   /**
+   * Validates the root configuration block.
+   *
+   * @param config A {@link Config} representing the root configuration.
+   * @return A {@link List} of {@link SpecException} representing the accumulated
+   *         validation exceptions, or an empty list if validation passes.
+   */
+  public static List<SpecException> validate(Config config) {
+    List<SpecException> exceptions = ROOT_SPEC.validate(config, ComponentType.ROOT, null, null);
+
+    try {
+      exceptions.addAll(DownloaderFactory.validate(config.getConfig("downloader")));
+    } catch (ConfigException.Missing | ConfigException.WrongType e) {
+      // Already surfaced by ROOT_SPEC
+    }
+
+    if (config.hasPath("stager")) {
+      try {
+        exceptions.addAll(StagerFactory.validate(config.getConfig("stager")));
+      } catch (ConfigException.WrongType e) {
+        // Already surfaced by ROOT_SPEC
+      }
+    }
+
+    if (config.hasPath("history")) {
+      try {
+        exceptions.addAll(HistoryFactory.validate(config.getConfig("history")));
+      } catch (ConfigException.WrongType e) {
+        // Already surfaced by ROOT_SPEC
+      }
+    }
+
+    if (config.hasPath("observer")) {
+      try {
+        exceptions.addAll(ObserverFactory.validate(config.getConfig("observer")));
+      } catch (ConfigException.WrongType e) {
+        // Already surfaced by ROOT_SPEC
+      }
+    }
+
+    Set<String> retrieverNames = new HashSet<>();
+    List<Map.Entry<String, String>> retrieverRefs = new ArrayList<>();
+    try {
+      List<? extends Config> configs = config.getConfigList("retrievers");
+
+      for (int i = 0; i < configs.size(); i++) {
+        Config entry = configs.get(i);
+        List<SpecException> retrieverExceptions = RetrieverFactory.validate(entry, i);
+        exceptions.addAll(retrieverExceptions);
+
+        if (retrieverExceptions.isEmpty()) {
+          String name = entry.getString("name");
+
+          if (!retrieverNames.add(name)) {
+            exceptions.add(new SpecException(ComponentType.RETRIEVER, null, name, "Duplicate retriever name",
+                MapUtils.ofNullable("index", i, "name", name)));
+          }
+
+          if (entry.hasPath("pipeline")) {
+            retrieverRefs.add(Map.entry(name, entry.getString("pipeline")));
+          }
+        }
+      }
+    } catch (ConfigException.Missing | ConfigException.WrongType e) {
+      // Already surfaced by ROOT_SPEC
+    }
+
+    Set<String> pipelineNames = new HashSet<>();
+    if (config.hasPath("pipelines")) {
+      try {
+        List<? extends Config> configs = config.getConfigList("pipelines");
+
+        for (int i = 0; i < configs.size(); i++) {
+          Config entry = configs.get(i);
+          List<SpecException> pipelineExceptions = PipelineFactory.validate(entry, i);
+          exceptions.addAll(pipelineExceptions);
+
+          if (pipelineExceptions.isEmpty()) {
+            String name = entry.getString("name");
+
+            if (!pipelineNames.add(name)) {
+              exceptions.add(new SpecException(ComponentType.PIPELINE, null, name, "Duplicate pipeline name",
+                  MapUtils.ofNullable("index", i, "name", name)));
+            }
+          }
+        }
+      } catch (ConfigException.WrongType e) {
+        // Already surfaced by ROOT_SPEC
+      }
+    }
+
+    try {
+      Set<String> publisherNames = new HashSet<>();
+      List<? extends Config> configs = config.getConfigList("publishers");
+
+      for (int i = 0; i < configs.size(); i++) {
+        Config entry = configs.get(i);
+        List<SpecException> publisherExceptions = PublisherFactory.validate(entry, i);
+        exceptions.addAll(publisherExceptions);
+
+        if (publisherExceptions.isEmpty()) {
+          String name = entry.getString("name");
+
+          if (!publisherNames.add(name)) {
+            exceptions.add(new SpecException(ComponentType.PUBLISHER, null, name, "Duplicate publisher name",
+                MapUtils.ofNullable("index", i, "name", name)));
+          }
+        }
+      }
+    } catch (ConfigException.Missing | ConfigException.WrongType e) {
+      // Already surfaced by ROOT_SPEC
+    }
+
+    for (Map.Entry<String, String> ref : retrieverRefs) {
+      if (!pipelineNames.contains(ref.getValue())) {
+        exceptions.add(new SpecException(ComponentType.RETRIEVER, null, ref.getKey(), "References unknown pipeline",
+            MapUtils.ofNullable("key", "pipeline", "value", ref.getValue())));
+      }
+    }
+
+    return exceptions;
+  }
+
+  /**
    * Builds the runner context from the root configuration.
    *
-   * @param root A {@link Config} representing the root configuration.
+   * @param config A {@link Config} representing the root configuration.
    * @return A {@link RunnerContext} representing the assembled components.
-   * @throws SpecException if the root configuration violates the root spec or a
-   *                       cross-references do not resolve.
+   * @throws SpecException if the root configuration is invalid.
    */
-  private static RunnerContext buildContext(Config root) {
-    List<SpecException> exceptions = ROOT_SPEC.validate(root, ComponentType.ROOT, null, null);
+  private static RunnerContext buildContext(Config config) {
+    List<SpecException> exceptions = validate(config);
+
     if (!exceptions.isEmpty()) {
       throw exceptions.get(0);
     }
 
-    String name = root.getString("name");
-    int posts = root.getInt("posts");
-    Path workDir = Paths.get(root.getString("workDir"));
-    int preparationThreads = root.hasPath("preparationThreads") ? root.getInt("preparationThreads") : 1;
-    int publisherThreads = root.hasPath("publisherThreads") ? root.getInt("publisherThreads") : 1;
-    int failureLimit = root.hasPath("failureLimit") ? root.getInt("failureLimit") : 3;
-    long heartbeatInterval = root.hasPath("heartbeatInterval") ? root.getNumber("heartbeatInterval").longValue() : 10L;
+    String name = config.getString("name");
+    int posts = config.getInt("posts");
+    Path workDir = Paths.get(config.getString("workDir"));
+    int preparationThreads = config.hasPath("preparationThreads") ? config.getInt("preparationThreads") : 1;
+    int publisherThreads = config.hasPath("publisherThreads") ? config.getInt("publisherThreads") : 1;
+    int failureLimit = config.hasPath("failureLimit") ? config.getInt("failureLimit") : 3;
+    long heartbeatInterval = config.hasPath("heartbeatInterval") ? config.getNumber("heartbeatInterval").longValue()
+        : 10L;
 
-    String configJson = root.root().render(ConfigRenderOptions.concise());
+    String configJson = config.root().render(ConfigRenderOptions.concise());
 
-    Observer observer = root.hasPath("observer") ? ObserverFactory.fromConfig(root.getConfig("observer")) : null;
-    Map<String, Retriever> retrievers = buildRetrievers(root);
-    History history = root.hasPath("history") ? HistoryFactory.fromConfig(root.getConfig("history")) : null;
-    Downloader downloader = DownloaderFactory.fromConfig(root.getConfig("downloader"));
-    Map<String, Pipeline> pipelines = buildPipelines(root);
-    Stager stager = root.hasPath("stager") ? StagerFactory.fromConfig(root.getConfig("stager")) : null;
-    Map<String, Publisher> publishers = buildPublishers(root);
-
-    for (Retriever retriever : retrievers.values()) {
-      String pipeline = retriever.getPipeline();
-
-      if (pipeline != null && !pipelines.containsKey(pipeline)) {
-        throw new SpecException(ComponentType.ROOT, null, null, "Retriever references unknown pipeline",
-            MapUtils.ofNullable("retriever", retriever.getName(), "pipeline", pipeline));
-      }
-    }
+    Observer observer = config.hasPath("observer") ? ObserverFactory.fromConfig(config.getConfig("observer")) : null;
+    Map<String, Retriever> retrievers = buildRetrievers(config);
+    History history = config.hasPath("history") ? HistoryFactory.fromConfig(config.getConfig("history")) : null;
+    Downloader downloader = DownloaderFactory.fromConfig(config.getConfig("downloader"));
+    Map<String, Pipeline> pipelines = buildPipelines(config);
+    Stager stager = config.hasPath("stager") ? StagerFactory.fromConfig(config.getConfig("stager")) : null;
+    Map<String, Publisher> publishers = buildPublishers(config);
 
     LOG.info(
         "Built runner context (runner={}, posts={}, workDir={}, preparationThreads={}, publisherThreads={}, failureLimit={}, heartbeatInterval={}, observer={}, retrievers={}, history={}, downloader={}, pipelines={}, stager={}, publishers={})",
@@ -388,25 +505,16 @@ public final class Runner {
   /**
    * Builds retrievers from the retrievers configuration list.
    *
-   * @param root A {@link Config} representing the root configuration.
+   * @param config A {@link Config} representing the root configuration.
    * @return A {@link LinkedHashMap} representing retrievers keyed by name.
-   * @throws SpecException if a retriever configuration is invalid or retriever
-   *                       names collide.
    */
-  private static Map<String, Retriever> buildRetrievers(Config root) {
+  private static Map<String, Retriever> buildRetrievers(Config config) {
     Map<String, Retriever> retrievers = new LinkedHashMap<>();
-    List<? extends Config> configs = root.getConfigList("retrievers");
+    List<? extends Config> configs = config.getConfigList("retrievers");
 
     for (int i = 0; i < configs.size(); i++) {
       Retriever retriever = RetrieverFactory.fromConfig(configs.get(i), i);
-      String name = retriever.getName();
-
-      if (retrievers.containsKey(name)) {
-        throw new SpecException(ComponentType.RETRIEVER, null,
-            name, "Duplicate retriever name", MapUtils.ofNullable("index", i, "name", name));
-      }
-
-      retrievers.put(name, retriever);
+      retrievers.put(retriever.getName(), retriever);
     }
 
     return retrievers;
@@ -415,30 +523,21 @@ public final class Runner {
   /**
    * Builds pipelines from the pipelines configuration list.
    *
-   * @param root A {@link Config} representing the root configuration.
+   * @param config A {@link Config} representing the root configuration.
    * @return A {@link LinkedHashMap} representing pipelines keyed by name.
-   * @throws SpecException if a pipeline configuration is invalid or pipeline
-   *                       names collide.
    */
-  private static Map<String, Pipeline> buildPipelines(Config root) {
+  private static Map<String, Pipeline> buildPipelines(Config config) {
     Map<String, Pipeline> pipelines = new LinkedHashMap<>();
 
-    if (!root.hasPath("pipelines")) {
+    if (!config.hasPath("pipelines")) {
       return pipelines;
     }
 
-    List<? extends Config> configs = root.getConfigList("pipelines");
+    List<? extends Config> configs = config.getConfigList("pipelines");
 
     for (int i = 0; i < configs.size(); i++) {
       Pipeline pipeline = PipelineFactory.fromConfig(configs.get(i), i);
-      String name = pipeline.getName();
-
-      if (pipelines.containsKey(name)) {
-        throw new SpecException(ComponentType.PIPELINE, null, name, "Duplicate pipeline name",
-            MapUtils.ofNullable("index", i, "name", name));
-      }
-
-      pipelines.put(name, pipeline);
+      pipelines.put(pipeline.getName(), pipeline);
     }
 
     return pipelines;
@@ -447,25 +546,16 @@ public final class Runner {
   /**
    * Builds publishers from the publishers configuration list.
    *
-   * @param root A {@link Config} representing the root configuration.
+   * @param config A {@link Config} representing the root configuration.
    * @return A {@link LinkedHashMap} representing publishers keyed by name.
-   * @throws SpecException if a publisher configuration is invalid or publisher
-   *                       names collide.
    */
-  private static Map<String, Publisher> buildPublishers(Config root) {
+  private static Map<String, Publisher> buildPublishers(Config config) {
     Map<String, Publisher> publishers = new LinkedHashMap<>();
-    List<? extends Config> configs = root.getConfigList("publishers");
+    List<? extends Config> configs = config.getConfigList("publishers");
 
     for (int i = 0; i < configs.size(); i++) {
       Publisher publisher = PublisherFactory.fromConfig(configs.get(i), i);
-      String name = publisher.getName();
-
-      if (publishers.containsKey(name)) {
-        throw new SpecException(ComponentType.PUBLISHER, null, name, "Duplicate publisher name",
-            MapUtils.ofNullable("index", i, "name", name));
-      }
-
-      publishers.put(name, publisher);
+      publishers.put(publisher.getName(), publisher);
     }
 
     return publishers;
