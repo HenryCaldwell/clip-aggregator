@@ -1,5 +1,7 @@
 package info.henrycaldwell.streamline.config;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -62,6 +64,34 @@ public final class Spec {
    */
   public static SpecBuilder builder() {
     return new SpecBuilder();
+  }
+
+  /**
+   * Merges the {@code SPEC} fields declared on the class and its superclasses.
+   *
+   * @param clazz A {@link Class} representing the starting point for the
+   *              hierarchy walk.
+   * @return A {@link Spec} representing the combined set of keys.
+   */
+  public static Spec collect(Class<?> clazz) {
+    List<Spec> specs = new ArrayList<>();
+
+    while (clazz != null && clazz != Object.class) {
+      try {
+        Field field = clazz.getDeclaredField("SPEC");
+
+        if (Spec.class.equals(field.getType()) && Modifier.isStatic(field.getModifiers())) {
+          specs.add((Spec) field.get(null));
+        }
+      } catch (NoSuchFieldException ignored) {
+      } catch (IllegalAccessException e) {
+        throw new IllegalStateException("Failed to access SPEC on " + clazz, e);
+      }
+
+      clazz = clazz.getSuperclass();
+    }
+
+    return Spec.union(specs.toArray(new Spec[0]));
   }
 
   /**
