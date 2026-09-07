@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,7 @@ import info.henrycaldwell.streamline.config.NumberConstraint;
 import info.henrycaldwell.streamline.config.ObjectListConstraint;
 import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.download.Downloader;
+import info.henrycaldwell.streamline.error.AggregateException;
 import info.henrycaldwell.streamline.error.ComponentType;
 import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.history.History;
@@ -38,6 +40,10 @@ import info.henrycaldwell.streamline.retrieve.Retriever;
 import info.henrycaldwell.streamline.stage.Stager;
 import info.henrycaldwell.streamline.transform.Pipeline;
 import info.henrycaldwell.streamline.util.MapUtils;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
 /**
  * Class for orchestrating a single end-to-end media run.
@@ -47,7 +53,8 @@ import info.henrycaldwell.streamline.util.MapUtils;
  * validates cross-references, and executes a fetch, download, transform,
  * publish flow.
  */
-public final class Runner {
+@Command(name = "streamline", description = "Run or validate a streamline configuration")
+public final class Runner implements Callable<Integer> {
 
   private static final Logger LOG = LoggerFactory.getLogger(Runner.class);
 
@@ -62,24 +69,34 @@ public final class Runner {
       .optionalObjectList("pipelines")
       .build();
 
+  @Option(names = "--validate", description = "Validate the configuration")
+  private boolean validateOnly;
+
+  @Parameters(index = "0", description = "Path to the configuration")
+  private String configPath;
+
   private Runner() {
   }
 
   /**
-   * Entry point for running a single media run.
+   * Entry point for the CLI.
    *
    * @param args An array of strings representing CLI arguments.
-   * @throws SpecException if the arguments are invalid or the config file does
-   *                       not exist or is not a regular file.
    */
   public static void main(String[] args) {
-    if (args.length != 1) {
-      throw new SpecException(ComponentType.CLI, null, null,
-          "Invalid arguments (expected exactly one config path argument)",
-          MapUtils.ofNullable("argCount", args.length));
-    }
+    System.exit(new CommandLine(new Runner()).execute(args));
+  }
 
-    File file = new File(args[0]);
+  /**
+   * Loads the configuration and dispatches to a run or validation.
+   * 
+   * @return An {@link Integer} representing the exit code, {@code 0} on success
+   *         or {@code 1} if validation errors are present.
+   * @throws SpecException if the config file is missing or not a regular file.
+   */
+  @Override
+  public Integer call() {
+    File file = new File(configPath);
 
     if (!file.isFile()) {
       throw new SpecException(ComponentType.CLI, null, null, "Config file missing or not a regular file",
@@ -88,12 +105,21 @@ public final class Runner {
 
     Config config = ConfigFactory.parseFile(file).resolve();
 
-    try {
-      run(config);
-    } catch (Exception e) {
-      e.printStackTrace(System.err);
-      System.exit(1);
+    if (validateOnly) {
+      List<SpecException> exceptions = validate(config);
+
+      if (!exceptions.isEmpty()) {
+        new AggregateException(exceptions).printStackTrace(System.err);
+
+        return 1;
+      }
+
+      return 0;
     }
+
+    run(config);
+
+    return 0;
   }
 
   /**

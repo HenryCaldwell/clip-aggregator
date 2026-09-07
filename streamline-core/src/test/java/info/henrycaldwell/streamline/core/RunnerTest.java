@@ -41,28 +41,6 @@ import info.henrycaldwell.streamline.transform.Transformer;
 public class RunnerTest {
 
   @Nested
-  class Main {
-
-    @Test
-    void throwsOnWrongArgCount() {
-      SpecException exception = assertThrows(SpecException.class,
-          () -> Runner.main(new String[] {}));
-
-      assertTrue(exception.getMessage().contains("Invalid arguments (expected exactly one config path argument)"));
-      assertTrue(exception.getMessage().contains("argCount=0"));
-    }
-
-    @Test
-    void throwsOnMissingConfigFile() {
-      SpecException exception = assertThrows(SpecException.class,
-          () -> Runner.main(new String[] { "nonexistent.conf" }));
-
-      assertTrue(exception.getMessage().contains("Config file missing or not a regular file"));
-      assertTrue(exception.getMessage().contains("configPath=nonexistent.conf"));
-    }
-  }
-
-  @Nested
   class BuildContext {
 
     @Test
