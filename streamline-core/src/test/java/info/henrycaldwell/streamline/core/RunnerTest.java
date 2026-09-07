@@ -110,12 +110,72 @@ public class RunnerTest {
     }
 
     @Test
+    void acceptsConfiguredFailureLimit() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          failureLimit = 5
+          retrievers = [ { name = r, type = no_op } ]
+          downloader = { name = d, type = no_op }
+          publishers = [ { name = p, type = no_op } ]
+          """);
+
+      assertDoesNotThrow(() -> Runner.run(config));
+    }
+
+    @Test
+    void acceptsConfiguredHeartbeatInterval() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          heartbeatInterval = 30
+          retrievers = [ { name = r, type = no_op } ]
+          downloader = { name = d, type = no_op }
+          publishers = [ { name = p, type = no_op } ]
+          """);
+
+      assertDoesNotThrow(() -> Runner.run(config));
+    }
+
+    @Test
     void acceptsConfiguredHistory() {
       Config config = ConfigFactory.parseString("""
           name = test_runner
           posts = 5
           workDir = work
           history = { name = h, type = no_op }
+          retrievers = [ { name = r, type = no_op } ]
+          downloader = { name = d, type = no_op }
+          publishers = [ { name = p, type = no_op } ]
+          """);
+
+      assertDoesNotThrow(() -> Runner.run(config));
+    }
+
+    @Test
+    void acceptsConfiguredObserver() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          observer = { name = o, type = no_op }
+          retrievers = [ { name = r, type = no_op } ]
+          downloader = { name = d, type = no_op }
+          publishers = [ { name = p, type = no_op } ]
+          """);
+
+      assertDoesNotThrow(() -> Runner.run(config));
+    }
+
+    @Test
+    void acceptsConfiguredStager() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          stager = { name = s, type = no_op }
           retrievers = [ { name = r, type = no_op } ]
           downloader = { name = d, type = no_op }
           publishers = [ { name = p, type = no_op } ]
@@ -144,7 +204,7 @@ public class RunnerTest {
     }
 
     @Test
-    void throwsOnMissingName() {
+    void throwsOnInvalidConfig() {
       Config config = ConfigFactory.parseString("""
           posts = 5
           workDir = work
@@ -154,6 +214,62 @@ public class RunnerTest {
           """);
 
       SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+
+      assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("key=name"));
+    }
+  }
+
+  @Nested
+  class Validate {
+
+    @Test
+    void doesNotThrowOnValidConfig() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      assertTrue(Runner.validate(config).isEmpty());
+    }
+
+    @Test
+    void accumulatesErrorsAcrossAllLayers() {
+      Config config = ConfigFactory.parseString("""
+          posts = 5
+          workDir = work
+          retrievers = [ { name = r, type = twitch } ]
+          downloader = { name = d, type = yt-dlp }
+          publishers = [ { name = p, type = instagram } ]
+          """);
+
+      List<SpecException> exceptions = Runner.validate(config);
+
+      assertTrue(exceptions.stream().anyMatch(e -> e.getMessage().contains("Missing required key")
+          && e.getMessage().contains("key=name")));
+      assertTrue(exceptions.stream().anyMatch(e -> e.getMessage().contains("Missing required key")
+          && e.getMessage().contains("key=ytDlpPath")));
+      assertTrue(exceptions.stream().anyMatch(e -> e.getMessage().contains("Missing required key")
+          && e.getMessage().contains("key=clientId")));
+      assertTrue(exceptions.stream().anyMatch(e -> e.getMessage().contains("Missing required key")
+          && e.getMessage().contains("key=accountId")));
+    }
+
+    @Test
+    void throwsOnMissingName() {
+      Config config = ConfigFactory.parseString("""
+          posts = 5
+          workDir = work
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Missing required key"));
       assertTrue(exception.getMessage().contains("key=name"));
@@ -170,7 +286,7 @@ public class RunnerTest {
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Missing required key"));
       assertTrue(exception.getMessage().contains("key=name"));
@@ -186,7 +302,7 @@ public class RunnerTest {
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Missing required key"));
       assertTrue(exception.getMessage().contains("key=workDir"));
@@ -203,7 +319,7 @@ public class RunnerTest {
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Missing required key"));
       assertTrue(exception.getMessage().contains("key=workDir"));
@@ -219,7 +335,7 @@ public class RunnerTest {
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Missing required key"));
       assertTrue(exception.getMessage().contains("key=posts"));
@@ -236,7 +352,7 @@ public class RunnerTest {
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Incorrect key type (expected number)"));
       assertTrue(exception.getMessage().contains("key=posts"));
@@ -253,7 +369,7 @@ public class RunnerTest {
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Invalid key value"));
       assertTrue(exception.getMessage().contains("key=posts"));
@@ -272,7 +388,7 @@ public class RunnerTest {
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Invalid key value"));
       assertTrue(exception.getMessage().contains("key=preparationThreads"));
@@ -291,11 +407,83 @@ public class RunnerTest {
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Invalid key value"));
       assertTrue(exception.getMessage().contains("key=publisherThreads"));
       assertTrue(exception.getMessage().contains("value=0"));
+    }
+
+    @Test
+    void throwsOnInvalidFailureLimit() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          failureLimit = 0
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("Invalid key value"));
+      assertTrue(exception.getMessage().contains("key=failureLimit"));
+      assertTrue(exception.getMessage().contains("value=0"));
+    }
+
+    @Test
+    void throwsOnInvalidHeartbeatInterval() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          heartbeatInterval = 0
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("Invalid key value"));
+      assertTrue(exception.getMessage().contains("key=heartbeatInterval"));
+      assertTrue(exception.getMessage().contains("value=0"));
+    }
+
+    @Test
+    void throwsOnUnknownKey() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          unknownKey = foo
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("Unknown configuration key"));
+      assertTrue(exception.getMessage().contains("key=unknownKey"));
+    }
+
+    @Test
+    void throwsOnMissingRetrievers() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("key=retrievers"));
     }
 
     @Test
@@ -309,113 +497,9 @@ public class RunnerTest {
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Incorrect key type (expected list<object>)"));
-      assertTrue(exception.getMessage().contains("key=retrievers"));
-    }
-
-    @Test
-    void throwsOnWrongTypeForHistory() {
-      Config config = ConfigFactory.parseString("""
-          name = test_runner
-          posts = 5
-          workDir = work
-          history = invalid
-          retrievers = [ { name = base_retriever, type = no_op } ]
-          downloader = { name = base_downloader, type = no_op }
-          publishers = [ { name = base_publisher, type = no_op } ]
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
-
-      assertTrue(exception.getMessage().contains("Incorrect key type (expected object)"));
-      assertTrue(exception.getMessage().contains("key=history"));
-    }
-
-    @Test
-    void throwsOnWrongTypeForDownloader() {
-      Config config = ConfigFactory.parseString("""
-          name = test_runner
-          posts = 5
-          workDir = work
-          downloader = invalid
-          retrievers = [ { name = base_retriever, type = no_op } ]
-          publishers = [ { name = base_publisher, type = no_op } ]
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
-
-      assertTrue(exception.getMessage().contains("Incorrect key type (expected object)"));
-      assertTrue(exception.getMessage().contains("key=downloader"));
-    }
-
-    @Test
-    void throwsOnWrongTypeForPipelines() {
-      Config config = ConfigFactory.parseString("""
-          name = test_runner
-          posts = 5
-          workDir = work
-          pipelines = invalid
-          retrievers = [ { name = base_retriever, type = no_op } ]
-          downloader = { name = base_downloader, type = no_op }
-          publishers = [ { name = base_publisher, type = no_op } ]
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
-
-      assertTrue(exception.getMessage().contains("Incorrect key type (expected list<object>)"));
-      assertTrue(exception.getMessage().contains("key=pipelines"));
-    }
-
-    @Test
-    void throwsOnWrongTypeForStager() {
-      Config config = ConfigFactory.parseString("""
-          name = test_runner
-          posts = 5
-          workDir = work
-          stager = invalid
-          retrievers = [ { name = base_retriever, type = no_op } ]
-          downloader = { name = base_downloader, type = no_op }
-          publishers = [ { name = base_publisher, type = no_op } ]
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
-
-      assertTrue(exception.getMessage().contains("Incorrect key type (expected object)"));
-      assertTrue(exception.getMessage().contains("key=stager"));
-    }
-
-    @Test
-    void throwsOnWrongTypeForPublishers() {
-      Config config = ConfigFactory.parseString("""
-          name = test_runner
-          posts = 5
-          workDir = work
-          publishers = invalid
-          retrievers = [ { name = base_retriever, type = no_op } ]
-          downloader = { name = base_downloader, type = no_op }
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
-
-      assertTrue(exception.getMessage().contains("Incorrect key type (expected list<object>)"));
-      assertTrue(exception.getMessage().contains("key=publishers"));
-    }
-
-    @Test
-    void throwsOnMissingRetrievers() {
-      Config config = ConfigFactory.parseString("""
-          name = test_runner
-          posts = 5
-          workDir = work
-          downloader = { name = base_downloader, type = no_op }
-          publishers = [ { name = base_publisher, type = no_op } ]
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
-
-      assertTrue(exception.getMessage().contains("Missing required key"));
       assertTrue(exception.getMessage().contains("key=retrievers"));
     }
 
@@ -430,10 +514,68 @@ public class RunnerTest {
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Invalid key value (expected retrievers to be non-empty)"));
       assertTrue(exception.getMessage().contains("key=retrievers"));
+    }
+
+    @Test
+    void accumulatesRetrieverErrors() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          retrievers = [ { name = r, type = twitch } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      List<SpecException> exceptions = Runner.validate(config);
+
+      assertTrue(exceptions.stream().anyMatch(e -> e.getMessage().contains("Missing required key")
+          && e.getMessage().contains("index=0") && e.getMessage().contains("key=clientId")));
+    }
+
+    @Test
+    void throwsOnDuplicateRetrieverName() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          retrievers = [
+            { name = base_retriever, type = no_op }
+            { name = base_retriever, type = no_op }
+          ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("Duplicate retriever name"));
+      assertTrue(exception.getMessage().contains("index=1"));
+      assertTrue(exception.getMessage().contains("name=base_retriever"));
+    }
+
+    @Test
+    void throwsOnUnknownPipelineReference() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          retrievers = [ { name = base_retriever, type = no_op, pipeline = nonexistent } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("References unknown pipeline"));
+      assertTrue(exception.getMessage().contains("base_retriever"));
+      assertTrue(exception.getMessage().contains("index=0"));
+      assertTrue(exception.getMessage().contains("key=pipeline"));
+      assertTrue(exception.getMessage().contains("value=nonexistent"));
     }
 
     @Test
@@ -446,10 +588,138 @@ public class RunnerTest {
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Missing required key"));
       assertTrue(exception.getMessage().contains("key=downloader"));
+    }
+
+    @Test
+    void throwsOnWrongTypeForDownloader() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          downloader = invalid
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("Incorrect key type (expected object)"));
+      assertTrue(exception.getMessage().contains("key=downloader"));
+    }
+
+    @Test
+    void accumulatesDownloaderErrors() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = d, type = yt-dlp }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      List<SpecException> exceptions = Runner.validate(config);
+
+      assertTrue(exceptions.stream().anyMatch(e -> e.getMessage().contains("Missing required key")
+          && e.getMessage().contains("key=ytDlpPath")));
+    }
+
+    @Test
+    void throwsOnWrongTypeForPipelines() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          pipelines = invalid
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("Incorrect key type (expected list<object>)"));
+      assertTrue(exception.getMessage().contains("key=pipelines"));
+    }
+
+    @Test
+    void accumulatesPipelineErrors() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          pipelines = [ { transformers = [] } ]
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      List<SpecException> exceptions = Runner.validate(config);
+
+      assertTrue(exceptions.stream().anyMatch(e -> e.getMessage().contains("Missing required key")
+          && e.getMessage().contains("index=0") && e.getMessage().contains("key=name")));
+    }
+
+    @Test
+    void throwsOnDuplicatePipelineName() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          pipelines = [
+            { name = base_pipeline, transformers = [] }
+            { name = base_pipeline, transformers = [] }
+          ]
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("Duplicate pipeline name"));
+      assertTrue(exception.getMessage().contains("index=1"));
+      assertTrue(exception.getMessage().contains("name=base_pipeline"));
+    }
+
+    @Test
+    void throwsOnWrongTypeForStager() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          stager = invalid
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("Incorrect key type (expected object)"));
+      assertTrue(exception.getMessage().contains("key=stager"));
+    }
+
+    @Test
+    void accumulatesStagerErrors() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          stager = { name = s, type = aws-s3 }
+          """);
+
+      List<SpecException> exceptions = Runner.validate(config);
+
+      assertTrue(exceptions.stream().anyMatch(e -> e.getMessage().contains("Missing required key")
+          && e.getMessage().contains("key=accessKey")));
     }
 
     @Test
@@ -462,9 +732,26 @@ public class RunnerTest {
           downloader = { name = base_downloader, type = no_op }
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Missing required key"));
+      assertTrue(exception.getMessage().contains("key=publishers"));
+    }
+
+    @Test
+    void throwsOnWrongTypeForPublishers() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          publishers = invalid
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("Incorrect key type (expected list<object>)"));
       assertTrue(exception.getMessage().contains("key=publishers"));
     }
 
@@ -479,53 +766,27 @@ public class RunnerTest {
           publishers = []
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Invalid key value (expected publishers to be non-empty)"));
       assertTrue(exception.getMessage().contains("key=publishers"));
     }
 
     @Test
-    void throwsOnDuplicateRetrieverName() {
+    void accumulatesPublisherErrors() {
       Config config = ConfigFactory.parseString("""
           name = test_runner
           posts = 5
           workDir = work
-          retrievers = [
-            { name = r, type = no_op }
-            { name = r, type = no_op }
-          ]
-          downloader = { name = base_downloader, type = no_op }
-          publishers = [ { name = base_publisher, type = no_op } ]
-          """);
-
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
-
-      assertTrue(exception.getMessage().contains("Duplicate retriever name"));
-      assertTrue(exception.getMessage().contains("index=1"));
-      assertTrue(exception.getMessage().contains("name=r"));
-    }
-
-    @Test
-    void throwsOnDuplicatePipelineName() {
-      Config config = ConfigFactory.parseString("""
-          name = test_runner
-          posts = 5
-          workDir = work
-          pipelines = [
-            { name = p, transformers = [] }
-            { name = p, transformers = [] }
-          ]
           retrievers = [ { name = base_retriever, type = no_op } ]
           downloader = { name = base_downloader, type = no_op }
-          publishers = [ { name = base_publisher, type = no_op } ]
+          publishers = [ { name = p, type = instagram } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      List<SpecException> exceptions = Runner.validate(config);
 
-      assertTrue(exception.getMessage().contains("Duplicate pipeline name"));
-      assertTrue(exception.getMessage().contains("index=1"));
-      assertTrue(exception.getMessage().contains("name=p"));
+      assertTrue(exceptions.stream().anyMatch(e -> e.getMessage().contains("Missing required key")
+          && e.getMessage().contains("index=0") && e.getMessage().contains("key=accountId")));
     }
 
     @Test
@@ -535,37 +796,90 @@ public class RunnerTest {
           posts = 5
           workDir = work
           publishers = [
-            { name = p, type = no_op }
-            { name = p, type = no_op }
+            { name = base_publisher, type = no_op }
+            { name = base_publisher, type = no_op }
           ]
           retrievers = [ { name = base_retriever, type = no_op } ]
           downloader = { name = base_downloader, type = no_op }
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
       assertTrue(exception.getMessage().contains("Duplicate publisher name"));
       assertTrue(exception.getMessage().contains("index=1"));
-      assertTrue(exception.getMessage().contains("name=p"));
+      assertTrue(exception.getMessage().contains("name=base_publisher"));
     }
 
     @Test
-    void throwsOnRetrieverReferencingUnknownPipeline() {
+    void throwsOnWrongTypeForHistory() {
       Config config = ConfigFactory.parseString("""
           name = test_runner
           posts = 5
           workDir = work
-          retrievers = [ { name = test_retriever, type = no_op, pipeline = nonexistent } ]
+          history = invalid
+          retrievers = [ { name = base_retriever, type = no_op } ]
           downloader = { name = base_downloader, type = no_op }
           publishers = [ { name = base_publisher, type = no_op } ]
           """);
 
-      SpecException exception = assertThrows(SpecException.class, () -> Runner.run(config));
+      SpecException exception = Runner.validate(config).get(0);
 
-      assertTrue(exception.getMessage().contains("References unknown pipeline"));
-      assertTrue(exception.getMessage().contains("test_retriever"));
-      assertTrue(exception.getMessage().contains("key=pipeline"));
-      assertTrue(exception.getMessage().contains("value=nonexistent"));
+      assertTrue(exception.getMessage().contains("Incorrect key type (expected object)"));
+      assertTrue(exception.getMessage().contains("key=history"));
+    }
+
+    @Test
+    void accumulatesHistoryErrors() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          history = { name = h, type = sqlite }
+          """);
+
+      List<SpecException> exceptions = Runner.validate(config);
+
+      assertTrue(exceptions.stream().anyMatch(e -> e.getMessage().contains("Missing required key")
+          && e.getMessage().contains("key=databasePath")));
+    }
+
+    @Test
+    void throwsOnWrongTypeForObserver() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          observer = invalid
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          """);
+
+      SpecException exception = Runner.validate(config).get(0);
+
+      assertTrue(exception.getMessage().contains("Incorrect key type (expected object)"));
+      assertTrue(exception.getMessage().contains("key=observer"));
+    }
+
+    @Test
+    void accumulatesObserverErrors() {
+      Config config = ConfigFactory.parseString("""
+          name = test_runner
+          posts = 5
+          workDir = work
+          retrievers = [ { name = base_retriever, type = no_op } ]
+          downloader = { name = base_downloader, type = no_op }
+          publishers = [ { name = base_publisher, type = no_op } ]
+          observer = { name = o, type = sqlite }
+          """);
+
+      List<SpecException> exceptions = Runner.validate(config);
+
+      assertTrue(exceptions.stream().anyMatch(e -> e.getMessage().contains("Missing required key")
+          && e.getMessage().contains("key=databasePath")));
     }
   }
 
