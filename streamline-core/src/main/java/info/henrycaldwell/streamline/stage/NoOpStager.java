@@ -21,7 +21,7 @@ public final class NoOpStager extends AbstractStager {
    * @param config A {@link Config} representing the stager configuration.
    */
   public NoOpStager(Config config) {
-    super(config, SPEC);
+    super(config);
   }
 
   /**

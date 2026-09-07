@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.CancellationReason;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
@@ -283,7 +282,7 @@ public class PipelineTest {
       super(ConfigFactory.parseString("""
           name = recording
           type = recording
-          """), Spec.builder().build());
+          """));
     }
 
     @Override

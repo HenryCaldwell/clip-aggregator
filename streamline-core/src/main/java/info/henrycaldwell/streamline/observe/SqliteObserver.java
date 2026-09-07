@@ -36,7 +36,7 @@ public final class SqliteObserver extends AbstractObserver {
    * @param config A {@link Config} representing the observer configuration.
    */
   public SqliteObserver(Config config) {
-    super(config, SPEC);
+    super(config);
 
     this.databasePath = config.getString("databasePath");
   }

@@ -28,13 +28,13 @@ import info.henrycaldwell.streamline.util.MapUtils;
 public final class TransformerFactory {
 
   private static final Map<String, Entry> REGISTRY = Map.of(
-      "vertical_blur", new Entry(VerticalBlurTransformer.SPEC, VerticalBlurTransformer::new),
-      "fps", new Entry(FpsTransformer.SPEC, FpsTransformer::new),
-      "watermark", new Entry(WatermarkTransformer.SPEC, WatermarkTransformer::new),
-      "music", new Entry(MusicTransformer.SPEC, MusicTransformer::new),
-      "title", new Entry(TitleTransformer.SPEC, TitleTransformer::new),
-      "text", new Entry(TextTransformer.SPEC, TextTransformer::new),
-      "no_op", new Entry(NoOpTransformer.SPEC, NoOpTransformer::new));
+      "vertical_blur", new Entry(VerticalBlurTransformer.class, VerticalBlurTransformer::new),
+      "fps", new Entry(FpsTransformer.class, FpsTransformer::new),
+      "watermark", new Entry(WatermarkTransformer.class, WatermarkTransformer::new),
+      "music", new Entry(MusicTransformer.class, MusicTransformer::new),
+      "title", new Entry(TitleTransformer.class, TitleTransformer::new),
+      "text", new Entry(TextTransformer.class, TextTransformer::new),
+      "no_op", new Entry(NoOpTransformer.class, NoOpTransformer::new));
 
   private TransformerFactory() {
   }
@@ -54,8 +54,7 @@ public final class TransformerFactory {
     String type = config.hasPath("type") && !config.getString("type").isBlank() ? config.getString("type") : null;
 
     Entry entry = type != null ? REGISTRY.get(type) : null;
-    Spec composite = entry != null ? Spec.union(AbstractTransformer.BASE_SPEC, entry.spec())
-        : AbstractTransformer.BASE_SPEC;
+    Spec composite = Spec.collect(entry != null ? entry.clazz() : AbstractTransformer.class);
 
     List<SpecException> exceptions = composite.validate(config, Transformer.TYPE, pipeline, name, index);
 
@@ -87,6 +86,6 @@ public final class TransformerFactory {
     return REGISTRY.get(config.getString("type")).factory().apply(config);
   }
 
-  private record Entry(Spec spec, Function<Config, Transformer> factory) {
+  private record Entry(Class<? extends Transformer> clazz, Function<Config, Transformer> factory) {
   }
 }

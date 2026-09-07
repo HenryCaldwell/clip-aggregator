@@ -24,9 +24,9 @@ import info.henrycaldwell.streamline.util.MapUtils;
 public final class StagerFactory {
 
   private static final Map<String, Entry> REGISTRY = Map.of(
-      "cloudflare-r2", new Entry(CloudflareR2Stager.SPEC, CloudflareR2Stager::new),
-      "aws-s3", new Entry(AwsS3Stager.SPEC, AwsS3Stager::new),
-      "no_op", new Entry(NoOpStager.SPEC, NoOpStager::new));
+      "cloudflare-r2", new Entry(CloudflareR2Stager.class, CloudflareR2Stager::new),
+      "aws-s3", new Entry(AwsS3Stager.class, AwsS3Stager::new),
+      "no_op", new Entry(NoOpStager.class, NoOpStager::new));
 
   private StagerFactory() {
   }
@@ -44,7 +44,7 @@ public final class StagerFactory {
     String type = config.hasPath("type") && !config.getString("type").isBlank() ? config.getString("type") : null;
 
     Entry entry = type != null ? REGISTRY.get(type) : null;
-    Spec composite = entry != null ? Spec.union(AbstractStager.BASE_SPEC, entry.spec()) : AbstractStager.BASE_SPEC;
+    Spec composite = Spec.collect(entry != null ? entry.clazz() : AbstractStager.class);
 
     List<SpecException> exceptions = composite.validate(config, Stager.TYPE, null, name);
 
@@ -74,6 +74,6 @@ public final class StagerFactory {
     return REGISTRY.get(config.getString("type")).factory().apply(config);
   }
 
-  private record Entry(Spec spec, Function<Config, Stager> factory) {
+  private record Entry(Class<? extends Stager> clazz, Function<Config, Stager> factory) {
   }
 }

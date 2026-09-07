@@ -23,8 +23,8 @@ import info.henrycaldwell.streamline.util.MapUtils;
 public final class PublisherFactory {
 
   private static final Map<String, Entry> REGISTRY = Map.of(
-      "instagram", new Entry(InstagramPublisher.SPEC, InstagramPublisher::new),
-      "no_op", new Entry(NoOpPublisher.SPEC, NoOpPublisher::new));
+      "instagram", new Entry(InstagramPublisher.class, InstagramPublisher::new),
+      "no_op", new Entry(NoOpPublisher.class, NoOpPublisher::new));
 
   private PublisherFactory() {
   }
@@ -43,8 +43,7 @@ public final class PublisherFactory {
     String type = config.hasPath("type") && !config.getString("type").isBlank() ? config.getString("type") : null;
 
     Entry entry = type != null ? REGISTRY.get(type) : null;
-    Spec composite = entry != null ? Spec.union(AbstractPublisher.BASE_SPEC, entry.spec())
-        : AbstractPublisher.BASE_SPEC;
+    Spec composite = Spec.collect(entry != null ? entry.clazz() : AbstractPublisher.class);
 
     List<SpecException> exceptions = composite.validate(config, Publisher.TYPE, null, name, index);
 
@@ -75,6 +74,6 @@ public final class PublisherFactory {
     return REGISTRY.get(config.getString("type")).factory().apply(config);
   }
 
-  private record Entry(Spec spec, Function<Config, Publisher> factory) {
+  private record Entry(Class<? extends Publisher> clazz, Function<Config, Publisher> factory) {
   }
 }

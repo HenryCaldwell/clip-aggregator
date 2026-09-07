@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.core.PublishRef;
@@ -91,7 +90,7 @@ public class AbstractPublisherTest {
   private static final class TestPublisher extends AbstractPublisher {
 
     private TestPublisher(Config config) {
-      super(config, Spec.builder().build());
+      super(config);
     }
 
     @Override

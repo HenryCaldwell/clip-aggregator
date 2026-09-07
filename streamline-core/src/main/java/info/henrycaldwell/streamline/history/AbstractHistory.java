@@ -15,7 +15,7 @@ import info.henrycaldwell.streamline.error.SpecException;
  */
 public abstract class AbstractHistory implements History {
 
-  public static final Spec BASE_SPEC = Spec.builder()
+  public static final Spec SPEC = Spec.builder()
       .requiredString("name", "type")
       .build();
 
@@ -25,10 +25,9 @@ public abstract class AbstractHistory implements History {
    * Constructs an abstract history.
    *
    * @param config A {@link Config} representing the history block.
-   * @param spec   A {@link Spec} representing the subclass-specific spec.
    */
-  protected AbstractHistory(Config config, Spec spec) {
-    Spec composite = Spec.union(BASE_SPEC, spec);
+  protected AbstractHistory(Config config) {
+    Spec composite = Spec.collect(getClass());
 
     String name = config.hasPath("name") && !config.getString("name").isBlank()
         ? config.getString("name")

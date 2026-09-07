@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.core.MediaRef;
@@ -93,7 +92,7 @@ public class AbstractDownloaderTest {
   private static final class TestDownloader extends AbstractDownloader {
 
     private TestDownloader(Config config) {
-      super(config, Spec.builder().build());
+      super(config);
     }
 
     @Override

@@ -75,7 +75,7 @@ public final class AwsS3Stager extends AbstractStager {
    *                   {@code null} to use the default AWS S3 client.
    */
   AwsS3Stager(Config config, S3Operations operations) {
-    super(config, SPEC);
+    super(config);
 
     this.accessKey = config.getString("accessKey");
     this.secretKey = config.getString("secretKey");

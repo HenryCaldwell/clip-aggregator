@@ -14,7 +14,7 @@ import info.henrycaldwell.streamline.error.SpecException;
  * combined with subclass-specific requirements.
  */
 public abstract class AbstractPublisher implements Publisher {
-  public static final Spec BASE_SPEC = Spec.builder()
+  public static final Spec SPEC = Spec.builder()
       .requiredString("name", "type")
       .build();
 
@@ -24,10 +24,9 @@ public abstract class AbstractPublisher implements Publisher {
    * Constructs an abstract publisher.
    *
    * @param config A {@link Config} representing the publisher block.
-   * @param spec   A {@link Spec} representing the subclass-specific spec.
    */
-  protected AbstractPublisher(Config config, Spec spec) {
-    Spec composite = Spec.union(BASE_SPEC, spec);
+  protected AbstractPublisher(Config config) {
+    Spec composite = Spec.collect(getClass());
 
     String name = config.hasPath("name") && !config.getString("name").isBlank()
         ? config.getString("name")

@@ -35,7 +35,7 @@ public final class SqliteHistory extends AbstractHistory {
    * @param config A {@link Config} representing the history configuration.
    */
   public SqliteHistory(Config config) {
-    super(config, SPEC);
+    super(config);
 
     this.databasePath = config.getString("databasePath");
   }

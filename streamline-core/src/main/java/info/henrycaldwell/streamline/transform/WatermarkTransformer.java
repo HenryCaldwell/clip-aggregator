@@ -91,7 +91,7 @@ public final class WatermarkTransformer extends FFmpegTransformer {
    * @throws SpecException if the configuration violates the transformer spec.
    */
   WatermarkTransformer(Config config, ProcessFactory factory) {
-    super(config, SPEC, factory);
+    super(config, factory);
 
     this.fontPath = config.getString("fontPath");
     this.logoPath = config.hasPath("logoPath") ? config.getString("logoPath") : null;

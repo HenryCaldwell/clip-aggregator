@@ -23,8 +23,8 @@ import info.henrycaldwell.streamline.util.MapUtils;
 public final class HistoryFactory {
 
   private static final Map<String, Entry> REGISTRY = Map.of(
-      "sqlite", new Entry(SqliteHistory.SPEC, SqliteHistory::new),
-      "no_op", new Entry(NoOpHistory.SPEC, NoOpHistory::new));
+      "sqlite", new Entry(SqliteHistory.class, SqliteHistory::new),
+      "no_op", new Entry(NoOpHistory.class, NoOpHistory::new));
 
   private HistoryFactory() {
   }
@@ -42,7 +42,7 @@ public final class HistoryFactory {
     String type = config.hasPath("type") && !config.getString("type").isBlank() ? config.getString("type") : null;
 
     Entry entry = type != null ? REGISTRY.get(type) : null;
-    Spec composite = entry != null ? Spec.union(AbstractHistory.BASE_SPEC, entry.spec()) : AbstractHistory.BASE_SPEC;
+    Spec composite = Spec.collect(entry != null ? entry.clazz() : AbstractHistory.class);
 
     List<SpecException> exceptions = composite.validate(config, History.TYPE, null, name);
 
@@ -72,6 +72,6 @@ public final class HistoryFactory {
     return REGISTRY.get(config.getString("type")).factory().apply(config);
   }
 
-  private record Entry(Spec spec, Function<Config, History> factory) {
+  private record Entry(Class<? extends History> clazz, Function<Config, History> factory) {
   }
 }

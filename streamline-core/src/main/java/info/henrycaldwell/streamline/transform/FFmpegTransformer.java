@@ -25,7 +25,7 @@ import info.henrycaldwell.streamline.util.MapUtils;
  */
 public abstract class FFmpegTransformer extends AbstractTransformer {
 
-  protected static final Spec FFMPEG_SPEC = Spec.builder()
+  public static final Spec SPEC = Spec.builder()
       .requiredString("ffmpegPath")
       .optionalNumber(NumberConstraint.greaterThan(0), "timeout")
       .build();
@@ -39,25 +39,23 @@ public abstract class FFmpegTransformer extends AbstractTransformer {
    * Constructs an FFmpegTransformer.
    *
    * @param config A {@link Config} representing the transformer configuration.
-   * @param spec   A {@link Spec} representing the subclass-specific spec.
    * @throws SpecException if the configuration violates the transformer spec.
    */
-  protected FFmpegTransformer(Config config, Spec spec) {
-    this(config, spec, null);
+  protected FFmpegTransformer(Config config) {
+    this(config, null);
   }
 
   /**
    * Constructs an FFmpegTransformer with a custom process factory for testing.
    *
    * @param config  A {@link Config} representing the transformer configuration.
-   * @param spec    A {@link Spec} representing the subclass-specific spec.
    * @param factory A {@link ProcessFactory} for creating the transformation
    *                subprocess,
    *                or {@code null} to use the default FFmpeg command.
    * @throws SpecException if the configuration violates the transformer spec.
    */
-  protected FFmpegTransformer(Config config, Spec spec, ProcessFactory factory) {
-    super(config, Spec.union(FFMPEG_SPEC, spec));
+  protected FFmpegTransformer(Config config, ProcessFactory factory) {
+    super(config);
 
     this.ffmpegPath = config.getString("ffmpegPath");
     this.timeout = config.hasPath("timeout") ? config.getNumber("timeout").longValue() : 180L;

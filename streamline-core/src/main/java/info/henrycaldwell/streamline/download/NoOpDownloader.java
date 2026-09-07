@@ -24,7 +24,7 @@ public final class NoOpDownloader extends AbstractDownloader {
    * @param config A {@link Config} representing the downloader configuration.
    */
   public NoOpDownloader(Config config) {
-    super(config, SPEC);
+    super(config);
   }
 
   /**

@@ -59,7 +59,7 @@ public final class MusicTransformer extends FFmpegTransformer {
    * @throws SpecException if the configuration violates the transformer spec.
    */
   MusicTransformer(Config config, ProcessFactory factory) {
-    super(config, SPEC, factory);
+    super(config, factory);
 
     this.musicPath = config.getString("musicPath");
 

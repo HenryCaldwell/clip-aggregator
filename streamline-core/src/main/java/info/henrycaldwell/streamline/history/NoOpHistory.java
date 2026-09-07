@@ -21,7 +21,7 @@ public final class NoOpHistory extends AbstractHistory {
    * @param config A {@link Config} representing the history configuration.
    */
   public NoOpHistory(Config config) {
-    super(config, SPEC);
+    super(config);
   }
 
   /**

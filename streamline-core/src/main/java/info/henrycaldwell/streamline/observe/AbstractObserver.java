@@ -15,7 +15,7 @@ import info.henrycaldwell.streamline.error.SpecException;
  */
 public abstract class AbstractObserver implements Observer {
 
-  public static final Spec BASE_SPEC = Spec.builder()
+  public static final Spec SPEC = Spec.builder()
       .requiredString("name", "type")
       .build();
 
@@ -25,10 +25,9 @@ public abstract class AbstractObserver implements Observer {
    * Constructs an abstract observer.
    *
    * @param config A {@link Config} representing the observer block.
-   * @param spec   A {@link Spec} representing the subclass-specific spec.
    */
-  protected AbstractObserver(Config config, Spec spec) {
-    Spec composite = Spec.union(BASE_SPEC, spec);
+  protected AbstractObserver(Config config) {
+    Spec composite = Spec.collect(getClass());
 
     String name = config.hasPath("name") && !config.getString("name").isBlank()
         ? config.getString("name")

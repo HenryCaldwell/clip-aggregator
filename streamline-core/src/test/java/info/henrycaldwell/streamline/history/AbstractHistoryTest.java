@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.ClipRef;
 import info.henrycaldwell.streamline.error.SpecException;
 
@@ -119,7 +118,7 @@ public class AbstractHistoryTest {
   private static final class TestHistory extends AbstractHistory {
 
     private TestHistory(Config config) {
-      super(config, Spec.builder().build());
+      super(config);
     }
 
     @Override

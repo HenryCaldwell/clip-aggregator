@@ -23,7 +23,7 @@ public final class NoOpPublisher extends AbstractPublisher {
    * @param config A {@link Config} representing the publisher configuration.
    */
   public NoOpPublisher(Config config) {
-    super(config, SPEC);
+    super(config);
   }
 
   /**

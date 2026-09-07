@@ -79,7 +79,7 @@ public final class CloudflareR2Stager extends AbstractStager {
    *                   {@code null} to use the default Cloudflare R2 client.
    */
   CloudflareR2Stager(Config config, S3Operations operations) {
-    super(config, SPEC);
+    super(config);
 
     this.accountId = config.getString("accountId");
     this.accessKey = config.getString("accessKey");

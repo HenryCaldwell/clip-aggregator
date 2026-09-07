@@ -98,7 +98,7 @@ public final class TextTransformer extends FFmpegTransformer {
    * @throws SpecException if the configuration violates the transformer spec.
    */
   TextTransformer(Config config, ProcessFactory factory) {
-    super(config, SPEC, factory);
+    super(config, factory);
 
     this.fontPath = config.getString("fontPath");
     this.text = config.getString("text");

@@ -20,7 +20,7 @@ public final class NoOpObserver extends AbstractObserver {
    * @param config A {@link Config} representing the observer configuration.
    */
   public NoOpObserver(Config config) {
-    super(config, SPEC);
+    super(config);
   }
 
   /**

@@ -17,7 +17,6 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.MediaRef;
 import info.henrycaldwell.streamline.error.ComponentException;
@@ -229,7 +228,7 @@ public class AbstractTransformerTest {
     private final MediaRef output;
 
     private TestTransformer(Config config, MediaRef output) {
-      super(config, Spec.builder().build());
+      super(config);
       this.output = output;
     }
 

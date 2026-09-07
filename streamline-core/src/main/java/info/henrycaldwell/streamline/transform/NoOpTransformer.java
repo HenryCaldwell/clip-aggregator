@@ -21,7 +21,7 @@ public final class NoOpTransformer extends AbstractTransformer {
    * @param config A {@link Config} representing the transformer configuration.
    */
   public NoOpTransformer(Config config) {
-    super(config, SPEC);
+    super(config);
   }
 
   /**

@@ -22,7 +22,7 @@ import info.henrycaldwell.streamline.util.MapUtils;
  * combined with subclass-specific requirements.
  */
 public abstract class AbstractTransformer implements Transformer {
-  public static final Spec BASE_SPEC = Spec.builder()
+  public static final Spec SPEC = Spec.builder()
       .requiredString("name", "type")
       .build();
 
@@ -32,10 +32,9 @@ public abstract class AbstractTransformer implements Transformer {
    * Constructs an abstract transformer.
    *
    * @param config A {@link Config} representing the transformer block.
-   * @param spec   A {@link Spec} representing the subclass-specific spec.
    */
-  protected AbstractTransformer(Config config, Spec spec) {
-    Spec composite = Spec.union(BASE_SPEC, spec);
+  protected AbstractTransformer(Config config) {
+    Spec composite = Spec.collect(getClass());
 
     String name = config.hasPath("name") && !config.getString("name").isBlank()
         ? config.getString("name")

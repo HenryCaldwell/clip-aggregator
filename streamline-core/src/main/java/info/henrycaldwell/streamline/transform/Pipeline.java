@@ -21,7 +21,7 @@ public final class Pipeline {
 
   public static final ComponentType TYPE = ComponentType.PIPELINE;
 
-  public static final Spec BASE_SPEC = Spec.builder()
+  public static final Spec SPEC = Spec.builder()
       .requiredString("name")
       .requiredObjectList("transformers")
       .build();

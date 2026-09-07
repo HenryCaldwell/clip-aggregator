@@ -18,7 +18,6 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.core.CancellationReason;
 import info.henrycaldwell.streamline.core.CancellationToken;
 import info.henrycaldwell.streamline.core.ClipRef;
@@ -480,7 +479,7 @@ public class FFmpegTransformerTest {
   private static final class TestFFmpegTransformer extends FFmpegTransformer {
 
     private TestFFmpegTransformer(Config config) {
-      super(config, Spec.builder().build());
+      super(config);
     }
 
     private void callPreflight(MediaRef media, Path source, Path target) {

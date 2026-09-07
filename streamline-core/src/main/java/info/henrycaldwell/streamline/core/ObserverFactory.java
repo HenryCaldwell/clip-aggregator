@@ -23,8 +23,8 @@ import info.henrycaldwell.streamline.util.MapUtils;
 public final class ObserverFactory {
 
   private static final Map<String, Entry> REGISTRY = Map.of(
-      "sqlite", new Entry(SqliteObserver.SPEC, SqliteObserver::new),
-      "no_op", new Entry(NoOpObserver.SPEC, NoOpObserver::new));
+      "sqlite", new Entry(SqliteObserver.class, SqliteObserver::new),
+      "no_op", new Entry(NoOpObserver.class, NoOpObserver::new));
 
   private ObserverFactory() {
   }
@@ -42,7 +42,7 @@ public final class ObserverFactory {
     String type = config.hasPath("type") && !config.getString("type").isBlank() ? config.getString("type") : null;
 
     Entry entry = type != null ? REGISTRY.get(type) : null;
-    Spec composite = entry != null ? Spec.union(AbstractObserver.BASE_SPEC, entry.spec()) : AbstractObserver.BASE_SPEC;
+    Spec composite = Spec.collect(entry != null ? entry.clazz() : AbstractObserver.class);
 
     List<SpecException> exceptions = composite.validate(config, Observer.TYPE, null, name);
 
@@ -72,6 +72,6 @@ public final class ObserverFactory {
     return REGISTRY.get(config.getString("type")).factory().apply(config);
   }
 
-  private record Entry(Spec spec, Function<Config, Observer> factory) {
+  private record Entry(Class<? extends Observer> clazz, Function<Config, Observer> factory) {
   }
 }

@@ -97,7 +97,7 @@ public final class TitleTransformer extends FFmpegTransformer {
    * @throws SpecException if the configuration violates the transformer spec.
    */
   TitleTransformer(Config config, ProcessFactory factory) {
-    super(config, SPEC, factory);
+    super(config, factory);
 
     this.fontPath = config.getString("fontPath");
 

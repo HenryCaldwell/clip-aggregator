@@ -38,7 +38,7 @@ public final class PipelineFactory {
     String pipelineName = config.hasPath("name") && !config.getString("name").isBlank() ? config.getString("name")
         : "UNNAMED_PIPELINE";
 
-    List<SpecException> exceptions = Pipeline.BASE_SPEC.validate(config, Pipeline.TYPE, null, pipelineName, index);
+    List<SpecException> exceptions = Pipeline.SPEC.validate(config, Pipeline.TYPE, null, pipelineName, index);
 
     if (!config.hasPath("transformers")) {
       return exceptions;

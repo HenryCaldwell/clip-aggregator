@@ -23,7 +23,7 @@ import info.henrycaldwell.streamline.util.MapUtils;
  */
 public abstract class AbstractStager implements Stager {
 
-  public static final Spec BASE_SPEC = Spec.builder()
+  public static final Spec SPEC = Spec.builder()
       .requiredString("name", "type")
       .build();
 
@@ -33,10 +33,9 @@ public abstract class AbstractStager implements Stager {
    * Constructs an abstract stager.
    *
    * @param config A {@link Config} representing the stager block.
-   * @param spec   A {@link Spec} representing the subclass-specific spec.
    */
-  protected AbstractStager(Config config, Spec spec) {
-    Spec composite = Spec.union(BASE_SPEC, spec);
+  protected AbstractStager(Config config) {
+    Spec composite = Spec.collect(getClass());
 
     String name = config.hasPath("name") && !config.getString("name").isBlank()
         ? config.getString("name")

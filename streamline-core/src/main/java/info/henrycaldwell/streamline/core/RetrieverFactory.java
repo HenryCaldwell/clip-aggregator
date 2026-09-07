@@ -23,8 +23,8 @@ import info.henrycaldwell.streamline.util.MapUtils;
 public final class RetrieverFactory {
 
   private static final Map<String, Entry> REGISTRY = Map.of(
-      "twitch", new Entry(TwitchRetriever.SPEC, TwitchRetriever::new),
-      "no_op", new Entry(NoOpRetriever.SPEC, NoOpRetriever::new));
+      "twitch", new Entry(TwitchRetriever.class, TwitchRetriever::new),
+      "no_op", new Entry(NoOpRetriever.class, NoOpRetriever::new));
 
   private RetrieverFactory() {
   }
@@ -43,8 +43,7 @@ public final class RetrieverFactory {
     String type = config.hasPath("type") && !config.getString("type").isBlank() ? config.getString("type") : null;
 
     Entry entry = type != null ? REGISTRY.get(type) : null;
-    Spec composite = entry != null ? Spec.union(AbstractRetriever.BASE_SPEC, entry.spec())
-        : AbstractRetriever.BASE_SPEC;
+    Spec composite = Spec.collect(entry != null ? entry.clazz() : AbstractRetriever.class);
 
     List<SpecException> exceptions = composite.validate(config, Retriever.TYPE, null, name, index);
 
@@ -75,6 +74,6 @@ public final class RetrieverFactory {
     return REGISTRY.get(config.getString("type")).factory().apply(config);
   }
 
-  private record Entry(Spec spec, Function<Config, Retriever> factory) {
+  private record Entry(Class<? extends Retriever> clazz, Function<Config, Retriever> factory) {
   }
 }

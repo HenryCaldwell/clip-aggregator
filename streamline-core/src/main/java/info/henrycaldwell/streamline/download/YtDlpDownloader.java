@@ -52,7 +52,7 @@ public final class YtDlpDownloader extends AbstractDownloader {
    *                or {@code null} to use the default yt-dlp command.
    */
   YtDlpDownloader(Config config, ProcessFactory factory) {
-    super(config, SPEC);
+    super(config);
 
     this.ytDlpPath = config.getString("ytDlpPath");
 

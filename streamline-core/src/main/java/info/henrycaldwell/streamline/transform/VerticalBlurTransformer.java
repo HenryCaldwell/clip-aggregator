@@ -51,7 +51,7 @@ public final class VerticalBlurTransformer extends FFmpegTransformer {
    * @throws SpecException if the configuration violates the transformer spec.
    */
   VerticalBlurTransformer(Config config, ProcessFactory factory) {
-    super(config, SPEC, factory);
+    super(config, factory);
 
     this.targetWidth = config.hasPath("targetWidth") ? config.getNumber("targetWidth").intValue() : 1080;
     this.targetHeight = config.hasPath("targetHeight") ? config.getNumber("targetHeight").intValue() : 1920;

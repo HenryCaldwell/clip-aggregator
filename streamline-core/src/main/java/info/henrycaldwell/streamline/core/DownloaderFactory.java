@@ -23,8 +23,8 @@ import info.henrycaldwell.streamline.util.MapUtils;
 public final class DownloaderFactory {
 
   private static final Map<String, Entry> REGISTRY = Map.of(
-      "yt-dlp", new Entry(YtDlpDownloader.SPEC, YtDlpDownloader::new),
-      "no_op", new Entry(NoOpDownloader.SPEC, NoOpDownloader::new));
+      "yt-dlp", new Entry(YtDlpDownloader.class, YtDlpDownloader::new),
+      "no_op", new Entry(NoOpDownloader.class, NoOpDownloader::new));
 
   private DownloaderFactory() {
   }
@@ -42,8 +42,7 @@ public final class DownloaderFactory {
     String type = config.hasPath("type") && !config.getString("type").isBlank() ? config.getString("type") : null;
 
     Entry entry = type != null ? REGISTRY.get(type) : null;
-    Spec composite = entry != null ? Spec.union(AbstractDownloader.BASE_SPEC, entry.spec())
-        : AbstractDownloader.BASE_SPEC;
+    Spec composite = Spec.collect(entry != null ? entry.clazz() : AbstractDownloader.class);
 
     List<SpecException> exceptions = composite.validate(config, Downloader.TYPE, null, name);
 
@@ -73,6 +72,6 @@ public final class DownloaderFactory {
     return REGISTRY.get(config.getString("type")).factory().apply(config);
   }
 
-  private record Entry(Spec spec, Function<Config, Downloader> factory) {
+  private record Entry(Class<? extends Downloader> clazz, Function<Config, Downloader> factory) {
   }
 }

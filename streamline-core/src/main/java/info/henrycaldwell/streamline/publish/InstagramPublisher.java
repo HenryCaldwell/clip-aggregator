@@ -69,7 +69,7 @@ public final class InstagramPublisher extends AbstractPublisher {
    * @throws SpecException if the configuration violates the publisher spec.
    */
   InstagramPublisher(Config config, HttpSender sender) {
-    super(config, SPEC);
+    super(config);
 
     this.http = HttpClient.newHttpClient();
     this.accountId = config.getString("accountId");

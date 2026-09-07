@@ -46,7 +46,7 @@ public final class FpsTransformer extends FFmpegTransformer {
    * @throws SpecException if the configuration violates the transformer spec.
    */
   FpsTransformer(Config config, ProcessFactory factory) {
-    super(config, SPEC, factory);
+    super(config, factory);
 
     this.targetFps = config.hasPath("targetFps") ? config.getNumber("targetFps").intValue() : 30;
   }

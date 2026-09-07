@@ -81,7 +81,7 @@ public final class TwitchRetriever extends AbstractRetriever {
    *               to use the default Twitch Helix HTTP client.
    */
   TwitchRetriever(Config config, HttpSender sender) {
-    super(config, SPEC);
+    super(config);
 
     this.clientId = config.getString("clientId");
     this.accessKey = config.getString("accessKey");

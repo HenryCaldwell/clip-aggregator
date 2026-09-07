@@ -25,7 +25,6 @@ import org.junit.jupiter.api.io.TempDir;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import info.henrycaldwell.streamline.config.Spec;
 import info.henrycaldwell.streamline.download.Downloader;
 import info.henrycaldwell.streamline.error.SpecException;
 import info.henrycaldwell.streamline.history.History;
@@ -2040,7 +2039,7 @@ public class RunnerTest {
       super(ConfigFactory.parseString("""
           name = recording
           type = recording
-          """), Spec.builder().build());
+          """));
     }
 
     @Override

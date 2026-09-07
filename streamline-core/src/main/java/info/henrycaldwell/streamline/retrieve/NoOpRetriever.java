@@ -24,7 +24,7 @@ public final class NoOpRetriever extends AbstractRetriever {
    * @param config A {@link Config} representing the retriever configuration.
    */
   public NoOpRetriever(Config config) {
-    super(config, SPEC);
+    super(config);
   }
 
   /**
