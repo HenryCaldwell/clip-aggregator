@@ -6,7 +6,6 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -256,33 +255,6 @@ public final class Runner {
       }
     }
 
-    Set<String> retrieverNames = new HashSet<>();
-    List<Map.Entry<String, String>> retrieverRefs = new ArrayList<>();
-    try {
-      List<? extends Config> configs = config.getConfigList("retrievers");
-
-      for (int i = 0; i < configs.size(); i++) {
-        Config entry = configs.get(i);
-        List<SpecException> retrieverExceptions = RetrieverFactory.validate(entry, i);
-        exceptions.addAll(retrieverExceptions);
-
-        if (retrieverExceptions.isEmpty()) {
-          String name = entry.getString("name");
-
-          if (!retrieverNames.add(name)) {
-            exceptions.add(new SpecException(ComponentType.RETRIEVER, null, name, "Duplicate retriever name",
-                MapUtils.ofNullable("index", i, "name", name)));
-          }
-
-          if (entry.hasPath("pipeline")) {
-            retrieverRefs.add(Map.entry(name, entry.getString("pipeline")));
-          }
-        }
-      }
-    } catch (ConfigException.Missing | ConfigException.WrongType e) {
-      // Already surfaced by ROOT_SPEC
-    }
-
     Set<String> pipelineNames = new HashSet<>();
     if (config.hasPath("pipelines")) {
       try {
@@ -293,18 +265,56 @@ public final class Runner {
           List<SpecException> pipelineExceptions = PipelineFactory.validate(entry, i);
           exceptions.addAll(pipelineExceptions);
 
-          if (pipelineExceptions.isEmpty()) {
-            String name = entry.getString("name");
+          String name = entry.hasPath("name") && !entry.getString("name").isBlank()
+              ? entry.getString("name")
+              : null;
 
-            if (!pipelineNames.add(name)) {
-              exceptions.add(new SpecException(ComponentType.PIPELINE, null, name, "Duplicate pipeline name",
-                  MapUtils.ofNullable("index", i, "name", name)));
-            }
+          if (name != null && !pipelineNames.add(name)) {
+            exceptions.add(new SpecException(ComponentType.PIPELINE, null, name, "Duplicate pipeline name",
+                MapUtils.ofNullable("index", i, "name", name)));
           }
         }
       } catch (ConfigException.WrongType e) {
         // Already surfaced by ROOT_SPEC
       }
+    }
+
+    Set<String> retrieverNames = new HashSet<>();
+    try {
+      List<? extends Config> configs = config.getConfigList("retrievers");
+
+      for (int i = 0; i < configs.size(); i++) {
+        Config entry = configs.get(i);
+        List<SpecException> retrieverExceptions = RetrieverFactory.validate(entry, i);
+        exceptions.addAll(retrieverExceptions);
+
+        String name = entry.hasPath("name") && !entry.getString("name").isBlank()
+            ? entry.getString("name")
+            : null;
+
+        if (name != null && !retrieverNames.add(name)) {
+          exceptions.add(new SpecException(ComponentType.RETRIEVER, null, name, "Duplicate retriever name",
+              MapUtils.ofNullable("index", i, "name", name)));
+        }
+
+        if (entry.hasPath("pipeline")) {
+          String displayName = name != null ? name : "UNNAMED_RETRIEVER";
+
+          try {
+            String pipelineName = entry.getString("pipeline");
+
+            if (!pipelineNames.contains(pipelineName)) {
+              exceptions
+                  .add(new SpecException(ComponentType.RETRIEVER, null, displayName, "References unknown pipeline",
+                      MapUtils.ofNullable("index", i, "key", "pipeline", "value", pipelineName)));
+            }
+          } catch (ConfigException.WrongType ignored) {
+            // Already surfaced by factory
+          }
+        }
+      }
+    } catch (ConfigException.Missing | ConfigException.WrongType e) {
+      // Already surfaced by ROOT_SPEC
     }
 
     try {
@@ -316,24 +326,17 @@ public final class Runner {
         List<SpecException> publisherExceptions = PublisherFactory.validate(entry, i);
         exceptions.addAll(publisherExceptions);
 
-        if (publisherExceptions.isEmpty()) {
-          String name = entry.getString("name");
+        String name = entry.hasPath("name") && !entry.getString("name").isBlank()
+            ? entry.getString("name")
+            : null;
 
-          if (!publisherNames.add(name)) {
-            exceptions.add(new SpecException(ComponentType.PUBLISHER, null, name, "Duplicate publisher name",
-                MapUtils.ofNullable("index", i, "name", name)));
-          }
+        if (name != null && !publisherNames.add(name)) {
+          exceptions.add(new SpecException(ComponentType.PUBLISHER, null, name, "Duplicate publisher name",
+              MapUtils.ofNullable("index", i, "name", name)));
         }
       }
     } catch (ConfigException.Missing | ConfigException.WrongType e) {
       // Already surfaced by ROOT_SPEC
-    }
-
-    for (Map.Entry<String, String> ref : retrieverRefs) {
-      if (!pipelineNames.contains(ref.getValue())) {
-        exceptions.add(new SpecException(ComponentType.RETRIEVER, null, ref.getKey(), "References unknown pipeline",
-            MapUtils.ofNullable("key", "pipeline", "value", ref.getValue())));
-      }
     }
 
     return exceptions;
